@@ -13,17 +13,16 @@ import './EvmProxy.sol';
 contract UniProxy is IWormholeReceiver {
 	address public wormholeCore;
 	address public registrationOwner;
-    // mapping   ChainId+wormholeAddress -> address  (AddressMapping)
-    mapping(uint16 => mapping(bytes32 => address)) public proxys;
+	// mapping   ChainId+wormholeAddress -> address  (AddressMapping)
+	mapping(uint16 => mapping(bytes32 => address)) public proxys;
 	mapping(uint16 => bytes32) public registeredSenders;
-	//consumeMessages record for not EVM emitter chain
 	mapping(bytes32 => bool) consumedMessages;
 	
 	event ProxyCreated(uint16 indexed sourceChain, bytes32 indexed sourceAddress, address proxy);
 	
 	constructor(address _wormholeCore) {
-		wormholeCore = _wormholeCore;
-		registrationOwner = msg.sender;
+        wormholeCore = _wormholeCore;
+        registrationOwner = msg.sender;
 	}
 	
 	function setRegisteredSender(
@@ -35,7 +34,7 @@ contract UniProxy is IWormholeReceiver {
             "Not registrationOwner"
         );
         registeredSenders[sourceChain] = sourceAddress;
-    }
+	}
 	
 	//receive message for not EVM emitter chain
 	function receiveMessage(bytes memory encodedMessage) public {
@@ -46,57 +45,58 @@ contract UniProxy is IWormholeReceiver {
         ) = IWormhole(wormholeCore).parseAndVerifyVM(encodedMessage);
 
         require(valid, reason);
-		
-		_receiveMessages(
-			wormholeMessage.payload,
-			new bytes[](0),
-			wormholeMessage.emitterAddress,
-			wormholeMessage.emitterChainId,
-			wormholeMessage.hash
-		);
-    }	
-	
-    function receiveWormholeMessages(
+
+        _receiveMessages(
+            wormholeMessage.payload,
+            new bytes[](0),
+            wormholeMessage.emitterAddress,
+            wormholeMessage.emitterChainId,
+            wormholeMessage.hash
+        );
+	}
+
+	function receiveWormholeMessages(
         bytes memory payload,
         bytes[] memory additionalVaas,
         bytes32 sourceAddress,
         uint16 sourceChain,
         bytes32 deliveryHash
     ) external payable override {
-		require(msg.sender == wormholeCore, 'Not wormhole core call');
-		_receiveMessages(payload, additionalVaas, sourceAddress, sourceChain, deliveryHash);
+        require(msg.sender == wormholeCore, 'Not wormhole core call');
+        _receiveMessages(payload, additionalVaas, sourceAddress, sourceChain, deliveryHash);
 	}
 	
-    function _receiveMessages(
+	function _receiveMessages(
         bytes memory payload,
         bytes[] memory additionalVaas,
         bytes32 sourceAddress,
         uint16 sourceChain,
         bytes32 deliveryHash
     ) private {
-		require(!consumedMessages[deliveryHash], "message already consumed");
-		consumedMessages[deliveryHash] = true;
-		
-		uint16 sChain = sourceChain;
-		bytes32 sAddress = sourceAddress;
-		bytes memory sPayload = payload;
-		
-		if(registeredSenders[sourceChain] == sourceAddress){
-			(sAddress, sPayload) = abi.decode(payload, (bytes32, bytes));
-		}
-		
-		address proxy = proxys[sChain][sAddress];
-		if(proxy == address(0)) {
-			bytes memory bytecode = type(EvmProxy).creationCode;
-			bytes32 salt = keccak256(abi.encodePacked(sChain, sAddress));
-			assembly {
-				proxy := create2(0, add(bytecode, 32), mload(bytecode), salt)
-			}
-			IEvmProxy(proxy).initialize(sChain, sAddress);
-			proxys[sChain][sAddress] = proxy;
-            emit ProxyCreated(sChain, sAddress, proxy);			
-		}
-		IEvmProxy(proxy).doProxy{value: msg.value}(sPayload);
-    }
+        require(!consumedMessages[deliveryHash], "message already consumed");
+        consumedMessages[deliveryHash] = true;
+
+        uint16 sChain = sourceChain;
+        bytes32 sAddress = sourceAddress;
+        bytes memory sPayload = payload;
+
+        if(registeredSenders[sourceChain] == sourceAddress){
+            (sAddress, sPayload) = abi.decode(payload, (bytes32, bytes));
+        }
+
+        address proxy = proxys[sChain][sAddress];
+        if(proxy == address(0)) {
+            bytes memory bytecode = type(EvmProxy).creationCode;
+            bytes32 salt = keccak256(abi.encodePacked(sChain, sAddress));
+            assembly {
+                proxy := create2(0, add(bytecode, 32), mload(bytecode), salt)
+            }
+            IEvmProxy(proxy).initialize(sChain, sAddress);
+            proxys[sChain][sAddress] = proxy;
+            emit ProxyCreated(sChain, sAddress, proxy);
+        }
+
+        IEvmProxy(proxy).doProxy{value: msg.value}(sPayload);
+	}
 
 }
