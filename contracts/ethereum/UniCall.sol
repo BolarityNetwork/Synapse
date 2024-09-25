@@ -27,7 +27,7 @@ contract UniProxy {
 		uint8 consistencyLevel
 	) external payable {
 		address delivery = wormholeRelayer.getDefaultDeliveryProvider();
-		(uint256 cost, ) = wormholeRelayer.quoteDeliveryPrice(targetChain, receiverValue, gaslimit, delivery);
+		(uint cost, ) = wormholeRelayer.quoteDeliveryPrice(targetChain, receiverValue, gaslimit, delivery);	
 
 		require(
 			msg.value >= cost,
@@ -51,5 +51,14 @@ contract UniProxy {
 	
 	function toUniAddress(address addr) public pure returns (bytes32 uniAddress) {
 		uniAddress = bytes32(uint256(uint160(addr)));
+	}
+	
+	function quoteCrossChainCost(
+		uint16 targetChain,
+		uint receiverValue,
+		bytes memory gaslimit
+	) public view returns(uint cost) {
+		address delivery = wormholeRelayer.getDefaultDeliveryProvider();
+		(cost, ) = wormholeRelayer.quoteDeliveryPrice(targetChain, receiverValue, gaslimit, delivery);	
 	}
 }
