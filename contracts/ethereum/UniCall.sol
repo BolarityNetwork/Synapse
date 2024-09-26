@@ -8,12 +8,15 @@ pragma solidity ^0.8.0;
 import './interfaces/IWormholeRelayer.sol';
 
 contract UniProxy {
-	uint16 constant ThisChainId = 2;
+	address owner;
+	uint16 thisChainId;
 	IWormholeRelayer public wormholeRelayer;
 	
 	//Ethereum address: 0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B
-	constructor(address _wormholeRelayer) {
+	constructor(address _wormholeRelayer, uint16 _thisChainId) {
 		wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
+		thisChainId = _thisChainId;
+		owner = msg.sender;
 	}
 	
 	function uniChainCall(
@@ -41,7 +44,7 @@ contract UniProxy {
 			receiverValue,
 			0,
 			gaslimit,
-			ThisChainId,
+			thisChainId,
 			toUniAddress(msg.sender),
 			delivery,
 			new MessageKey[](0),
@@ -60,5 +63,10 @@ contract UniProxy {
 	) public view returns(uint cost) {
 		address delivery = wormholeRelayer.getDefaultDeliveryProvider();
 		(cost, ) = wormholeRelayer.quoteDeliveryPrice(targetChain, receiverValue, gaslimit, delivery);	
+	}
+	
+	function getDonate(address payable to, uint amount) external {
+		require(msg.sender == owner, "Not the contract owner");
+		to.transfer(amount);
 	}
 }
