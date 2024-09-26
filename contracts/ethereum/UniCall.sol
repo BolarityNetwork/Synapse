@@ -7,12 +7,13 @@ pragma solidity ^0.8.0;
 
 import './interfaces/IWormholeRelayer.sol';
 
-contract UniProxy {
+contract UniCall {
 	address owner;
 	uint16 thisChainId;
 	IWormholeRelayer public wormholeRelayer;
 	
-	//Ethereum address: 0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B
+	//Ethereum (address: 0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B, chainId:2)
+	//Others(...)
 	constructor(address _wormholeRelayer, uint16 _thisChainId) {
 		wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
 		thisChainId = _thisChainId;
