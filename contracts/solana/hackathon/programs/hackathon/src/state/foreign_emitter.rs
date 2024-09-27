@@ -25,6 +25,21 @@ impl ForeignEmitter {
     }
 }
 
+#[account]
+#[derive(Default)]
+pub struct PDAAccount {
+    pub chain: u16,
+    pub address: [u8; 32],
+}
+
+impl PDAAccount {
+    pub const MAXIMUM_SIZE: usize = 8 // discriminator
+        + 2 // chain
+        + 32 // address
+    ;
+    pub const SEED_PREFIX: &'static [u8; 3] = b"pda";
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

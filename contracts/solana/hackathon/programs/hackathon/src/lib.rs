@@ -31,11 +31,15 @@ declare_id!("CLErExd7gNADvu5rDFmkFD1uAt7zksJ3TDfXsJqJ4QTs");
 /// * [Received]
 /// * [WormholeEmitter]
 pub mod hackathon {
+    use anchor_lang::__private::bytemuck::bytes_of;
     use super::*;
     use anchor_lang::solana_program;
+    use anchor_lang::system_program;
     use solana_program::instruction::Instruction;
-    use solana_program::program::invoke;
+    use solana_program::program::{invoke, invoke_signed};
+    use solana_program::system_instruction;
     use wormhole_anchor_sdk::wormhole;
+    use wormhole_io::Writeable;
 
     /// This instruction initializes the program config, which is meant
     /// to store data useful for other instructions. The config specifies
@@ -258,7 +262,7 @@ pub mod hackathon {
 
         // There is only one type of message that this example uses to
         // communicate with its foreign counterparts (payload ID == 1).
-        let payload: Vec<u8> = HelloWorldMessage::Hello { message }.try_to_vec()?;
+        // let payload: Vec<u8> = HelloWorldMessage::Hello { message }.try_to_vec()?;
 
         wormhole::post_message(
             CpiContext::new_with_signer(
@@ -284,7 +288,7 @@ pub mod hackathon {
                 ],
             ),
             config.batch_id,
-            payload,
+            message,
             config.finality.try_into().unwrap(),
         )?;
 
@@ -301,95 +305,101 @@ pub mod hackathon {
     /// # Arguments
     ///
     /// * `vaa_hash` - Keccak256 hash of verified Wormhole message
-    pub fn receive_message(ctx: Context<ReceiveMessage>, vaa_hash: [u8; 32]) -> Result<()> {
+    pub fn receive_message<'a, 'b, 'c, 'info>(ctx: Context<'a, 'b, 'c, 'info, ReceiveMessage<'info>>, vaa_hash: [u8; 32], bump:u8, chain: u16, address:[u8;32]) -> Result<()> {
         let posted_message = &ctx.accounts.posted;
+        // Save batch ID, keccak256 hash and message payload.
+        let received = &mut ctx.accounts.received;
+        received.batch_id = posted_message.batch_id();
+        received.wormhole_message_hash = vaa_hash;
+        received.message = vec![];
 
-        if let HelloWorldMessage::Hello { message } = posted_message.data() {
-            // HelloWorldMessage cannot be larger than the maximum size of the account.
-            require!(
-                message.len() <= MESSAGE_MAX_LENGTH,
-                HelloWorldError::InvalidMessage,
-            );
-
-            // Save batch ID, keccak256 hash and message payload.
-            let received = &mut ctx.accounts.received;
-            received.batch_id = posted_message.batch_id();
-            received.wormhole_message_hash = vaa_hash;
-            received.message = message.clone();
-
-            // Done
-            Ok(())
-        } else {
-            Err(HelloWorldError::InvalidMessage.into())
-        }
-    }
-
-    pub fn receive_message2<'a, 'b, 'c, 'info>(ctx: Context<'a, 'b, 'c, 'info, ReceiveMessage2<'info>>, vaa_hash: [u8; 32], data:Vec<u8>) -> Result<()> {
-        let posted_message = &ctx.accounts.posted;
-
-        if let HelloWorldMessage::Hello { message } = posted_message.data() {
-            // HelloWorldMessage cannot be larger than the maximum size of the account.
-            require!(
-                message.len() <= MESSAGE_MAX_LENGTH,
-                HelloWorldError::InvalidMessage,
-            );
-
-            // Save batch ID, keccak256 hash and message payload.
-            let received = &mut ctx.accounts.received;
-            received.batch_id = posted_message.batch_id();
-            received.wormhole_message_hash = vaa_hash;
-            received.message = message.clone();
-
-            let account_list = helper::RawData::deserialize(&mut &*data)?;
+        let seeds = b"pda";
+        let signer_seeds: &[&[&[u8]]] = &[&[seeds,&chain.to_le_bytes(), address.as_slice(), &[bump]]];
+         // let account_list = RawData::deserialize(&mut &*data)?;
+        let account_list = posted_message.data().clone();
             msg!("{:?}", account_list);
-            let mut accounts:Vec<AccountMeta>=vec![];
-            let mut acc_infos = vec![];
-            let mut i  = 0;
-            for account in ctx.remaining_accounts {
-                let is_signer = account_list.accounts[i].is_signer;
-                let writeable = account_list.accounts[i].writeable;
-                if writeable {
-                    accounts.push(AccountMeta::new(account.key(), is_signer));
-                } else {
-                    accounts.push(AccountMeta::new_readonly(account.key(), is_signer));
-                }
-                acc_infos.push(account.to_account_info());
-                i+=1;
-                if i == account_list.acc_count as usize{
-                    break
-                }
+        let transfer_buf:[u8;8] = [0x27, 0xf5 ,0x76, 0xca, 0xfb, 0xb2, 0x63, 0xed];
+        let active_buf:[u8;8]=[0x96 , 0x87 , 0x96 , 0x11 , 0x65 , 0x0f , 0x80 , 0xa8];
+        let transfer_ins = transfer_buf.to_vec();
+        let active_ins = active_buf.to_vec();
+        let mut accounts:Vec<AccountMeta>=vec![];
+        let mut acc_infos = vec![];
+        let mut i  = 0;
+        for account in ctx.remaining_accounts {
+            let is_signer = account_list.accounts[i].is_signer;
+            let writeable = account_list.accounts[i].writeable;
+            if writeable {
+                accounts.push(AccountMeta::new(account.key(), is_signer));
+            } else {
+                accounts.push(AccountMeta::new_readonly(account.key(), is_signer));
             }
+            acc_infos.push(account.to_account_info());
+            i+=1;
+            if i == account_list.acc_count as usize{
+                break
+            }
+        }
+
+        let ins: Vec<u8> = account_list.paras.iter().take(8).cloned().collect();
+        if ins == transfer_ins {
+            // transer
+            let bytes:[u8;8] = account_list.paras[8..].try_into().expect("Slice length must be 8");
+            let amount = u64::from_le_bytes(bytes);
+            let from_pubkey = acc_infos[0].to_account_info();
+            let to_pubkey = acc_infos[1].to_account_info();
+            **from_pubkey.try_borrow_mut_lamports()? -= amount;
+            **to_pubkey.try_borrow_mut_lamports()? += amount;
+        } else if ins == active_ins {
+            let (pda, bump) = Pubkey::find_program_address(&[seeds,&chain.to_le_bytes(), address.as_slice()], ctx.program_id);
+
+            let lamports = (Rent::get()?).minimum_balance(std::mem::size_of::<PDAAccount>());
+
+            let create_account_ix = system_instruction::create_account(
+                &ctx.accounts.payer.key,
+                &pda,
+                lamports,
+                std::mem::size_of::<PDAAccount>() as u64,
+                ctx.program_id,
+            );
+
+            invoke_signed(
+                &create_account_ix,
+                &[
+                    ctx.accounts.payer.to_account_info(),
+                    ctx.accounts.system_program.to_account_info(),
+                    acc_infos[0].to_account_info(),
+                ],
+                signer_seeds,
+            )?;
+        } else{
             let instruction: Instruction = Instruction {
                 program_id: ctx.accounts.program_account.key(),
                 accounts,
-                data:account_list.paras,
+                data:account_list.paras.clone(),
             };
-            invoke(&instruction, &acc_infos)?;
-            // Done
-            Ok(())
-        } else {
-            Err(HelloWorldError::InvalidMessage.into())
+
+            invoke_signed(&instruction, &acc_infos, signer_seeds)?;
         }
-    }
-}
-
-mod helper {
-    use super::*;
-    #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
-    pub struct AccountMetaType {
-        pub key: Pubkey,
-        pub writeable: bool,
-        pub is_signer: bool,
+        // Done
+        Ok(())
     }
 
-    #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
-    pub struct RawData {
-        pub chain_id: u16,
-        pub caller: Pubkey,
-        pub programId: Pubkey,
-        pub acc_count: u8,
-        pub accounts: Vec<AccountMetaType>,
-        pub paras: Vec<u8>,
-        pub acc_meta: Vec<u8>,
+    pub fn active(
+        ctx: Context<Active>,
+        chain: u16,
+        address: [u8; 32],
+    ) -> Result<()> {
+        // pda cannot share the same Wormhole Chain ID as the
+        // Solana Wormhole program's. And cannot register a zero address.
+        require!(
+            chain > 0 && chain != wormhole::CHAIN_ID_SOLANA && !address.iter().all(|&x| x == 0),
+            HelloWorldError::InvalidForeignEmitter,
+        );
+        // Save the emitter info into the pda account.
+        let pda = &mut ctx.accounts.pda;
+        pda.chain = chain;
+        pda.address = address;
+        // Done.
+        Ok(())
     }
 }

@@ -1,11 +1,7 @@
 use anchor_lang::prelude::*;
 use wormhole_anchor_sdk::wormhole::{self, program::Wormhole};
 
-use crate::{
-    error::HelloWorldError,
-    message::HelloWorldMessage,
-    state::{Config, ForeignEmitter, Received, WormholeEmitter},
-};
+use crate::{error::HelloWorldError, message::HelloWorldMessage, PDAAccount, state::{Config, ForeignEmitter, Received, WormholeEmitter}};
 
 /// AKA `b"sent"`.
 pub const SEED_PREFIX_SENT: &[u8; 4] = b"sent";
@@ -211,76 +207,28 @@ pub struct SendMessage<'info> {
     /// Rent sysvar.
     pub rent: Sysvar<'info, Rent>,
 }
+#[derive(AnchorSerialize, AnchorDeserialize, Debug, Clone)]
+pub struct AccountMetaType {
+    pub key: Pubkey,
+    pub writeable: bool,
+    pub is_signer: bool,
+}
 
-type HelloWorldVaa = wormhole::PostedVaa<HelloWorldMessage>;
+#[derive(AnchorSerialize, AnchorDeserialize, Debug, Clone)]
+pub struct RawData {
+    pub chain_id: u16,
+    pub caller: Pubkey,
+    pub programId: Pubkey,
+    pub acc_count: u8,
+    pub accounts: Vec<AccountMetaType>,
+    pub paras: Vec<u8>,
+    pub acc_meta: Vec<u8>,
+}
+type HelloWorldVaa = wormhole::PostedVaa<RawData>;
 
 #[derive(Accounts)]
 #[instruction(vaa_hash: [u8; 32])]
 pub struct ReceiveMessage<'info> {
-    #[account(mut)]
-    /// Payer will initialize an account that tracks his own message IDs.
-    pub payer: Signer<'info>,
-
-    #[account(
-        seeds = [Config::SEED_PREFIX],
-        bump,
-    )]
-    /// Config account. Wormhole PDAs specified in the config are checked
-    /// against the Wormhole accounts in this context. Read-only.
-    pub config: Account<'info, Config>,
-
-    // Wormhole program.
-    pub wormhole_program: Program<'info, Wormhole>,
-
-    #[account(
-        seeds = [
-            wormhole::SEED_PREFIX_POSTED_VAA,
-            &vaa_hash
-        ],
-        bump,
-        seeds::program = wormhole_program.key
-    )]
-    /// Verified Wormhole message account. The Wormhole program verified
-    /// signatures and posted the account data here. Read-only.
-    pub posted: Account<'info, HelloWorldVaa>,
-
-    #[account(
-        seeds = [
-            ForeignEmitter::SEED_PREFIX,
-            &posted.emitter_chain().to_le_bytes()[..]
-        ],
-        bump,
-        constraint = foreign_emitter.verify(posted.emitter_address()) @ HelloWorldError::InvalidForeignEmitter
-    )]
-    /// Foreign emitter account. The posted message's `emitter_address` must
-    /// agree with the one we have registered for this message's `emitter_chain`
-    /// (chain ID). Read-only.
-    pub foreign_emitter: Account<'info, ForeignEmitter>,
-
-    #[account(
-        init,
-        payer = payer,
-        seeds = [
-            Received::SEED_PREFIX,
-            &posted.emitter_chain().to_le_bytes()[..],
-            &posted.sequence().to_le_bytes()[..]
-        ],
-        bump,
-        space = Received::MAXIMUM_SIZE
-    )]
-    /// Received account. [`receive_message`](crate::receive_message) will
-    /// deserialize the Wormhole message's payload and save it to this account.
-    /// This account cannot be overwritten, and will prevent Wormhole message
-    /// replay with the same sequence.
-    pub received: Account<'info, Received>,
-
-    /// System program.
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-#[instruction(vaa_hash: [u8; 32])]
-pub struct ReceiveMessage2<'info> {
     #[account(mut)]
     /// Payer will initialize an account that tracks his own message IDs.
     pub payer: Signer<'info>,
@@ -343,4 +291,29 @@ pub struct ReceiveMessage2<'info> {
 
     /// CHECK: This is not dangerous because we don't read or write from this account
     pub program_account: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(chain: u16, address:[u8;32])]
+pub struct Active<'info> {
+    #[account(mut)]
+    /// Owner of the program set in the [`Config`] account. Signer for creating
+    /// the [`ForeignEmitter`] account.
+    pub owner: Signer<'info>,
+
+    #[account(
+    init_if_needed,
+    payer = owner,
+    seeds = [
+    PDAAccount::SEED_PREFIX,
+    &chain.to_le_bytes()[..],
+    address.as_ref()
+    ],
+    bump,
+    space = PDAAccount::MAXIMUM_SIZE
+    )]
+    pub pda: Account<'info, PDAAccount>,
+
+    /// System program.
+    pub system_program: Program<'info, System>,
 }
