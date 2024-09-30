@@ -25,7 +25,7 @@ contract EvmProxy is IEvmProxy {
 	function doProxy(bytes memory payload) external payable override {
 		require(msg.sender == factory, 'EvmProxy: Forbidden');
 		(bytes32 uniAddress, uint extraValue, bytes memory paraWithSelector) = abi.decode(payload, (bytes32, uint256, bytes));
-		address target = fromUniAddress(uniAddress);
+		address payable target = payable(fromUniAddress(uniAddress));
 		(bool result, ) =  target.call{value: msg.value+extraValue}(paraWithSelector);
 		require(result, 'EvmProxy: CallFail');
 	}
@@ -36,4 +36,5 @@ contract EvmProxy is IEvmProxy {
 			addr := uniAddress
 		}
 	}
+	receive() external payable {}
 }
