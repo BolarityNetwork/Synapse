@@ -13,6 +13,7 @@ import './EvmProxy.sol';
 contract UniProxy is IWormholeReceiver {
 	address public wormholeCore;
 	address public registrationOwner;
+	uint8 public wormholeFinality;
 	// mapping   ChainId+wormholeAddress -> address  (AddressMapping)
 	mapping(uint16 => mapping(bytes32 => address)) public proxys;
 	mapping(uint16 => bytes32) public registeredSenders;
@@ -20,9 +21,10 @@ contract UniProxy is IWormholeReceiver {
 	
 	event ProxyCreated(uint16 indexed sourceChain, bytes32 indexed sourceAddress, address proxy);
 	
-	constructor(address _wormholeCore) {
+	constructor(address _wormholeCore, uint8 wormholeFinality_) {
 		wormholeCore = _wormholeCore;
 		registrationOwner = msg.sender;
+		wormholeFinality = wormholeFinality_;
 	}
 	
 	function setRegisteredSender(
@@ -94,9 +96,29 @@ contract UniProxy is IWormholeReceiver {
 			IEvmProxy(proxy).initialize(sChain, sAddress);
 			proxys[sChain][sAddress] = proxy;
 			emit ProxyCreated(sChain, sAddress, proxy);
+		} else {
+			IEvmProxy(proxy).doProxy{value: msg.value}(sPayload);
 		}
-
-		IEvmProxy(proxy).doProxy{value: msg.value}(sPayload);
 	}
 
+    function sendMessage(
+        bytes memory helloWorldMessage
+    ) public payable returns (uint64 messageSequence) {
+
+        // cache Wormhole instance and fees to save on gas
+        IWormhole wormhole = IWormhole(wormholeCore);
+        uint256 wormholeFee = wormhole.messageFee();
+
+        // Confirm that the caller has sent enough value to pay for the Wormhole
+        // message fee.
+        require(msg.value == wormholeFee, "insufficient value");
+
+        // Send the HelloWorld message by calling publishMessage on the
+        // Wormhole core contract and paying the Wormhole protocol fee.
+        messageSequence = wormhole.publishMessage{value: wormholeFee}(
+            0, // batchID
+            helloWorldMessage,
+            wormholeFinality
+        );
+    }
 }
