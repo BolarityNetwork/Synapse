@@ -302,17 +302,18 @@ pub struct Active<'info> {
     pub owner: Signer<'info>,
 
     #[account(
-    init_if_needed,
-    payer = owner,
+    mut,
+    // init_if_needed,
+    // payer = owner,
     seeds = [
     PDAAccount::SEED_PREFIX,
     &chain.to_le_bytes()[..],
     address.as_ref()
     ],
     bump,
-    space = PDAAccount::MAXIMUM_SIZE
+    // space = 8
     )]
-    pub pda: Account<'info, PDAAccount>,
+    pub pda: SystemAccount<'info>,
 
     /// System program.
     pub system_program: Program<'info, System>,

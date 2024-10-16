@@ -347,19 +347,32 @@ pub mod hackathon {
             let amount = u64::from_le_bytes(bytes);
             let from_pubkey = acc_infos[0].to_account_info();
             let to_pubkey = acc_infos[1].to_account_info();
-            **from_pubkey.try_borrow_mut_lamports()? -= amount;
-            **to_pubkey.try_borrow_mut_lamports()? += amount;
+            // **from_pubkey.try_borrow_mut_lamports()? -= amount;
+            // **to_pubkey.try_borrow_mut_lamports()? += amount;
+            let transfer_instruction = system_instruction::transfer(
+                &from_pubkey.key(),
+                &to_pubkey.key(),
+                amount,
+            );
+            invoke_signed(
+                &transfer_instruction,
+                &[
+                    from_pubkey.to_account_info(),
+                    to_pubkey.to_account_info(),
+                ],
+                signer_seeds
+            )?;
         } else if ins == active_ins {
             let (pda, bump) = Pubkey::find_program_address(&[seeds,&chain.to_le_bytes(), address.as_slice()], ctx.program_id);
 
-            let lamports = (Rent::get()?).minimum_balance(std::mem::size_of::<PDAAccount>());
+            let lamports = (Rent::get()?).minimum_balance(0);
 
             let create_account_ix = system_instruction::create_account(
                 &ctx.accounts.payer.key,
                 &pda,
                 lamports,
-                std::mem::size_of::<PDAAccount>() as u64,
-                ctx.program_id,
+                0,
+                ctx.accounts.system_program.key,
             );
 
             invoke_signed(
@@ -395,10 +408,10 @@ pub mod hackathon {
             chain > 0 && chain != wormhole::CHAIN_ID_SOLANA && !address.iter().all(|&x| x == 0),
             HelloWorldError::InvalidForeignEmitter,
         );
-        // Save the emitter info into the pda account.
-        let pda = &mut ctx.accounts.pda;
-        pda.chain = chain;
-        pda.address = address;
+        // // Save the emitter info into the pda account.
+        // let pda = &mut ctx.accounts.pda;
+        // pda.chain = chain;
+        // pda.address = address;
         // Done.
         Ok(())
     }
