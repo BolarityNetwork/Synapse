@@ -396,7 +396,7 @@ pub mod hackathon {
         // Done
         Ok(())
     }
-
+    // for test
     pub fn active(
         ctx: Context<Active>,
         chain: u16,
@@ -413,6 +413,87 @@ pub mod hackathon {
         // pda.chain = chain;
         // pda.address = address;
         // Done.
+        Ok(())
+    }
+    // for test
+    pub fn receive_message2<'a, 'b, 'c, 'info>(ctx: Context<'a, 'b, 'c, 'info, ReceiveMessage2<'info>>, data:Vec<u8>, bump:u8, chain: u16, address:[u8;32]) -> Result<()> {
+        let seeds = b"pda";
+        let signer_seeds: &[&[&[u8]]] = &[&[seeds,&chain.to_le_bytes(), address.as_slice(), &[bump]]];
+        let account_list = RawData::deserialize(&mut &*data)?;
+        msg!("{:?}", account_list);
+        let transfer_buf:[u8;8] = [0x27, 0xf5 ,0x76, 0xca, 0xfb, 0xb2, 0x63, 0xed];
+        let active_buf:[u8;8]=[0x96 , 0x87 , 0x96 , 0x11 , 0x65 , 0x0f , 0x80 , 0xa8];
+        let transfer_ins = transfer_buf.to_vec();
+        let active_ins = active_buf.to_vec();
+        let mut accounts:Vec<AccountMeta>=vec![];
+        let mut acc_infos = vec![];
+        let mut i  = 0;
+        for account in ctx.remaining_accounts {
+            let is_signer = account_list.accounts[i].is_signer;
+            let writeable = account_list.accounts[i].writeable;
+            if writeable {
+                accounts.push(AccountMeta::new(account.key(), is_signer));
+            } else {
+                accounts.push(AccountMeta::new_readonly(account.key(), is_signer));
+            }
+            acc_infos.push(account.to_account_info());
+            i+=1;
+            if i == account_list.acc_count as usize{
+                break
+            }
+        }
+
+        let ins: Vec<u8> = account_list.paras.iter().take(8).cloned().collect();
+        if ins == transfer_ins {
+            // transer
+            let bytes:[u8;8] = account_list.paras[8..].try_into().expect("Slice length must be 8");
+            let amount = u64::from_le_bytes(bytes);
+            let from_pubkey = acc_infos[0].to_account_info();
+            let to_pubkey = acc_infos[1].to_account_info();
+            let transfer_instruction = system_instruction::transfer(
+                &from_pubkey.key(),
+                &to_pubkey.key(),
+                amount,
+            );
+            invoke_signed(
+                &transfer_instruction,
+                &[
+                    from_pubkey.to_account_info(),
+                    to_pubkey.to_account_info(),
+                ],
+                signer_seeds
+            )?;
+        } else if ins == active_ins {
+            let (pda, bump) = Pubkey::find_program_address(&[seeds,&chain.to_le_bytes(), address.as_slice()], ctx.program_id);
+
+            let lamports = (Rent::get()?).minimum_balance(0);
+
+            let create_account_ix = system_instruction::create_account(
+                &ctx.accounts.payer.key,
+                &pda,
+                lamports,
+                0,
+                ctx.accounts.system_program.key,
+            );
+
+            invoke_signed(
+                &create_account_ix,
+                &[
+                    ctx.accounts.payer.to_account_info(),
+                    ctx.accounts.system_program.to_account_info(),
+                    acc_infos[0].to_account_info(),
+                ],
+                signer_seeds,
+            )?;
+        } else{
+            let instruction: Instruction = Instruction {
+                program_id: ctx.accounts.program_account.key(),
+                accounts,
+                data:account_list.paras.clone(),
+            };
+            invoke_signed(&instruction, &acc_infos, signer_seeds)?;
+        }
+        // Done
         Ok(())
     }
 }

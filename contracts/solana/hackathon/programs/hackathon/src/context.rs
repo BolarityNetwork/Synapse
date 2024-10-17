@@ -292,7 +292,18 @@ pub struct ReceiveMessage<'info> {
     /// CHECK: This is not dangerous because we don't read or write from this account
     pub program_account: AccountInfo<'info>,
 }
+#[derive(Accounts)]
+pub struct ReceiveMessage2<'info> {
+    #[account(mut)]
+    /// Payer will initialize an account that tracks his own message IDs.
+    pub payer: Signer<'info>,
 
+    /// System program.
+    pub system_program: Program<'info, System>,
+
+    /// CHECK: This is not dangerous because we don't read or write from this account
+    pub program_account: AccountInfo<'info>,
+}
 #[derive(Accounts)]
 #[instruction(chain: u16, address:[u8;32])]
 pub struct Active<'info> {

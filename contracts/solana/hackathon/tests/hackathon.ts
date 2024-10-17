@@ -3,7 +3,8 @@ import { Program } from "@coral-xyz/anchor";
 import { Hackathon } from "../target/types/hackathon";
 import { Proxy } from "../target/types/proxy";
 import { Test } from "../target/types/test";
-import {Commitment, Keypair, PublicKey, sendAndConfirmTransaction, Transaction} from "@solana/web3.js";
+import { Stake } from "../target/types/stake";
+import {Commitment, Keypair, PublicKey, sendAndConfirmTransaction, Transaction, SystemProgram} from "@solana/web3.js";
 const borsh = require('borsh');
 import { createHash } from 'crypto';
 import {
@@ -15,6 +16,7 @@ import {
 } from "@solana/spl-token";
 import * as buffer from "buffer";
 import * as bs58 from  "bs58";
+import {deriveAddress} from "@certusone/wormhole-sdk/lib/cjs/solana";
 
 describe("hackathon", () => {
   // Configure the client to use the local cluster.
@@ -22,7 +24,8 @@ describe("hackathon", () => {
 
   const programProxy = anchor.workspace.Proxy as Program<Proxy>;
   const programTest = anchor.workspace.Test as Program<Test>;
-
+  const programHackathon = anchor.workspace.Hackathon as Program<Hackathon>;
+    const programStake = anchor.workspace.Stake as Program<Stake>;
   const pg = anchor.getProvider() as anchor.AnchorProvider;
   const requestAirdrop = async (mint_keypair:anchor.web3.Keypair) => {
         const signature = await pg.connection.requestAirdrop(
@@ -36,6 +39,19 @@ describe("hackathon", () => {
             signature
         });
   }
+
+    const requestAirdrop2 = async (pbkey:anchor.web3.PublicKey) => {
+        const signature = await pg.connection.requestAirdrop(
+            pbkey,
+            5 * anchor.web3.LAMPORTS_PER_SOL
+        );
+        const { blockhash, lastValidBlockHeight } = await pg.connection.getLatestBlockhash();
+        await pg.connection.confirmTransaction({
+            blockhash,
+            lastValidBlockHeight,
+            signature
+        });
+    }
   async function printAccountBalance(account) {
         const balance = await pg.connection.getBalance(account);
         console.log(`${account} has ${balance / anchor.web3.LAMPORTS_PER_SOL} SOL`);
@@ -238,5 +254,160 @@ describe("hackathon", () => {
         const accountMeta2 = {pubkey: Keypair.generate().publicKey, isWritable: true, isSigner: false};
         const accountMeta3 = {pubkey: Keypair.generate().publicKey, isWritable: true, isSigner: false};
         await programProxy.methods.receiveMessage(Buffer.from(RawDataEncoded)).accounts({programAccount: new PublicKey(exp_RawData.programId)}).remainingAccounts([accountMeta1, accountMeta2, accountMeta3]).rpc();
+    });
+
+
+    it("Test4", async () => {
+        const RawDataSchema = {
+            struct:{
+                chain_id:'u16',
+                caller:{array: {type:'u8', len:32}},
+                programId:{array: {type:'u8', len:32}},
+                acc_count:'u8',
+                accounts:{
+                    array: {
+                        type: {
+                            struct:{
+                                key:{array: {type:'u8', len:32}},
+                                isWritable:'bool',
+                                isSigner:'bool'
+                            }
+                        },
+                    }
+                },
+                paras: {array: {type:'u8'}},
+                acc_meta: {array: {type:'u8'}},
+            }
+        };
+        const TestKeypair = Keypair.generate()
+        await requestAirdrop(TestKeypair)
+        // await programTest.methods.initialize().accounts({signer:TestKeypair.publicKey, myStorage: myStorage}).signers([TestKeypair]).rpc();
+        // await programTest.methods.set(2, 0).accounts({myStorage: myStorage}).rpc();
+        // let myStorageStruct = await programTest.account.myStorage.fetch(myStorage);
+        const realForeignEmitterChain = 10002;
+        const realForeignEmitterAddress = Buffer.from([0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xa5,0x50,0xC6,0x01,0x1D,0xfB,0xA4,0x92,0x5a,0xbE,0xb0,0xB4,0x81,0x04,0x06,0x26,0x82,0x87,0x0B,0xB8])
+        const realForeignEmitter = deriveAddress(
+            [
+                Buffer.from("pda"),
+                (() => {
+                    const buf = Buffer.alloc(2);
+                    buf.writeUInt16LE(realForeignEmitterChain);
+                    return buf;
+                })(),
+                realForeignEmitterAddress,
+            ],
+            programHackathon.programId
+        );
+
+        let paras = sha256("active").slice(0, 8);
+        let encodedParams = Buffer.concat([paras]);
+
+        let encodeMeta = borsh.serialize(AccountMeta, [{writeable:true, is_signer:false}]);
+        let RawData = {
+            chain_id: realForeignEmitterChain,
+            caller: new PublicKey(realForeignEmitterAddress).toBuffer(),
+            programId: programHackathon.programId.toBuffer(),
+            acc_count:1,
+            accounts:[
+                {
+                    key: realForeignEmitter.toBuffer(),
+                    isWritable:true,
+                    isSigner: false,
+                }
+            ],
+            paras:encodedParams,
+            acc_meta:Buffer.from(encodeMeta),
+        };
+        let RawDataEncoded = borsh.serialize(RawDataSchema, RawData);
+        const exp_RawData = borsh.deserialize(RawDataSchema, RawDataEncoded);
+
+        const meta1 = exp_RawData.accounts[0];
+        const accountMeta1 = {pubkey: new PublicKey(meta1.key), isWritable: meta1.isWritable, isSigner: false};
+        const accountMeta2 = {pubkey: TestKeypair.publicKey, isWritable: true, isSigner: false};
+
+        const [tempKey, bump] = PublicKey.findProgramAddressSync([
+                Buffer.from("pda"),
+                (() => {
+                    const buf = Buffer.alloc(2);
+                    buf.writeUInt16LE(realForeignEmitterChain);
+                    return buf;
+                })(),
+                new PublicKey(realForeignEmitterAddress).toBuffer(),
+            ],
+            programHackathon.programId);
+        await printAccountBalance(realForeignEmitter);
+        await programHackathon.methods.receiveMessage2(Buffer.from(RawDataEncoded), bump, realForeignEmitterChain, realForeignEmitterAddress).accounts({payer:TestKeypair.publicKey, programAccount: new PublicKey(exp_RawData.programId)}).remainingAccounts([accountMeta1]).signers([TestKeypair]).rpc();
+        await printAccountBalance(realForeignEmitter);
+        await requestAirdrop2(realForeignEmitter)
+        await printAccountBalance(realForeignEmitter);
+
+        encodeMeta = borsh.serialize(AccountMeta, [{writeable:true, is_signer:false}, {writeable:true, is_signer:false}]);
+        paras = sha256("transfer").slice(0, 8);
+        let buf = Buffer.alloc(8);
+        buf.writeBigUint64LE(BigInt(1000000000),0);
+        encodedParams = Buffer.concat([paras, buf]);
+        RawData = {
+            chain_id: realForeignEmitterChain,
+            caller: new PublicKey(realForeignEmitterAddress).toBuffer(),
+            programId: programHackathon.programId.toBuffer(),
+            acc_count:2,
+            accounts:[
+                {
+                    key: realForeignEmitter.toBuffer(),
+                    isWritable:true,
+                    isSigner: false,
+                },
+                {
+                    key: TestKeypair.publicKey.toBuffer(),
+                    isWritable:true,
+                    isSigner: false,
+                }
+            ],
+            paras:encodedParams,
+            acc_meta:Buffer.from(encodeMeta),
+        };
+        RawDataEncoded = borsh.serialize(RawDataSchema, RawData);
+        await programHackathon.methods.receiveMessage2(Buffer.from(RawDataEncoded), bump, realForeignEmitterChain, realForeignEmitterAddress).accounts({payer:TestKeypair.publicKey, programAccount: new PublicKey(exp_RawData.programId)}).remainingAccounts([accountMeta1, accountMeta2]).signers([TestKeypair]).rpc();
+        await printAccountBalance(realForeignEmitter);
+        const seeds = []
+        const [escrow, _bump] = anchor.web3.PublicKey.findProgramAddressSync(seeds, programStake.programId);
+        await programStake.methods.initialize().accounts({signer:TestKeypair.publicKey, escrow: escrow}).signers([TestKeypair]).rpc();
+
+
+        encodeMeta = borsh.serialize(AccountMeta, [{writeable:true, is_signer:true}, {writeable:true, is_signer:false}, {writeable:false, is_signer:false}]);
+        const accountMeta3 = {pubkey: escrow, isWritable: true, isSigner: false};
+        const accountMeta4 = {pubkey: SystemProgram.programId, isWritable: false, isSigner: false};
+        const depositSchema ={ struct: {'amount':'u64'}}
+        const encoded = borsh.serialize(depositSchema, {amount:1000000000});
+        paras = sha256("global:deposit").slice(0, 8);
+        encodedParams = Buffer.concat([paras, encoded]);
+        RawData = {
+            chain_id: realForeignEmitterChain,
+            caller: new PublicKey(realForeignEmitterAddress).toBuffer(),
+            programId: programStake.programId.toBuffer(),
+            acc_count:3,
+            accounts:[
+                {
+                    key: realForeignEmitter.toBuffer(),
+                    isWritable:true,
+                    isSigner: true,
+                },
+                {
+                    key: escrow.toBuffer(),
+                    isWritable:true,
+                    isSigner: false,
+                },
+                {
+                    key: SystemProgram.programId.toBuffer(),
+                    isWritable:false,
+                    isSigner: false,
+                }
+            ],
+            paras:encodedParams,
+            acc_meta:Buffer.from(encodeMeta),
+        };
+        RawDataEncoded = borsh.serialize(RawDataSchema, RawData);
+        await programHackathon.methods.receiveMessage2(Buffer.from(RawDataEncoded), bump, realForeignEmitterChain, realForeignEmitterAddress).accounts({payer:TestKeypair.publicKey, programAccount: programStake.programId}).remainingAccounts([accountMeta1, accountMeta3, accountMeta4]).signers([TestKeypair]).rpc();
+        await printAccountBalance(realForeignEmitter);
     });
 });

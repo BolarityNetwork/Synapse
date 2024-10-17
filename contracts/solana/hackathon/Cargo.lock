@@ -2289,6 +2289,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "stake"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "anchor-spl",
+ "solana-program",
+ "wormhole-anchor-sdk",
+ "wormhole-io",
+]
+
+[[package]]
 name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
