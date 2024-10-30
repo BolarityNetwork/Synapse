@@ -29,7 +29,7 @@ This section assumes that you have experience in Solidity and Solana program dev
 
 
 
-###### Example 1: Upgrade your Solana account into a universal account
+## Example 1: Upgrade your Solana account into a universal account
 
 **Step 1: Create a Solana Account**
 First, create a Solana account that will be used to control the Ethereum account.
@@ -151,7 +151,7 @@ try {
 ```
 
 
-###### Example 2: Control a Solana Account through an Ethereum Account
+## Example 2: Control a Solana Account through an Ethereum Account
 
 
 **Step 1: Create an Ethereum Account**
