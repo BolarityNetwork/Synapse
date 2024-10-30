@@ -117,38 +117,37 @@ try {
 
 ```
 
-5.Control this account through Solana to call other contracts on Ethereum.
+**Step 5: Control this Account to Call Other Contracts on Ethereum**
 
 ```
- const solanaAddress = coder.encode(["bytes32"],[Buffer.from(new PublicKey("your solana account").toBytes())]);
- const contract_address = coder.encode(["bytes32"],[ethers.zeroPadValue(Buffer.from([The contract address you want to call]), 32)])
- // contract function store
- let ABI = ["function store(uint256 num)"];
-  let iface = new ethers.Interface(ABI);
-  let paras = iface.encodeFunctionData("store", [2]);
-  let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address,0, paras])
-  const payload = coder.encode(["bytes32", "bytes"], [solanaAddress, payload_part])
-  
-  // now you can call solana program for send message to etherum contract.
-    const programID=new PublicKey(solana program address)
-    const program = new anchor.Program(idl, programID);
-   const message = hexStringToUint8Array(payload)
-    const ix3 = program.methods
-        .sendMessage(Buffer.from(message))
-        .accounts({
-          config: realConfig,
-          wormholeProgram: CORE_BRIDGE_PID,
-          ...wormholeAccounts2,
-        })
-        .instruction();
-    const tx3 = new Transaction().add(await ix3);
-    try {
-      let commitment: Commitment = 'confirmed';
-      await sendAndConfirmTransaction(provider.connection, tx3, [your solana account], {commitment});
-    }
-    catch (error: any) {
-      console.log(error);
-    }
+const solanaAddress = coder.encode(["bytes32"], [Buffer.from(new PublicKey("your-solana-account").toBytes())]);
+const contractAddress = coder.encode(["bytes32"], [ethers.zeroPadValue(Buffer.from([contractAddressYouWantToCall]), 32)]);
+let ABI = ["function store(uint256 num)"];
+let iface = new ethers.Interface(ABI);
+let params = iface.encodeFunctionData("store", [2]);
+let payloadPart = coder.encode(["bytes32", "uint256", "bytes"], [contractAddress, 0, params]);
+const payload = coder.encode(["bytes32", "bytes"], [solanaAddress, payloadPart]);
+
+// Send message using the Solana program
+const programID = new PublicKey("solana-program-address");
+const program = new anchor.Program(idl, programID);
+const message = hexStringToUint8Array(payload);
+
+const ix3 = program.methods.sendMessage(Buffer.from(message)).accounts({
+  config: realConfig,
+  wormholeProgram: CORE_BRIDGE_PID,
+  ...wormholeAccounts2,
+}).instruction();
+
+const tx3 = new Transaction().add(await ix3);
+
+try {
+  const commitment: Commitment = 'confirmed';
+  await sendAndConfirmTransaction(provider.connection, tx3, [yourSolanaAccount], { commitment });
+} catch (error) {
+  console.error(error);
+}
+
 ```
 
 ###### The following demonstrates how to control the Solana account through the  Ethereum account.
