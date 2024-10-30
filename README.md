@@ -150,10 +150,16 @@ try {
 
 ```
 
-###### The following demonstrates how to control the Solana account through the  Ethereum account.
+###### Example 2: Control a Solana Account through an Ethereum Account
 
-1. Create a Ethereum account
-2. Create the corresponding Solana account,you need to use a Ethereum account to send messages to the Solana program through the Ethereum contract.
+
+**Step 1: Create an Ethereum Account**
+Start by creating an Ethereum account to control a Solana account.
+
+**Step 2: Create the Corresponding Solana Account**
+You will need to use an Ethereum account to send messages to the Solana program through an Ethereum contract.
+
+**Example Code (Pseudocode):**
 
 ```
   const borsh = require('borsh');
@@ -226,7 +232,7 @@ try {
   console.log(receipt.hash)
 ```
 
-3.Query the generated account.
+**Step 3: Query the Generated Account**
 
 ```
  function deriveEthAddressKey(
@@ -251,9 +257,10 @@ try {
  const addressKey = await deriveEthAddressKey(HELLO_WORLD_PID, realForeignEmitterChain, new PublicKey(ethAddress));
 ```
 
-4.Now you can transfer sol to the account generated above so that you can transfer sol to other accounts through it.
+**Step 4: Transfer SOL to the Generated Account**
+Use the Ethereum account to transfer SOL to the generated account, allowing it to control Solana transfers.
 
-The following example is a Ethereum account controlling  Solana transfers.
+Example Code (Pseudocode):
 
 ```
 
@@ -302,7 +309,7 @@ The following example is a Ethereum account controlling  Solana transfers.
   console.log(receipt.hash)
 ```
 
-5.Control this account through Ethereum to call other contracts on Solana.
+**Step 5: Control this Account to Call Other Contracts on Solana**
 
 ```
   const myParametersSchema ={ struct: {'value1':'u8', 'value2':'u8'}}
