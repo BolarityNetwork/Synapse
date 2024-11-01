@@ -371,3 +371,139 @@ const programTest = "test program address";
   console.log(receipt.hash)
 ```
 
+## Example 3: Mix asset transfer
+
+From the examples above, it is evident that Ethereum accounts can be managed through Solana accounts, and vice versa. When it comes to transferring SOL, there are two methods available: 
+
+1. **Using Solana Account**:
+
+   Transfer SOL using the Solana account. Simultaneously, control the Ethereum account via a token bridge to transfer SOL on the Ethereum chain to the target account using a cross-chain approach.    
+
+2. **Using Ethereum Account**: 
+
+   Transfer SOL to the target account through the token bridge cross-chain method from the Ethereum account. Then, utilize the Solana account controlled by the Ethereum account to transfer SOL to the target account.
+
+**Way 1: Operating on the Solana Chain**
+
+If your Solana account holds sufficient SOL, you can transfer it directly.
+
+```
+
+const userKeypair = Keypair.fromSecretKey(
+        bs58.decode(secret key));
+        
+const tx = new Transaction().add(
+        SystemProgram.transfer({
+            fromPubkey: userKeypair.publicKey,
+            toPubkey: new PublicKey(other solana address),
+            lamports: amount,
+        }))
+    ;
+try {
+      let commitment: Commitment = 'confirmed';
+      await sendAndConfirmTransaction(provider.connection, tx, [userKeypair], {commitment});
+    }
+ catch (error: any) {
+      console.log(error);
+    }
+```
+
+If your Solana account lacks adequate SOL but the SOL on the Ethereum chain is sufficient, you can utilize a mixed asset transfer.
+
+```
+    // Note that you need to approve wsol before using it.
+    const userKeypair = Keypair.fromSecretKey(
+            bs58.decode(secret key));
+    // get sequence
+    const message2 = await getProgramSequenceTracker(provider.connection, program.programId, CORE_BRIDGE_PID)
+        .then((tracker) =>
+            deriveAddress(
+                [
+                  Buffer.from("sent"),
+                  (() => {
+                    const buf = Buffer.alloc(8);
+                    buf.writeBigUInt64LE(tracker.sequence + 1n);
+                    return buf;
+                  })(),
+                ],
+                HELLO_WORLD_PID
+            )
+        );
+    const wormholeAccounts2 = getPostMessageCpiAccounts(
+        program.programId,
+        CORE_BRIDGE_PID,
+        userKeypair.publicKey,
+        message2
+    );
+      const byte32Address = tryNativeToHexString(
+      other solana address,
+      1 // solana chain id
+  );
+  const targetRecipient = coder.encode(["bytes32"],[Buffer.from(hexStringToUint8Array(byte32Address))]);
+  let ABI = ["function transferTokensWithRelay(\
+        address token,\
+        uint256 amount,\
+        uint256 toNativeTokenAmount,\
+        uint16 targetChain,\
+        bytes32 targetRecipient,\
+        uint32 batchId\
+    )"];
+  let iface = new ethers.Interface(ABI);
+  let paras = iface.encodeFunctionData("transferTokensWithRelay", [WSOL_CONTRACT_ADDRESS,amount1, 0, 1, targetRecipient , 0]);
+  
+  let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address, 0, paras])
+  const payload = coder.encode(["bytes32", "bytes"], [userAddress, payload_part])
+  const ix3 = program.methods
+        .sendMessage(Buffer.from(payload))
+        .accounts({
+          config: realConfig,
+          wormholeProgram: CORE_BRIDGE_PID,
+          ...wormholeAccounts2,
+        })
+        .instruction();
+  const tx3 = new Transaction().add(await ix3).add(
+        SystemProgram.transfer({
+            fromPubkey: userKeypair.publicKey,
+            toPubkey: new PublicKey(other solana address),
+            lamports: amount2,
+        }))
+    ;
+  try {
+      let commitment: Commitment = 'confirmed';
+      await sendAndConfirmTransaction(provider.connection, tx3, [userKeypair], {commitment});
+    }
+    catch (error: any) {
+      console.log(error);
+    }
+```
+
+**Way 2: Operating on the Ethereum Chain**
+
+Transfer SOL across chains on the Ethereum chain using a token bridge.
+
+```
+  // Note that you need to approve wsol before using it.
+  const TOKEN_BRIDGE_RELAYER_ABI = [
+  "function transferTokensWithRelay(\
+        address token,\
+        uint256 amount,\
+        uint256 toNativeTokenAmount,\
+        uint16 targetChain,\
+        bytes32 targetRecipient,\
+        uint32 batchId\
+    ) public payable returns (uint64 messageSequence)"
+  ];
+
+  const tokenBridgeRelayerContract = new ethers.Contract(TOKEN_BRIDGE_RELAYER_CONTRACT, TOKEN_BRIDGE_RELAYER_ABI, signer);
+  const transferTokensWithRelayTx = await tokenBridgeRelayerContract.transferTokensWithRelay(
+    WSOL_CONTRACT_ADDRESS,
+    amount,
+    0,
+    1,
+    targetRecipient,
+    0,
+  );
+  console.log(transferTokensWithRelayTx.hash)
+```
+
+Control the Solana account to transfer SOL on the Ethereum chain. Please refer to Example 2.
