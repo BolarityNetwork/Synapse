@@ -166,9 +166,7 @@ console.log(nftIds);
 
 ### **Notes**
 
-- Ensure sufficient ETH for staking and gas fees.
 - Only finalized and unclaimed withdrawal requests can be claimed.
 - `stETH` remains locked until the specified `lockTime` expires.
 
-This guide should help you interact effectively with the `BolarityStakeLido` contract!
 
