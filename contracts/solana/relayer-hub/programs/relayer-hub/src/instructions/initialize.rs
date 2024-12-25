@@ -2,6 +2,7 @@ use crate::errors::error::ErrorCode;
 use crate::states::hub::*;
 use anchor_lang::prelude::*;
 use crate::states::relayer::RelayerInfo;
+use crate::states::transaction::TransactionPool;
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -13,6 +14,14 @@ pub struct Initialize<'info> {
     space = 8 + Config::INIT_SPACE
     )]
     pub config: Box<Account<'info, Config>>,
+    #[account(
+    init,
+    seeds = [b"pool".as_ref()],
+    bump,
+    payer = payer,
+    space = 8 + TransactionPool::INIT_SPACE
+    )]
+    pub pool: Box<Account<'info, TransactionPool>>,
     #[account(
     init,
     seeds = [b"relayer".as_ref()],
@@ -34,5 +43,7 @@ pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
     config_state.initialized = true;
     let relayer_info = &mut ctx.accounts.relayer_info;
     relayer_info.number = 0;
+    let pool = &mut ctx.accounts.pool;
+    pool.total = 0;
     Ok(())
 }

@@ -1,9 +1,8 @@
 use anchor_lang::Accounts;
 use anchor_lang::context::Context;
-use anchor_lang::prelude::{Account, AccountInfo, Program, Signer, System};
-use crate::errors::error::ErrorCode;
-use crate::states::hub::Config;
 use crate::states::relayer::*;
+use anchor_lang::prelude::*;
+
 #[derive(Accounts)]
 pub struct RegisterRelayer<'info> {
     #[account(mut)]
@@ -32,7 +31,7 @@ pub struct RegisterRelayer<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn register(ctx: Context<RegisterRelayer>) -> anchor_lang::Result<()> {
+pub fn register(ctx: Context<RegisterRelayer>) -> Result<()> {
     let relayer_info = &mut ctx.accounts.relayer_info;
     relayer_info.number = relayer_info.number + 1;
     let relayer = &mut ctx.accounts.relayer;

@@ -1,2 +1,3 @@
 pub mod initialize;
-mod registration;
+pub mod registration;
+pub mod transaction_pool;
