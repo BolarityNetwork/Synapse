@@ -9,9 +9,9 @@ pub struct PushTransaction<'info> {
     // TODO:change space
     #[account(
     init,
-    seeds = [user.key().as_ref()],
+    seeds = [b"tx".as_ref(), relayer.key().as_ref()],
     bump,
-    payer = user,
+    payer = relayer,
     space = 8 + 8 + 256
     )]
     pub transaction: Box<Account<'info, Transaction>>,

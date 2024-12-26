@@ -27,7 +27,7 @@ pub struct Initialize<'info> {
     seeds = [b"relayer".as_ref()],
     bump,
     payer = payer,
-    space = 8 + Config::INIT_SPACE
+    space = 8 + RelayerInfo::INIT_SPACE
     )]
     pub relayer_info: Box<Account<'info, RelayerInfo>>,
     #[account(mut)]

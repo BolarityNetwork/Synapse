@@ -1,4 +1,4 @@
-use anchor_lang::{account, InitSpace};
+use anchor_lang::prelude::*;
 
 #[account]
 pub struct Transaction {
