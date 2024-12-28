@@ -40,4 +40,13 @@ mod test {
         assert_eq!(transfer.recipient(), hex_literal::hex!["e8de75ef9e847ee05ed3d828e307b24c427e55b918ba81de3c0ae12570284afb"]);
         Ok(())
     }
+
+    #[test]
+    fn test_deserialize_vaa_failed() -> Result<()> {
+        let vaa_bytes:&[u8] =
+            &hex_literal::hex!["1234"];
+        let raw_vaa = wormhole_raw_vaas::Vaa::parse(vaa_bytes);
+        assert!(raw_vaa.is_err());
+        Ok(())
+    }
 }
