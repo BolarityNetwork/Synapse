@@ -34,19 +34,18 @@ describe("relayer-hub", () => {
     )
 
     it("Is initialized!", async () => {
-        const tx = await program.methods.initialize().accounts({
-          config:configPDA,
-          pool:poolPDA,
-          relayer_info:relayerInfoPDA,
-          payer: pg.wallet.publicKey,
+        await program.methods.initialize().accounts({
+            config: configPDA,
+            payer: pg.wallet.publicKey,
+            pool: poolPDA,
+            relayer_info: relayerInfoPDA,
         }).rpc();
-        console.log("Your transaction signature", tx);
         try{
-          await program.methods.initialize().accounts({
-              config:configPDA,
-              pool:poolPDA,
-              relayer_info:relayerInfoPDA,
+            await program.methods.initialize().accounts({
+              config: configPDA,
               payer: pg.wallet.publicKey,
+              pool: poolPDA,
+              relayer_info: relayerInfoPDA,
           }).rpc();
         } catch (error) {
           return;
@@ -58,9 +57,9 @@ describe("relayer-hub", () => {
             [Buffer.from('relayer'), pg.wallet.publicKey.toBuffer()],
             program.programId
         )
-        const tx = await program.methods.register().accounts({
-            relayer_info:relayerInfoPDA,
-            relayer:relayerPDA,
+        await program.methods.register().accounts({
+            relayer_info: relayerInfoPDA,
+            relayer: relayerPDA,
             payer: pg.wallet.publicKey,
         }).rpc();
     });
@@ -70,10 +69,12 @@ describe("relayer-hub", () => {
             [Buffer.from('tx'),pg.wallet.publicKey.toBuffer()],
             program.programId
         )
-        const tx = await program.methods.pushTransaction(Buffer.from([1,2])).accounts({
+        const transactionBuf = Buffer.from([1,2])
+        await program.methods.pushTransaction(transactionBuf).accounts({
             relayer: pg.wallet.publicKey,
-            transaction:transactionPDA,
-            pool:poolPDA,
+            transaction: transactionPDA,
+            pool: poolPDA,
         }).rpc();
+        assert((await program.account.transaction.fetch(transactionPDA)).payload.equals(transactionBuf))
     });
 });

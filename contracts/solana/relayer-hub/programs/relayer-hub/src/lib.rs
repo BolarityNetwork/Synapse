@@ -1,6 +1,8 @@
 mod errors;
 mod states;
 mod instructions;
+mod utils;
+
 use anchor_lang::prelude::*;
 use instructions::{initialize::*, registration::*, transaction_pool::*};
 
