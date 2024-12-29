@@ -22,4 +22,12 @@ pub enum ErrorCode {
     #[msg("Not in your epoch")]
     /// Not the epoch executed by the relayer.
     NotYourEpoch,
+
+    #[msg("Undefined message data format")]
+    /// Wrong message data format.
+    UndefinedMessageFormat,
+
+    #[msg("Wrong message data format")]
+    /// Wrong message data format.
+    MessageFormatError,
 }

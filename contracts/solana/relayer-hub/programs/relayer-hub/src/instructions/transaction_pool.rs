@@ -5,6 +5,7 @@ use anchor_lang::prelude::*;
 use crate::states::hub::Config;
 use crate::states::relayer::RelayerInfo;
 use crate::errors::error::ErrorCode;
+use crate::utils::message::*;
 
 #[derive(Accounts)]
 #[instruction(chain: u16, sequence: u64)]
@@ -79,6 +80,21 @@ pub fn send_transaction(ctx: Context<SendTransaction>, _chain: u16, _sequence: u
 
     require!(relayer_info.relayer_list[relayer_index] == *ctx.accounts.relayer.key ,
         ErrorCode::NotYourEpoch);
+
+    let message_format = get_msg_format(&data);
+    require!( message_format != MessageFormat::UNDEFINED,
+        ErrorCode::UndefinedMessageFormat);
+
+    let pass_check = match message_format {
+        MessageFormat::WORMHOLE=>{
+            check_wormhole_message(&data)
+        },
+        _ => false,
+    };
+
+    require!( pass_check,
+        ErrorCode::MessageFormatError);
+
 
     let pool = &mut ctx.accounts.pool;
     let transaction = &mut ctx.accounts.transaction;

@@ -16,7 +16,7 @@ pub struct Transaction {
 impl Transaction {
     pub const SEED_PREFIX: &'static [u8; 2] = b"tx";
     // TODO:change space
-    pub const MAX_SIZE: usize = 2 + 8 + 32 + 256;
+    pub const MAX_SIZE: usize = 2 + 8 + 32 + 300;
 }
 
 #[account]

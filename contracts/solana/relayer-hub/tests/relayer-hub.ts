@@ -5,6 +5,25 @@ import { RelayerHub } from "../target/types/relayer_hub";
 import { expect,assert } from 'chai'
 import { BN } from 'bn.js';
 
+function hexStringToUint8Array(hexString: string): Uint8Array {
+    if (hexString.startsWith("0x")) {
+        hexString = hexString.slice(2);
+    }
+
+    if (hexString.length % 2 !== 0) {
+        throw new Error("Invalid hex string length");
+    }
+
+    const byteArray = new Uint8Array(hexString.length / 2);
+
+    for (let i = 0; i < hexString.length; i += 2) {
+        const hexPair = hexString.slice(i, i + 2);
+        byteArray[i / 2] = parseInt(hexPair, 16);
+    }
+
+    return byteArray;
+}
+
 describe("relayer-hub", async() => {
     // Configure the client to use the local cluster.
     anchor.setProvider(anchor.AnchorProvider.env());
@@ -162,7 +181,7 @@ describe("relayer-hub", async() => {
             [Buffer.from('tx'), buf1],
             program.programId
         )
-        const transactionBuf = Buffer.from([1,2])
+        const transactionBuf = Buffer.from(hexStringToUint8Array("0x010000000001002a5d283a7c37d93184a693a612a41278559a7ddbe446bd4e5fc92024135d719b3d4a9ca5ca150fa256edb3280a9b58c70c2c62ae87511188078b2b3216b1928901676e11ff0000000000013b26409f8aaded3f5ddca184695aa6a0fa829b0c85caf84856324896d214ca98000000000000758b20010000000000000000000000000000000000000000000000000000000000989680069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f000000000010001e8de75ef9e847ee05ed3d828e307b24c427e55b918ba81de3c0ae12570284afb00150000000000000000000000000000000000000000000000000000000000000000"))
         await program.methods.sendTransaction(chainID, new BN(sequence), transactionBuf).accounts({
             config: configPDA,
             relayer_info: relayerInfoPDA,
@@ -191,7 +210,7 @@ describe("relayer-hub", async() => {
             [Buffer.from('tx'), buf1],
             program.programId
         )
-        const transactionBuf = Buffer.from([1,2])
+        const transactionBuf = Buffer.from(hexStringToUint8Array("0x010000000001002a5d283a7c37d93184a693a612a41278559a7ddbe446bd4e5fc92024135d719b3d4a9ca5ca150fa256edb3280a9b58c70c2c62ae87511188078b2b3216b1928901676e11ff0000000000013b26409f8aaded3f5ddca184695aa6a0fa829b0c85caf84856324896d214ca98000000000000758b20010000000000000000000000000000000000000000000000000000000000989680069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f000000000010001e8de75ef9e847ee05ed3d828e307b24c427e55b918ba81de3c0ae12570284afb00150000000000000000000000000000000000000000000000000000000000000000"))
         await program.methods.sendTransaction(chainID, new BN(sequence), transactionBuf).accounts({
             config: configPDA,
             relayer_info: relayerInfoPDA,
@@ -220,7 +239,7 @@ describe("relayer-hub", async() => {
             [Buffer.from('tx'), buf1],
             program.programId
         )
-        const transactionBuf = Buffer.from([1,2])
+        const transactionBuf = Buffer.from(hexStringToUint8Array("0x010000000001002a5d283a7c37d93184a693a612a41278559a7ddbe446bd4e5fc92024135d719b3d4a9ca5ca150fa256edb3280a9b58c70c2c62ae87511188078b2b3216b1928901676e11ff0000000000013b26409f8aaded3f5ddca184695aa6a0fa829b0c85caf84856324896d214ca98000000000000758b20010000000000000000000000000000000000000000000000000000000000989680069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f000000000010001e8de75ef9e847ee05ed3d828e307b24c427e55b918ba81de3c0ae12570284afb00150000000000000000000000000000000000000000000000000000000000000000"))
         try{
             await program.methods.sendTransaction(chainID, new BN(sequence), transactionBuf).accounts({
                 config: configPDA,

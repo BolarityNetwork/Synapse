@@ -1,5 +1,27 @@
 use anchor_lang::prelude::*;
 
+/// # Message data format
+///
+/// We define the following message data format. Since there are projects developed based on Wormhole,
+/// data that does not follow this format is considered to be in the Wormhole message data format.
+/// We have not yet started using the following format.
+///
+///
+/// 0xFE | version (u8) | type (Parser Type, u8) | data (vec<u8>)
+/// version 0x01 (Not yet enabled)
+/// type 0x00 (Not yet enabled)
+///
+
+pub const FORMAT_MAGIC_NUMBER:u8 = 0xFE;
+
+#[derive(PartialEq, Eq)]
+/// Message data format enumeration.
+pub enum MessageFormat {
+    /// wormhole
+    WORMHOLE,
+    /// undefined
+    UNDEFINED,
+}
 #[derive(AnchorSerialize, AnchorDeserialize, Debug, Clone)]
 pub struct AccountMetaType {
     pub key: Pubkey,
@@ -18,6 +40,37 @@ pub struct RawData {
     pub acc_meta: Vec<u8>,
 }
 // pub type SolanaVaa = wormhole::PostedVaa<RawData>;
+
+/// Get message data format.
+///
+/// # Arguments
+///
+/// * `data`   - Transaction data pushed to the transaction pool.
+pub fn get_msg_format(data:&Vec<u8>) -> MessageFormat {
+    let mut format = MessageFormat::UNDEFINED;
+    if data.len() > 0 {
+        if data[0] != FORMAT_MAGIC_NUMBER {
+            format = MessageFormat::WORMHOLE;
+        }
+    }
+    return format;
+}
+
+/// Check wormhole message data format.
+///
+/// # Arguments
+///
+/// * `data`   - Transaction data pushed to the transaction pool.
+pub fn check_wormhole_message(data:&Vec<u8>) -> bool {
+    let mut passed = false;
+    let parse_result  = wormhole_raw_vaas::Vaa::parse(data.as_slice());
+
+    if parse_result.is_ok() {
+        passed = true;
+    }
+
+    return passed;
+}
 
 #[cfg(test)]
 mod test {
