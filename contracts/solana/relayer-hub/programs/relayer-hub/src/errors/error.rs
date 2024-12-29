@@ -18,4 +18,8 @@ pub enum ErrorCode {
     #[msg("OwnerOnly")]
     /// Only the program's owner is permitted.
     OwnerOnly,
+
+    #[msg("Not in your epoch")]
+    /// Not the epoch executed by the relayer.
+    NotYourEpoch,
 }

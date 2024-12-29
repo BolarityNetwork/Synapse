@@ -61,7 +61,7 @@ describe("relayer-hub", async() => {
         // The owner of the program is the creator.
         assert((await program.account.config.fetch(configPDA)).owner.equals(pg.wallet.publicKey));
         assert((await program.account.config.fetch(configPDA)).initialized);
-        assert((await program.account.config.fetch(configPDA)).txPoolNumber.eq(new BN(0)));
+        assert((await program.account.config.fetch(configPDA)).txPoolNumber= 0);
     });
 
     it("Register relayer", async () => {
@@ -76,7 +76,9 @@ describe("relayer-hub", async() => {
             payer: pg.wallet.publicKey,
         }).rpc();
         assert((await program.account.relayer.fetch(relayerPDA)).owner.equals(pg.wallet.publicKey));
-        expect((await program.account.relayerInfo.fetch(relayerInfoPDA)).number.eq(new BN(1)));
+        expect((await program.account.relayerInfo.fetch(relayerInfoPDA)).number= 1);
+        let relayer_list = (await program.account.relayerInfo.fetch(relayerInfoPDA)).relayerList
+        assert(relayer_list[0].equals(pg.wallet.publicKey))
     });
 
     it("Register another relayer", async () => {
@@ -91,7 +93,9 @@ describe("relayer-hub", async() => {
             payer: user_keypair.publicKey,
         }).signers([user_keypair]).rpc();
         assert((await program.account.relayer.fetch(relayerPDA)).owner.equals(user_keypair.publicKey));
-        expect((await program.account.relayerInfo.fetch(relayerInfoPDA)).number.eq(new BN(2)));
+        expect((await program.account.relayerInfo.fetch(relayerInfoPDA)).number = 2);
+        let relayer_list = (await program.account.relayerInfo.fetch(relayerInfoPDA)).relayerList
+        assert(relayer_list[1].equals(user_keypair.publicKey))
     });
 
     it("Register transaction pool", async () => {
@@ -110,6 +114,7 @@ describe("relayer-hub", async() => {
 
         expect((await program.account.transactionPool.fetch(poolPDA)).total.eq(new BN(0)));
         expect((await program.account.transactionPool.fetch(poolPDA)).chain = chainID);
+        expect((await program.account.transactionPool.fetch(poolPDA)).index = 0);
     });
 
     it("Register another transaction pool", async () => {
@@ -139,6 +144,7 @@ describe("relayer-hub", async() => {
 
         expect((await program.account.transactionPool.fetch(poolPDA)).total.eq(new BN(0)));
         expect((await program.account.transactionPool.fetch(poolPDA)).chain = chainID);
+        expect((await program.account.transactionPool.fetch(poolPDA)).index = 1);
     });
 
     it("Submit transaction", async () => {
@@ -157,8 +163,9 @@ describe("relayer-hub", async() => {
             program.programId
         )
         const transactionBuf = Buffer.from([1,2])
-        await program.methods.pushTransaction(chainID, new BN(sequence), transactionBuf).accounts({
+        await program.methods.sendTransaction(chainID, new BN(sequence), transactionBuf).accounts({
             config: configPDA,
+            relayer_info: relayerInfoPDA,
             relayer: pg.wallet.publicKey,
             transaction: txPDA,
             pool: poolPDA,
@@ -166,6 +173,7 @@ describe("relayer-hub", async() => {
         assert((await program.account.transaction.fetch(txPDA)).data.equals(transactionBuf))
         expect((await program.account.transactionPool.fetch(poolPDA)).total.eq(new BN(1)));
         expect((await program.account.transaction.fetch(txPDA)).sequence.eq(new BN(0)));
+        expect((await program.account.transaction.fetch(txPDA)).poolIndex = 0);
     });
 
     it("Submit another transaction", async () => {
@@ -184,8 +192,9 @@ describe("relayer-hub", async() => {
             program.programId
         )
         const transactionBuf = Buffer.from([1,2])
-        await program.methods.pushTransaction(chainID, new BN(sequence), transactionBuf).accounts({
+        await program.methods.sendTransaction(chainID, new BN(sequence), transactionBuf).accounts({
             config: configPDA,
+            relayer_info: relayerInfoPDA,
             relayer: pg.wallet.publicKey,
             transaction: txPDA,
             pool: poolPDA,
@@ -193,6 +202,45 @@ describe("relayer-hub", async() => {
         assert((await program.account.transaction.fetch(txPDA)).data.equals(transactionBuf))
         expect((await program.account.transactionPool.fetch(poolPDA)).total.eq(new BN(2)));
         expect((await program.account.transaction.fetch(txPDA)).sequence.eq(new BN(1)));
+        expect((await program.account.transaction.fetch(txPDA)).poolIndex = 1);
     });
 
+    it("Can not submit transaction", async () => {
+        const chainID = 123
+        const buf = Buffer.alloc(2);
+        buf.writeUInt16LE(chainID);
+        const [poolPDA] = PublicKey.findProgramAddressSync(
+            [Buffer.from('pool'), buf],
+            program.programId
+        )
+        const sequence = 2
+        const buf1 = Buffer.alloc(8);
+        buf1.writeBigUInt64LE(BigInt(sequence), 0);
+        const [txPDA] = PublicKey.findProgramAddressSync(
+            [Buffer.from('tx'), buf1],
+            program.programId
+        )
+        const transactionBuf = Buffer.from([1,2])
+        try{
+            await program.methods.sendTransaction(chainID, new BN(sequence), transactionBuf).accounts({
+                config: configPDA,
+                relayer_info: relayerInfoPDA,
+                relayer: user_keypair.publicKey,
+                transaction: txPDA,
+                pool: poolPDA,
+            }).signers([user_keypair]).rpc();
+        } catch (error) {
+            return;
+        }
+        // Epoch switching can be executed
+        let currentEpoch = await pg.connection.getEpochInfo();
+        currentEpoch.epoch = 1
+        await program.methods.sendTransaction(chainID, new BN(sequence), transactionBuf).accounts({
+            config: configPDA,
+            relayer_info: relayerInfoPDA,
+            relayer: user_keypair.publicKey,
+            transaction: txPDA,
+            pool: poolPDA,
+        }).signers([user_keypair]).rpc();
+    });
 });

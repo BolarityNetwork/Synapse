@@ -22,7 +22,7 @@ pub struct Initialize<'info> {
     seeds = [RelayerInfo::SEED_PREFIX],
     bump,
     payer = payer,
-    space = 8 + RelayerInfo::INIT_SPACE
+    space = 8 + RelayerInfo::MAX_SIZE
     )]
     /// Relayer configuration account.Used to store data related to relayer configuration.
     pub relayer_info: Box<Account<'info, RelayerInfo>>,

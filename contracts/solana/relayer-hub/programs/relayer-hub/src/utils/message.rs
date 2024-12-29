@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use wormhole_anchor_sdk::wormhole::{self, program::Wormhole};
+
 #[derive(AnchorSerialize, AnchorDeserialize, Debug, Clone)]
 pub struct AccountMetaType {
     pub key: Pubkey,
@@ -11,13 +11,13 @@ pub struct AccountMetaType {
 pub struct RawData {
     pub chain_id: u16,
     pub caller: Pubkey,
-    pub programId: Pubkey,
+    pub program_id: Pubkey,
     pub acc_count: u8,
     pub accounts: Vec<AccountMetaType>,
     pub paras: Vec<u8>,
     pub acc_meta: Vec<u8>,
 }
-pub type SolanaVaa = wormhole::PostedVaa<RawData>;
+// pub type SolanaVaa = wormhole::PostedVaa<RawData>;
 
 #[cfg(test)]
 mod test {

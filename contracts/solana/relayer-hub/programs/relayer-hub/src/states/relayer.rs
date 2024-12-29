@@ -14,13 +14,15 @@ impl Relayer {
 }
 
 #[account]
-#[derive(InitSpace)]
 /// Relayer configuration account.
 pub struct RelayerInfo {
     /// The total number of relayers.
-    pub number: u64,
+    pub number: u16,
+    pub relayer_list:Vec<Pubkey>,
 }
 
 impl RelayerInfo {
     pub const SEED_PREFIX: &'static [u8; 7] = b"relayer";
+    // Up to 100 relayers.
+    pub const MAX_SIZE: usize = 2 + 32*100;
 }

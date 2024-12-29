@@ -50,11 +50,14 @@ pub fn register_relayer(ctx: Context<RegisterRelayer>) -> Result<()> {
         return Err(ErrorCode::NotInitialized.into());
     }
 
+    let payer_key = *ctx.accounts.payer.key;
+
     let relayer_info = &mut ctx.accounts.relayer_info;
+    relayer_info.relayer_list.push(payer_key);
     relayer_info.number = relayer_info.number + 1;
 
     let relayer = &mut ctx.accounts.relayer;
-    relayer.owner = *ctx.accounts.payer.key;
+    relayer.owner = payer_key;
 
     Ok(())
 }
@@ -105,6 +108,7 @@ pub fn register_tx_pool(ctx: Context<RegisterTxPool>, chain: u16) -> Result<()> 
     }
 
     let pool = &mut ctx.accounts.pool;
+    pool.index = config_state.tx_pool_number;
     pool.total = 0;
     pool.chain = chain;
 
