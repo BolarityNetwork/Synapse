@@ -8,3 +8,4 @@ program_errors.json
 test_errors.output
 tests.output
 lcov.info
+.idea
