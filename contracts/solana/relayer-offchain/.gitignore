@@ -1,0 +1,10 @@
+/target
+
+.developer
+node_modules
+test-ledger
+# Debugging
+program_errors.json
+test_errors.output
+tests.output
+lcov.info
