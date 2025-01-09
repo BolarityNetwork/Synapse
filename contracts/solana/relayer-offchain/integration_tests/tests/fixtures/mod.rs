@@ -3,6 +3,9 @@ use solana_program_test::BanksClientError;
 use solana_sdk::transaction::TransactionError;
 use thiserror::Error;
 
+pub mod test_builder;
+mod restaking_client;
+mod vault_client;
 
 pub type TestResult<T> = Result<T, TestError>;
 

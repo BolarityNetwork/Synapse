@@ -4,12 +4,22 @@
 resolution = true
 skip-lint = false
 
+[workspace]
+members = [
+    "programs/relayer-hub",
+    "programs/relayer-ncn",
+]
 [programs.mainnet]
 relayer_hub = "48Xgerygjftsx9brotJQbkDZtLov9Gyuj4G3Y7eMirJL"
+relayer_ncn = "J2rxY1z3Wgt4VYrN4EVh6FGnEZHnEyHqQcwvd2kfKnxh"
+
 [programs.localnet]
 relayer_hub = "48Xgerygjftsx9brotJQbkDZtLov9Gyuj4G3Y7eMirJL"
+relayer_ncn = "J2rxY1z3Wgt4VYrN4EVh6FGnEZHnEyHqQcwvd2kfKnxh"
+
 [programs.devnet]
 relayer_hub = "48Xgerygjftsx9brotJQbkDZtLov9Gyuj4G3Y7eMirJL"
+relayer_ncn = "J2rxY1z3Wgt4VYrN4EVh6FGnEZHnEyHqQcwvd2kfKnxh"
 
 [registry]
 url = "https://api.apr.dev"
