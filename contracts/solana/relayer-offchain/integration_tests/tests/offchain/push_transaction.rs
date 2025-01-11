@@ -9,6 +9,7 @@ mod push_transaction{
     #[tokio::test]
     async fn test_push_transaction_ok() -> TestResult<()> {
         let mut fixture = TestBuilder::new().await;
+        let mut relayer_ncn_client = fixture.relayer_ncn_client();
         let test_ncn = fixture.create_initial_test_ncn(1, 1, None).await?;
 
         fixture.warp_slot_incremental(1000).await?;

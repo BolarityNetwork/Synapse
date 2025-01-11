@@ -24,7 +24,10 @@ spl-stake-pool = { workspace = true }
 spl-token = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
+relayer-ncn-client = { workspace = true }
+relayer-ncn-program = { workspace = true }
 
 [dependencies]
+relayer-ncn-client = { workspace = true }
 log = "0.4.21"
 

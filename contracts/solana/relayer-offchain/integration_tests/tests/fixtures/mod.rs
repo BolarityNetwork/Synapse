@@ -4,6 +4,7 @@ use solana_sdk::transaction::TransactionError;
 use thiserror::Error;
 
 pub mod test_builder;
+pub mod relayer_ncn_client_fix;
 mod restaking_client;
 mod vault_client;
 

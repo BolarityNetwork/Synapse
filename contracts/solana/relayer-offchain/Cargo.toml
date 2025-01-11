@@ -1,7 +1,10 @@
 [workspace]
 members = [
     "cli",
+    "clients/rust/relayer_ncn",
     "integration_tests",
+    "program",
+    "shank_cli",
 ]
 
 resolver = "2"
@@ -18,6 +21,9 @@ codegen-units = 1
 
 [workspace.package]
 version = "0.0.1"
+authors = ["BolarityNetwork"]
+repository = "github.com/BolarityNetwork/Synapse"
+homepage = "https://BolarityNetwork.network/"
 license = "Apache License 2.0"
 edition = "2021"
 readme = "README.md"
@@ -73,6 +79,9 @@ switchboard-on-demand = "0.1.0"
 syn = "2.0.72"
 thiserror = "1.0.57"
 tokio = { version = "1.36.0", features = ["full"] }
+relayer-ncn-client = { path = "./clients/rust/relayer_ncn", version = "0.0.1" }
+relayer-ncn-program = { path = "./program", version = "=0.0.1" }
+relayer-ncn-shank-cli = { path = "./shank_cli", version = "=0.0.1" }
 jito-bytemuck = { git = "https://github.com/jito-foundation/restaking.git", rev = "eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d" }
 jito-account-traits-derive = { git = "https://github.com/jito-foundation/restaking.git", rev = "eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d" }
 jito-jsm-core = { git = "https://github.com/jito-foundation/restaking.git", rev = "eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d" }

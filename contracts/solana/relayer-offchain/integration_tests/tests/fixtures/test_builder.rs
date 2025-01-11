@@ -27,7 +27,6 @@ use solana_sdk::{
     transaction::Transaction,
 };
 use spl_stake_pool::find_withdraw_authority_program_address;
-
 use super::{
     // generated_switchboard_accounts::get_switchboard_accounts,
     restaking_client::NcnRoot,
@@ -40,6 +39,7 @@ use crate::fixtures::{
     vault_client::{VaultProgramClient, VaultRoot},
     TestResult,
 };
+use crate::fixtures::relayer_ncn_client_fix::RelayerNcnClient;
 
 pub struct TestNcn {
     pub ncn_root: NcnRoot,
@@ -99,12 +99,11 @@ impl TestBuilder {
 
         let mut program_test = if run_as_bpf {
             let mut program_test = ProgramTest::new(
-                // "jito_tip_router_program",
-                // jito_tip_router_program::id(),
-                "jito_vault_program", jito_vault_program::id(),
+                "relayer_ncn_program",
+                relayer_ncn_program::id(),
                 None,
             );
-            // program_test.add_program("jito_vault_program", jito_vault_program::id(), None);
+            program_test.add_program("jito_vault_program", jito_vault_program::id(), None);
             program_test.add_program("jito_restaking_program", jito_restaking_program::id(), None);
             program_test.add_program("spl_stake_pool", spl_stake_pool::id(), None);
 
@@ -115,18 +114,15 @@ impl TestBuilder {
             program_test
         } else {
             let mut program_test = ProgramTest::new(
+                "relayer_ncn_program",
+                relayer_ncn_program::id(),
+                processor!(relayer_ncn_program::process_instruction),
+            );
+            program_test.add_program(
                 "jito_vault_program",
                 jito_vault_program::id(),
                 processor!(jito_vault_program::process_instruction),
-                // "jito_tip_router_program",
-                // jito_tip_router_program::id(),
-                // processor!(jito_tip_router_program::process_instruction),
             );
-            // program_test.add_program(
-            //     "jito_vault_program",
-            //     jito_vault_program::id(),
-            //     processor!(jito_vault_program::process_instruction),
-            // );
             program_test.add_program(
                 "jito_restaking_program",
                 jito_restaking_program::id(),
@@ -207,12 +203,12 @@ impl TestBuilder {
         self.context.banks_client.get_sysvar().await.unwrap()
     }
 
-    // pub fn tip_router_client(&self) -> TipRouterClient {
-    //     TipRouterClient::new(
-    //         self.context.banks_client.clone(),
-    //         self.context.payer.insecure_clone(),
-    //     )
-    // }
+    pub fn relayer_ncn_client(&self) -> RelayerNcnClient {
+        RelayerNcnClient::new(
+            self.context.banks_client.clone(),
+            self.context.payer.insecure_clone(),
+        )
+    }
 
     pub fn restaking_program_client(&self) -> RestakingProgramClient {
         RestakingProgramClient::new(
@@ -285,7 +281,7 @@ impl TestBuilder {
     pub async fn create_test_ncn(&mut self) -> TestResult<TestNcn> {
         let mut restaking_program_client = self.restaking_program_client();
         let mut vault_program_client = self.vault_program_client();
-        // let mut tip_router_client = self.tip_router_client();
+        let mut relayer_ncn_client = self.relayer_ncn_client();
 
         vault_program_client.do_initialize_config().await?;
         restaking_program_client.do_initialize_config().await?;
@@ -293,8 +289,8 @@ impl TestBuilder {
             .do_initialize_ncn(Some(self.context.payer.insecure_clone()))
             .await?;
 
-        // tip_router_client.setup_tip_router(&ncn_root).await?;
-        //
+        relayer_ncn_client.setup_relayer_ncn(&ncn_root).await?;
+
         // tip_router_client
         //     .do_set_config_fees(
         //         Some(300),

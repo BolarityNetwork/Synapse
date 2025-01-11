@@ -1,0 +1,69 @@
+{
+  "version": "0.0.1",
+  "name": "relayer_ncn_program",
+  "instructions": [
+    {
+      "name": "InitializeCounter",
+      "accounts": [
+        {
+          "name": "counter",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "payer",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "initialValue",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 0
+      }
+    },
+    {
+      "name": "IncrementCounter",
+      "accounts": [
+        {
+          "name": "counter",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 1
+      }
+    }
+  ],
+  "accounts": [
+    {
+      "name": "CounterAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "count",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "origin": "shank",
+    "address": "J2rxY1z3Wgt4VYrN4EVh6FGnEZHnEyHqQcwvd2kfKnxh"
+  }
+}
