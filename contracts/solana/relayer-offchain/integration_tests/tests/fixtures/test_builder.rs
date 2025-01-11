@@ -4,7 +4,7 @@ use std::{
 };
 
 use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
-// use jito_tip_distribution_sdk::jito_tip_distribution;
+use relayer_hub_sdk::relayer_hub;
 // use jito_tip_router_core::{
 //     base_fee_group::BaseFeeGroup,
 //     base_reward_router::BaseRewardReceiver,
@@ -107,9 +107,9 @@ impl TestBuilder {
             program_test.add_program("jito_restaking_program", jito_restaking_program::id(), None);
             program_test.add_program("spl_stake_pool", spl_stake_pool::id(), None);
 
-            // // Tests that invoke this program should be in the "bpf" module so we can run them separately with the bpf vm.
-            // // Anchor programs do not expose a compatible entrypoint for solana_program_test::processor!
-            // program_test.add_program("jito_tip_distribution", jito_tip_distribution::ID, None);
+            // Tests that invoke this program should be in the "bpf" module so we can run them separately with the bpf vm.
+            // Anchor programs do not expose a compatible entrypoint for solana_program_test::processor!
+            program_test.add_program("relayer_hub", relayer_hub::ID, None);
 
             program_test
         } else {

@@ -142,7 +142,9 @@ impl RelayerNcnClient {
         epochs_before_stall: u64,
         valid_slots_after_consensus: u64,
     ) -> TestResult<()> {
-        // let ncn_config = NcnConfig::find_program_address(&jito_tip_router_program::id(), &ncn).0;
+        let ix = relayer_hub_sdk::instruction::initialize_ix(
+            ncn,ncn,ncn,ncn,
+        );
         let seeds = vec![b"".to_vec()];
         // let (address, bump) = Pubkey::find_program_address(
         //     &seeds.iter().map(|s| s.as_slice()).collect::<Vec<_>>(),

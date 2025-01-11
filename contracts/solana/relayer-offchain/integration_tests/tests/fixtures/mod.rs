@@ -5,6 +5,7 @@ use thiserror::Error;
 
 pub mod test_builder;
 pub mod relayer_ncn_client_fix;
+pub mod relayer_hub_client;
 mod restaking_client;
 mod vault_client;
 
