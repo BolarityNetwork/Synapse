@@ -9,3 +9,6 @@ test_errors.output
 tests.output
 lcov.info
 .idea
+integration_tests/tests/fixtures/relayer_ncn_program.so
+
+integration_tests/tests/fixtures/relayer_ncn_program-keypair.json

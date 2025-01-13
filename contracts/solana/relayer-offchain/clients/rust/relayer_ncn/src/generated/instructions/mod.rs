@@ -5,8 +5,6 @@
 //! <https://github.com/kinobi-so/kinobi>
 //!
 
-pub(crate) mod r#increment_counter;
-pub(crate) mod r#initialize_counter;
+pub(crate) mod r#initialize_config;
 
-pub use self::r#increment_counter::*;
-pub use self::r#initialize_counter::*;
+pub use self::r#initialize_config::*;

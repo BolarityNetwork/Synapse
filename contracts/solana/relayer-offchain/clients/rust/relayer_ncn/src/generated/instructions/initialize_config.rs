@@ -9,43 +9,53 @@ use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
 
 /// Accounts.
-pub struct InitializeCounter {
-    pub counter: solana_program::pubkey::Pubkey,
+pub struct InitializeConfig {
+    pub config: solana_program::pubkey::Pubkey,
 
-    pub payer: solana_program::pubkey::Pubkey,
+    pub ncn: solana_program::pubkey::Pubkey,
+
+    pub ncn_admin: solana_program::pubkey::Pubkey,
+
+    pub restaking_program: solana_program::pubkey::Pubkey,
 
     pub system_program: solana_program::pubkey::Pubkey,
 }
 
-impl InitializeCounter {
+impl InitializeConfig {
     pub fn instruction(
         &self,
-        args: InitializeCounterInstructionArgs,
+        args: InitializeConfigInstructionArgs,
     ) -> solana_program::instruction::Instruction {
         self.instruction_with_remaining_accounts(args, &[])
     }
     #[allow(clippy::vec_init_then_push)]
     pub fn instruction_with_remaining_accounts(
         &self,
-        args: InitializeCounterInstructionArgs,
+        args: InitializeConfigInstructionArgs,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
-        let mut accounts = Vec::with_capacity(3 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
-            self.counter,
+            self.config,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            self.ncn, false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            self.ncn_admin,
             true,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            self.payer, true,
+            self.restaking_program,
+            false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.system_program,
             false,
         ));
         accounts.extend_from_slice(remaining_accounts);
-        let mut data = InitializeCounterInstructionData::new()
-            .try_to_vec()
-            .unwrap();
+        let mut data = InitializeConfigInstructionData::new().try_to_vec().unwrap();
         let mut args = args.try_to_vec().unwrap();
         data.append(&mut args);
 
@@ -58,17 +68,17 @@ impl InitializeCounter {
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct InitializeCounterInstructionData {
+pub struct InitializeConfigInstructionData {
     discriminator: u8,
 }
 
-impl InitializeCounterInstructionData {
+impl InitializeConfigInstructionData {
     pub fn new() -> Self {
         Self { discriminator: 0 }
     }
 }
 
-impl Default for InitializeCounterInstructionData {
+impl Default for InitializeConfigInstructionData {
     fn default() -> Self {
         Self::new()
     }
@@ -76,38 +86,57 @@ impl Default for InitializeCounterInstructionData {
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct InitializeCounterInstructionArgs {
-    pub initial_value: u64,
+pub struct InitializeConfigInstructionArgs {
+    pub epochs_before_stall: u64,
+    pub valid_slots_after_consensus: u64,
 }
 
-/// Instruction builder for `InitializeCounter`.
+/// Instruction builder for `InitializeConfig`.
 ///
 /// ### Accounts:
 ///
-///   0. `[writable, signer]` counter
-///   1. `[signer]` payer
-///   2. `[optional]` system_program (default to `11111111111111111111111111111111`)
+///   0. `[writable]` config
+///   1. `[]` ncn
+///   2. `[signer]` ncn_admin
+///   3. `[]` restaking_program
+///   4. `[optional]` system_program (default to `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
-pub struct InitializeCounterBuilder {
-    counter: Option<solana_program::pubkey::Pubkey>,
-    payer: Option<solana_program::pubkey::Pubkey>,
+pub struct InitializeConfigBuilder {
+    config: Option<solana_program::pubkey::Pubkey>,
+    ncn: Option<solana_program::pubkey::Pubkey>,
+    ncn_admin: Option<solana_program::pubkey::Pubkey>,
+    restaking_program: Option<solana_program::pubkey::Pubkey>,
     system_program: Option<solana_program::pubkey::Pubkey>,
-    initial_value: Option<u64>,
+    epochs_before_stall: Option<u64>,
+    valid_slots_after_consensus: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
-impl InitializeCounterBuilder {
+impl InitializeConfigBuilder {
     pub fn new() -> Self {
         Self::default()
     }
     #[inline(always)]
-    pub fn counter(&mut self, counter: solana_program::pubkey::Pubkey) -> &mut Self {
-        self.counter = Some(counter);
+    pub fn config(&mut self, config: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.config = Some(config);
         self
     }
     #[inline(always)]
-    pub fn payer(&mut self, payer: solana_program::pubkey::Pubkey) -> &mut Self {
-        self.payer = Some(payer);
+    pub fn ncn(&mut self, ncn: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.ncn = Some(ncn);
+        self
+    }
+    #[inline(always)]
+    pub fn ncn_admin(&mut self, ncn_admin: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.ncn_admin = Some(ncn_admin);
+        self
+    }
+    #[inline(always)]
+    pub fn restaking_program(
+        &mut self,
+        restaking_program: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.restaking_program = Some(restaking_program);
         self
     }
     /// `[optional account, default to '11111111111111111111111111111111']`
@@ -117,8 +146,13 @@ impl InitializeCounterBuilder {
         self
     }
     #[inline(always)]
-    pub fn initial_value(&mut self, initial_value: u64) -> &mut Self {
-        self.initial_value = Some(initial_value);
+    pub fn epochs_before_stall(&mut self, epochs_before_stall: u64) -> &mut Self {
+        self.epochs_before_stall = Some(epochs_before_stall);
+        self
+    }
+    #[inline(always)]
+    pub fn valid_slots_after_consensus(&mut self, valid_slots_after_consensus: u64) -> &mut Self {
+        self.valid_slots_after_consensus = Some(valid_slots_after_consensus);
         self
     }
     /// Add an additional account to the instruction.
@@ -141,57 +175,75 @@ impl InitializeCounterBuilder {
     }
     #[allow(clippy::clone_on_copy)]
     pub fn instruction(&self) -> solana_program::instruction::Instruction {
-        let accounts = InitializeCounter {
-            counter: self.counter.expect("counter is not set"),
-            payer: self.payer.expect("payer is not set"),
+        let accounts = InitializeConfig {
+            config: self.config.expect("config is not set"),
+            ncn: self.ncn.expect("ncn is not set"),
+            ncn_admin: self.ncn_admin.expect("ncn_admin is not set"),
+            restaking_program: self
+                .restaking_program
+                .expect("restaking_program is not set"),
             system_program: self
                 .system_program
                 .unwrap_or(solana_program::pubkey!("11111111111111111111111111111111")),
         };
-        let args = InitializeCounterInstructionArgs {
-            initial_value: self
-                .initial_value
+        let args = InitializeConfigInstructionArgs {
+            epochs_before_stall: self
+                .epochs_before_stall
                 .clone()
-                .expect("initial_value is not set"),
+                .expect("epochs_before_stall is not set"),
+            valid_slots_after_consensus: self
+                .valid_slots_after_consensus
+                .clone()
+                .expect("valid_slots_after_consensus is not set"),
         };
 
         accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
     }
 }
 
-/// `initialize_counter` CPI accounts.
-pub struct InitializeCounterCpiAccounts<'a, 'b> {
-    pub counter: &'b solana_program::account_info::AccountInfo<'a>,
+/// `initialize_config` CPI accounts.
+pub struct InitializeConfigCpiAccounts<'a, 'b> {
+    pub config: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub payer: &'b solana_program::account_info::AccountInfo<'a>,
+    pub ncn: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub ncn_admin: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub restaking_program: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
 }
 
-/// `initialize_counter` CPI instruction.
-pub struct InitializeCounterCpi<'a, 'b> {
+/// `initialize_config` CPI instruction.
+pub struct InitializeConfigCpi<'a, 'b> {
     /// The program to invoke.
     pub __program: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub counter: &'b solana_program::account_info::AccountInfo<'a>,
+    pub config: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub payer: &'b solana_program::account_info::AccountInfo<'a>,
+    pub ncn: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub ncn_admin: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub restaking_program: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
     /// The arguments for the instruction.
-    pub __args: InitializeCounterInstructionArgs,
+    pub __args: InitializeConfigInstructionArgs,
 }
 
-impl<'a, 'b> InitializeCounterCpi<'a, 'b> {
+impl<'a, 'b> InitializeConfigCpi<'a, 'b> {
     pub fn new(
         program: &'b solana_program::account_info::AccountInfo<'a>,
-        accounts: InitializeCounterCpiAccounts<'a, 'b>,
-        args: InitializeCounterInstructionArgs,
+        accounts: InitializeConfigCpiAccounts<'a, 'b>,
+        args: InitializeConfigInstructionArgs,
     ) -> Self {
         Self {
             __program: program,
-            counter: accounts.counter,
-            payer: accounts.payer,
+            config: accounts.config,
+            ncn: accounts.ncn,
+            ncn_admin: accounts.ncn_admin,
+            restaking_program: accounts.restaking_program,
             system_program: accounts.system_program,
             __args: args,
         }
@@ -229,14 +281,22 @@ impl<'a, 'b> InitializeCounterCpi<'a, 'b> {
             bool,
         )],
     ) -> solana_program::entrypoint::ProgramResult {
-        let mut accounts = Vec::with_capacity(3 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
-            *self.counter.key,
+            *self.config.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            *self.ncn.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            *self.ncn_admin.key,
             true,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            *self.payer.key,
-            true,
+            *self.restaking_program.key,
+            false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.system_program.key,
@@ -249,9 +309,7 @@ impl<'a, 'b> InitializeCounterCpi<'a, 'b> {
                 is_writable: remaining_account.2,
             })
         });
-        let mut data = InitializeCounterInstructionData::new()
-            .try_to_vec()
-            .unwrap();
+        let mut data = InitializeConfigInstructionData::new().try_to_vec().unwrap();
         let mut args = self.__args.try_to_vec().unwrap();
         data.append(&mut args);
 
@@ -260,10 +318,12 @@ impl<'a, 'b> InitializeCounterCpi<'a, 'b> {
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(3 + 1 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(5 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
-        account_infos.push(self.counter.clone());
-        account_infos.push(self.payer.clone());
+        account_infos.push(self.config.clone());
+        account_infos.push(self.ncn.clone());
+        account_infos.push(self.ncn_admin.clone());
+        account_infos.push(self.restaking_program.clone());
         account_infos.push(self.system_program.clone());
         remaining_accounts
             .iter()
@@ -277,41 +337,62 @@ impl<'a, 'b> InitializeCounterCpi<'a, 'b> {
     }
 }
 
-/// Instruction builder for `InitializeCounter` via CPI.
+/// Instruction builder for `InitializeConfig` via CPI.
 ///
 /// ### Accounts:
 ///
-///   0. `[writable, signer]` counter
-///   1. `[signer]` payer
-///   2. `[]` system_program
+///   0. `[writable]` config
+///   1. `[]` ncn
+///   2. `[signer]` ncn_admin
+///   3. `[]` restaking_program
+///   4. `[]` system_program
 #[derive(Clone, Debug)]
-pub struct InitializeCounterCpiBuilder<'a, 'b> {
-    instruction: Box<InitializeCounterCpiBuilderInstruction<'a, 'b>>,
+pub struct InitializeConfigCpiBuilder<'a, 'b> {
+    instruction: Box<InitializeConfigCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> InitializeCounterCpiBuilder<'a, 'b> {
+impl<'a, 'b> InitializeConfigCpiBuilder<'a, 'b> {
     pub fn new(program: &'b solana_program::account_info::AccountInfo<'a>) -> Self {
-        let instruction = Box::new(InitializeCounterCpiBuilderInstruction {
+        let instruction = Box::new(InitializeConfigCpiBuilderInstruction {
             __program: program,
-            counter: None,
-            payer: None,
+            config: None,
+            ncn: None,
+            ncn_admin: None,
+            restaking_program: None,
             system_program: None,
-            initial_value: None,
+            epochs_before_stall: None,
+            valid_slots_after_consensus: None,
             __remaining_accounts: Vec::new(),
         });
         Self { instruction }
     }
     #[inline(always)]
-    pub fn counter(
+    pub fn config(
         &mut self,
-        counter: &'b solana_program::account_info::AccountInfo<'a>,
+        config: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
-        self.instruction.counter = Some(counter);
+        self.instruction.config = Some(config);
         self
     }
     #[inline(always)]
-    pub fn payer(&mut self, payer: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
-        self.instruction.payer = Some(payer);
+    pub fn ncn(&mut self, ncn: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
+        self.instruction.ncn = Some(ncn);
+        self
+    }
+    #[inline(always)]
+    pub fn ncn_admin(
+        &mut self,
+        ncn_admin: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.ncn_admin = Some(ncn_admin);
+        self
+    }
+    #[inline(always)]
+    pub fn restaking_program(
+        &mut self,
+        restaking_program: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.restaking_program = Some(restaking_program);
         self
     }
     #[inline(always)]
@@ -323,8 +404,13 @@ impl<'a, 'b> InitializeCounterCpiBuilder<'a, 'b> {
         self
     }
     #[inline(always)]
-    pub fn initial_value(&mut self, initial_value: u64) -> &mut Self {
-        self.instruction.initial_value = Some(initial_value);
+    pub fn epochs_before_stall(&mut self, epochs_before_stall: u64) -> &mut Self {
+        self.instruction.epochs_before_stall = Some(epochs_before_stall);
+        self
+    }
+    #[inline(always)]
+    pub fn valid_slots_after_consensus(&mut self, valid_slots_after_consensus: u64) -> &mut Self {
+        self.instruction.valid_slots_after_consensus = Some(valid_slots_after_consensus);
         self
     }
     /// Add an additional account to the instruction.
@@ -368,19 +454,31 @@ impl<'a, 'b> InitializeCounterCpiBuilder<'a, 'b> {
         &self,
         signers_seeds: &[&[&[u8]]],
     ) -> solana_program::entrypoint::ProgramResult {
-        let args = InitializeCounterInstructionArgs {
-            initial_value: self
+        let args = InitializeConfigInstructionArgs {
+            epochs_before_stall: self
                 .instruction
-                .initial_value
+                .epochs_before_stall
                 .clone()
-                .expect("initial_value is not set"),
+                .expect("epochs_before_stall is not set"),
+            valid_slots_after_consensus: self
+                .instruction
+                .valid_slots_after_consensus
+                .clone()
+                .expect("valid_slots_after_consensus is not set"),
         };
-        let instruction = InitializeCounterCpi {
+        let instruction = InitializeConfigCpi {
             __program: self.instruction.__program,
 
-            counter: self.instruction.counter.expect("counter is not set"),
+            config: self.instruction.config.expect("config is not set"),
 
-            payer: self.instruction.payer.expect("payer is not set"),
+            ncn: self.instruction.ncn.expect("ncn is not set"),
+
+            ncn_admin: self.instruction.ncn_admin.expect("ncn_admin is not set"),
+
+            restaking_program: self
+                .instruction
+                .restaking_program
+                .expect("restaking_program is not set"),
 
             system_program: self
                 .instruction
@@ -396,12 +494,15 @@ impl<'a, 'b> InitializeCounterCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct InitializeCounterCpiBuilderInstruction<'a, 'b> {
+struct InitializeConfigCpiBuilderInstruction<'a, 'b> {
     __program: &'b solana_program::account_info::AccountInfo<'a>,
-    counter: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    payer: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    config: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    ncn: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    ncn_admin: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    restaking_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     system_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    initial_value: Option<u64>,
+    epochs_before_stall: Option<u64>,
+    valid_slots_after_consensus: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(
         &'b solana_program::account_info::AccountInfo<'a>,

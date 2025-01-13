@@ -27,6 +27,7 @@ tokio = { workspace = true }
 relayer-ncn-client = { workspace = true }
 relayer-ncn-program = { workspace = true }
 relayer-hub-sdk = { workspace = true }
+relayer-ncn-core = { workspace = true }
 
 [dependencies]
 relayer-ncn-client = { workspace = true }

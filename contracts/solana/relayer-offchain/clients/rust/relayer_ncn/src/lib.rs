@@ -20,9 +20,9 @@ pub mod errors {
     pub use super::generated::errors::*;
 }
 
-// pub mod types {
-//     pub use super::generated::types::*;
-// }
+pub mod types {
+    pub use super::generated::types::*;
+}
 
 pub mod programs {
     pub use super::generated::programs::*;

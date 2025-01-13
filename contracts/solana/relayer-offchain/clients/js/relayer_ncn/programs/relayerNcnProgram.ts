@@ -12,21 +12,17 @@ import {
   type Address,
   type ReadonlyUint8Array,
 } from '@solana/web3.js';
-import {
-  type ParsedIncrementCounterInstruction,
-  type ParsedInitializeCounterInstruction,
-} from '../instructions';
+import { type ParsedInitializeConfigInstruction } from '../instructions';
 
 export const RELAYER_NCN_PROGRAM_PROGRAM_ADDRESS =
   'J2rxY1z3Wgt4VYrN4EVh6FGnEZHnEyHqQcwvd2kfKnxh' as Address<'J2rxY1z3Wgt4VYrN4EVh6FGnEZHnEyHqQcwvd2kfKnxh'>;
 
 export enum RelayerNcnProgramAccount {
-  CounterAccount,
+  Config,
 }
 
 export enum RelayerNcnProgramInstruction {
-  InitializeCounter,
-  IncrementCounter,
+  InitializeConfig,
 }
 
 export function identifyRelayerNcnProgramInstruction(
@@ -34,10 +30,7 @@ export function identifyRelayerNcnProgramInstruction(
 ): RelayerNcnProgramInstruction {
   const data = 'data' in instruction ? instruction.data : instruction;
   if (containsBytes(data, getU8Encoder().encode(0), 0)) {
-    return RelayerNcnProgramInstruction.InitializeCounter;
-  }
-  if (containsBytes(data, getU8Encoder().encode(1), 0)) {
-    return RelayerNcnProgramInstruction.IncrementCounter;
+    return RelayerNcnProgramInstruction.InitializeConfig;
   }
   throw new Error(
     'The provided instruction could not be identified as a relayerNcnProgram instruction.'
@@ -46,10 +39,6 @@ export function identifyRelayerNcnProgramInstruction(
 
 export type ParsedRelayerNcnProgramInstruction<
   TProgram extends string = 'J2rxY1z3Wgt4VYrN4EVh6FGnEZHnEyHqQcwvd2kfKnxh',
-> =
-  | ({
-      instructionType: RelayerNcnProgramInstruction.InitializeCounter;
-    } & ParsedInitializeCounterInstruction<TProgram>)
-  | ({
-      instructionType: RelayerNcnProgramInstruction.IncrementCounter;
-    } & ParsedIncrementCounterInstruction<TProgram>);
+> = {
+  instructionType: RelayerNcnProgramInstruction.InitializeConfig;
+} & ParsedInitializeConfigInstruction<TProgram>;

@@ -24,7 +24,7 @@ fn main() -> Result<()> {
     let idl_configs = vec![IdlConfiguration {
         program_id: relayer_ncn_program_id,
         name: "relayer_ncn_program",
-        paths: vec!["program"],
+        paths: vec!["core", "program"],
     }];
 
     let crate_root = std::env::current_dir().unwrap();

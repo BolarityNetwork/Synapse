@@ -5,6 +5,6 @@
 //! <https://github.com/kinobi-so/kinobi>
 //!
 
-pub(crate) mod r#counter_account;
+pub(crate) mod r#config;
 
-pub use self::r#counter_account::*;
+pub use self::r#config::*;

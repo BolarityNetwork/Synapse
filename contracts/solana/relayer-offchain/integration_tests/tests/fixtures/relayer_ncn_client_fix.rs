@@ -31,6 +31,9 @@ use super::{restaking_client::NcnRoot,
             // stake_pool_client::PoolRoot
 };
 use crate::fixtures::{TestError, TestResult};
+use relayer_ncn_core::{
+    config::Config as NcnConfig,
+};
 
 pub struct RelayerNcnClient {
     banks_client: BanksClient,
@@ -142,26 +145,22 @@ impl RelayerNcnClient {
         epochs_before_stall: u64,
         valid_slots_after_consensus: u64,
     ) -> TestResult<()> {
-        let ix = relayer_hub_sdk::instruction::initialize_ix(
-            ncn,ncn,ncn,ncn,
-        );
-        let seeds = vec![b"".to_vec()];
-        // let (address, bump) = Pubkey::find_program_address(
-        //     &seeds.iter().map(|s| s.as_slice()).collect::<Vec<_>>(),
-        //     &relayer_ncn_program::id(),
-        // );
-        let counter_keypair = Keypair::new();
-        let ix = InitializeCounterBuilder::new()
-            .initial_value(4)
-            .payer(ncn_admin.pubkey())
-            .counter(counter_keypair.pubkey())
+        let ncn_config = NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+
+        let ix = InitializeConfigBuilder::new()
+            .config(ncn_config)
+            .ncn(ncn)
+            .ncn_admin(ncn_admin.pubkey())
+            .restaking_program(jito_restaking_program::id())
+            .epochs_before_stall(epochs_before_stall)
+            .valid_slots_after_consensus(valid_slots_after_consensus)
             .instruction();
 
         let blockhash = self.banks_client.get_latest_blockhash().await?;
         self.process_transaction(&Transaction::new_signed_with_payer(
             &[ix],
             Some(&ncn_admin.pubkey()),
-            &[&ncn_admin, &counter_keypair],
+            &[&ncn_admin],
             blockhash,
         ))
             .await

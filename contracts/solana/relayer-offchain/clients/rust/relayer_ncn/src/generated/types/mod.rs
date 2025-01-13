@@ -5,6 +5,6 @@
 //! <https://github.com/kinobi-so/kinobi>
 //!
 
-pub(crate) mod relayer_ncn_program;
+pub(crate) mod r#config_admin_role;
 
-pub use self::relayer_ncn_program::RelayerNcnProgramError;
+pub use self::r#config_admin_role::*;

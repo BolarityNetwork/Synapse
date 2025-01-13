@@ -7,17 +7,25 @@
 
 use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
+use solana_program::pubkey::Pubkey;
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CounterAccount {
+pub struct Config {
     pub discriminator: u64,
-    pub count: u64,
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "serde_with::As::<serde_with::DisplayFromStr>")
+    )]
+    pub ncn: Pubkey,
+    pub valid_slots_after_consensus: u64,
+    pub epochs_before_stall: u64,
+    pub bump: u8,
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    pub reserved: [u8; 127],
 }
 
-impl CounterAccount {
-    pub const LEN: usize = 8;
-
+impl Config {
     #[inline(always)]
     pub fn from_bytes(data: &[u8]) -> Result<Self, std::io::Error> {
         let mut data = data;
@@ -25,7 +33,7 @@ impl CounterAccount {
     }
 }
 
-impl<'a> TryFrom<&solana_program::account_info::AccountInfo<'a>> for CounterAccount {
+impl<'a> TryFrom<&solana_program::account_info::AccountInfo<'a>> for Config {
     type Error = std::io::Error;
 
     fn try_from(
@@ -37,26 +45,26 @@ impl<'a> TryFrom<&solana_program::account_info::AccountInfo<'a>> for CounterAcco
 }
 
 #[cfg(feature = "anchor")]
-impl anchor_lang::AccountDeserialize for CounterAccount {
+impl anchor_lang::AccountDeserialize for Config {
     fn try_deserialize_unchecked(buf: &mut &[u8]) -> anchor_lang::Result<Self> {
         Ok(Self::deserialize(buf)?)
     }
 }
 
 #[cfg(feature = "anchor")]
-impl anchor_lang::AccountSerialize for CounterAccount {}
+impl anchor_lang::AccountSerialize for Config {}
 
 #[cfg(feature = "anchor")]
-impl anchor_lang::Owner for CounterAccount {
+impl anchor_lang::Owner for Config {
     fn owner() -> Pubkey {
         crate::RELAYER_NCN_PROGRAM_ID
     }
 }
 
 #[cfg(feature = "anchor-idl-build")]
-impl anchor_lang::IdlBuild for CounterAccount {}
+impl anchor_lang::IdlBuild for Config {}
 
 #[cfg(feature = "anchor-idl-build")]
-impl anchor_lang::Discriminator for CounterAccount {
+impl anchor_lang::Discriminator for Config {
     const DISCRIMINATOR: [u8; 8] = [0; 8];
 }
