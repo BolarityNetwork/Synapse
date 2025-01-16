@@ -8,8 +8,9 @@ pub(crate) mod r#admin_register_st_mint;
 pub(crate) mod r#initialize_config;
 pub(crate) mod r#initialize_vault_registry;
 pub(crate) mod r#realloc_vault_registry;
+pub(crate) mod r#register_vault;
 
 pub use self::{
     r#admin_register_st_mint::*, r#initialize_config::*, r#initialize_vault_registry::*,
-    r#realloc_vault_registry::*,
+    r#realloc_vault_registry::*, r#register_vault::*,
 };

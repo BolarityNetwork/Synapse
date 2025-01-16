@@ -17,6 +17,7 @@ import {
   type ParsedInitializeConfigInstruction,
   type ParsedInitializeVaultRegistryInstruction,
   type ParsedReallocVaultRegistryInstruction,
+  type ParsedRegisterVaultInstruction,
 } from '../instructions';
 
 export const RELAYER_NCN_PROGRAM_PROGRAM_ADDRESS =
@@ -33,6 +34,7 @@ export enum RelayerNcnProgramInstruction {
   InitializeVaultRegistry,
   ReallocVaultRegistry,
   AdminRegisterStMint,
+  RegisterVault,
 }
 
 export function identifyRelayerNcnProgramInstruction(
@@ -50,6 +52,9 @@ export function identifyRelayerNcnProgramInstruction(
   }
   if (containsBytes(data, getU8Encoder().encode(3), 0)) {
     return RelayerNcnProgramInstruction.AdminRegisterStMint;
+  }
+  if (containsBytes(data, getU8Encoder().encode(4), 0)) {
+    return RelayerNcnProgramInstruction.RegisterVault;
   }
   throw new Error(
     'The provided instruction could not be identified as a relayerNcnProgram instruction.'
@@ -70,4 +75,7 @@ export type ParsedRelayerNcnProgramInstruction<
     } & ParsedReallocVaultRegistryInstruction<TProgram>)
   | ({
       instructionType: RelayerNcnProgramInstruction.AdminRegisterStMint;
-    } & ParsedAdminRegisterStMintInstruction<TProgram>);
+    } & ParsedAdminRegisterStMintInstruction<TProgram>)
+  | ({
+      instructionType: RelayerNcnProgramInstruction.RegisterVault;
+    } & ParsedRegisterVaultInstruction<TProgram>);

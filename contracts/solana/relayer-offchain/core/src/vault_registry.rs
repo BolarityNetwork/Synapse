@@ -256,7 +256,7 @@ impl VaultRegistry {
 
         Self::check_st_mint_entry(&new_mint_entry)?;
 
-        // *mint_entry = new_mint_entry;
+        *mint_entry = new_mint_entry;
 
         Ok(())
     }

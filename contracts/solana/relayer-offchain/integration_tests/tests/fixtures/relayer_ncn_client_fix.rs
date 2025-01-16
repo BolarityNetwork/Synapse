@@ -279,6 +279,59 @@ impl RelayerNcnClient {
             .await
     }
 
+    pub async fn do_register_vault(
+        &mut self,
+        ncn: Pubkey,
+        vault: Pubkey,
+        vault_ncn_ticket: Pubkey,
+        ncn_vault_ticket: Pubkey,
+    ) -> TestResult<()> {
+        let restaking_config_address =
+            Config::find_program_address(&jito_restaking_program::id()).0;
+        let vault_registry =
+            VaultRegistry::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+
+        self.register_vault(
+            restaking_config_address,
+            vault_registry,
+            ncn,
+            vault,
+            vault_ncn_ticket,
+            ncn_vault_ticket,
+        )
+            .await
+    }
+
+    pub async fn register_vault(
+        &mut self,
+        restaking_config: Pubkey,
+        vault_registry: Pubkey,
+        ncn: Pubkey,
+        vault: Pubkey,
+        vault_ncn_ticket: Pubkey,
+        ncn_vault_ticket: Pubkey,
+    ) -> TestResult<()> {
+        let ix = RegisterVaultBuilder::new()
+            .restaking_config(restaking_config)
+            .vault_registry(vault_registry)
+            .ncn(ncn)
+            .vault(vault)
+            .vault_ncn_ticket(vault_ncn_ticket)
+            .ncn_vault_ticket(ncn_vault_ticket)
+            .restaking_program_id(jito_restaking_program::id())
+            .vault_program_id(jito_vault_program::id())
+            .instruction();
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &[ix],
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        ))
+            .await
+    }
+
     pub async fn admin_register_st_mint(
         &mut self,
         ncn: Pubkey,

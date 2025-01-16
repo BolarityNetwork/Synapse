@@ -492,10 +492,10 @@ impl TestBuilder {
                     None,
                 )
                 .await?;
-            //
-            // tip_router_client
-            //     .do_register_vault(ncn, vault, vault_ncn_ticket, ncn_vault_ticket)
-            //     .await?;
+
+            relayer_ncn_client
+                .do_register_vault(ncn, vault, vault_ncn_ticket, ncn_vault_ticket)
+                .await?;
         }
 
         Ok(())

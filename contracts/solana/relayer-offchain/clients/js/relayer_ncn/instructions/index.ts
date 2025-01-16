@@ -10,3 +10,4 @@ export * from './adminRegisterStMint';
 export * from './initializeConfig';
 export * from './initializeVaultRegistry';
 export * from './reallocVaultRegistry';
+export * from './registerVault';

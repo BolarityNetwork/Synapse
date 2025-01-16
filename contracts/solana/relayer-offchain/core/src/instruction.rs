@@ -47,4 +47,14 @@ pub enum RelayerNcnInstruction {
         // switchboard_feed: Option<Pubkey>,
         no_feed_weight: Option<u128>,
     },
+    /// Registers a vault to the vault registry
+    #[account(0, name = "restaking_config")]
+    #[account(1, writable, name = "vault_registry")]
+    #[account(2, name = "ncn")]
+    #[account(3, name = "vault")]
+    #[account(4, name = "vault_ncn_ticket")]
+    #[account(5, name = "ncn_vault_ticket")]
+    #[account(6, name = "restaking_program_id")]
+    #[account(7, name = "vault_program_id")]
+    RegisterVault,
 }

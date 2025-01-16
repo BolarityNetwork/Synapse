@@ -2,6 +2,7 @@ mod initialize_ncn_config;
 mod admin_register_st_mint;
 mod initialize_vault_registry;
 mod realloc_vault_registry;
+mod register_vault;
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
@@ -29,6 +30,7 @@ use solana_security_txt::security_txt;
 use crate::admin_register_st_mint::process_admin_register_st_mint;
 use crate::initialize_vault_registry::process_initialize_vault_registry;
 use crate::realloc_vault_registry::process_realloc_vault_registry;
+use crate::register_vault::process_register_vault;
 
 #[cfg(not(feature = "no-entrypoint"))]
 security_txt! {
@@ -95,6 +97,10 @@ pub fn process_instruction(
                 // switchboard_feed,
                 no_feed_weight,
             )
+        }
+        RelayerNcnInstruction::RegisterVault => {
+            msg!("Instruction: RegisterVault");
+            process_register_vault(program_id, accounts)
         }
     }
 }
