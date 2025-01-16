@@ -7,23 +7,30 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::pubkey::Pubkey;
 
+use crate::generated::types::{VaultEntry, WeightEntry};
+
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Config {
+pub struct WeightTable {
     pub discriminator: u64,
     #[cfg_attr(
         feature = "serde",
         serde(with = "serde_with::As::<serde_with::DisplayFromStr>")
     )]
     pub ncn: Pubkey,
-    pub valid_slots_after_consensus: u64,
-    pub epochs_before_stall: u64,
+    pub epoch: u64,
+    pub slot_created: u64,
+    pub vault_count: u64,
     pub bump: u8,
     #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
-    pub reserved: [u8; 127],
+    pub reserved: [u8; 128],
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    pub vault_registry: [VaultEntry; 64],
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    pub table: [WeightEntry; 64],
 }
 
-impl Config {
+impl WeightTable {
     #[inline(always)]
     pub fn from_bytes(data: &[u8]) -> Result<Self, std::io::Error> {
         let mut data = data;
@@ -31,7 +38,7 @@ impl Config {
     }
 }
 
-impl<'a> TryFrom<&solana_program::account_info::AccountInfo<'a>> for Config {
+impl<'a> TryFrom<&solana_program::account_info::AccountInfo<'a>> for WeightTable {
     type Error = std::io::Error;
 
     fn try_from(
@@ -43,26 +50,26 @@ impl<'a> TryFrom<&solana_program::account_info::AccountInfo<'a>> for Config {
 }
 
 #[cfg(feature = "anchor")]
-impl anchor_lang::AccountDeserialize for Config {
+impl anchor_lang::AccountDeserialize for WeightTable {
     fn try_deserialize_unchecked(buf: &mut &[u8]) -> anchor_lang::Result<Self> {
         Ok(Self::deserialize(buf)?)
     }
 }
 
 #[cfg(feature = "anchor")]
-impl anchor_lang::AccountSerialize for Config {}
+impl anchor_lang::AccountSerialize for WeightTable {}
 
 #[cfg(feature = "anchor")]
-impl anchor_lang::Owner for Config {
+impl anchor_lang::Owner for WeightTable {
     fn owner() -> Pubkey {
         crate::RELAYER_NCN_PROGRAM_ID
     }
 }
 
 #[cfg(feature = "anchor-idl-build")]
-impl anchor_lang::IdlBuild for Config {}
+impl anchor_lang::IdlBuild for WeightTable {}
 
 #[cfg(feature = "anchor-idl-build")]
-impl anchor_lang::Discriminator for Config {
+impl anchor_lang::Discriminator for WeightTable {
     const DISCRIMINATOR: [u8; 8] = [0; 8];
 }

@@ -6,4 +6,7 @@
  * @see https://github.com/kinobi-so/kinobi
  */
 
+export * from './adminRegisterStMint';
 export * from './initializeConfig';
+export * from './initializeVaultRegistry';
+export * from './reallocVaultRegistry';

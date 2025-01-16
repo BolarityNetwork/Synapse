@@ -3,8 +3,10 @@
 //! to add features, then rerun kinobi to update it.
 //!
 //! <https://github.com/kinobi-so/kinobi>
-//!
 
 pub(crate) mod r#config_admin_role;
+pub(crate) mod r#st_mint_entry;
+pub(crate) mod r#vault_entry;
+pub(crate) mod r#weight_entry;
 
-pub use self::r#config_admin_role::*;
+pub use self::{r#config_admin_role::*, r#st_mint_entry::*, r#vault_entry::*, r#weight_entry::*};

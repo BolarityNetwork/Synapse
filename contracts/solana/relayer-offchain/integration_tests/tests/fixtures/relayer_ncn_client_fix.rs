@@ -34,6 +34,9 @@ use crate::fixtures::{TestError, TestResult};
 use relayer_ncn_core::{
     config::Config as NcnConfig,
 };
+use relayer_ncn_core::constants::MAX_REALLOC_BYTES;
+use relayer_ncn_core::vault_registry::VaultRegistry;
+use relayer_ncn_core::weight_table::WeightTable;
 
 pub struct RelayerNcnClient {
     banks_client: BanksClient,
@@ -108,6 +111,8 @@ impl RelayerNcnClient {
     pub async fn setup_relayer_ncn(&mut self, ncn_root: &NcnRoot) -> TestResult<()> {
         self.do_initialize_config(ncn_root.ncn_pubkey, &ncn_root.ncn_admin)
             .await?;
+        self.do_full_initialize_vault_registry(ncn_root.ncn_pubkey)
+            .await?;
         Ok(())
     }
 
@@ -161,6 +166,159 @@ impl RelayerNcnClient {
             &[ix],
             Some(&ncn_admin.pubkey()),
             &[&ncn_admin],
+            blockhash,
+        ))
+            .await
+    }
+
+    pub async fn do_full_initialize_vault_registry(&mut self, ncn: Pubkey) -> TestResult<()> {
+        self.do_initialize_vault_registry(ncn).await?;
+        let num_reallocs = (WeightTable::SIZE as f64 / MAX_REALLOC_BYTES as f64).ceil() as u64 - 1;
+        self.do_realloc_vault_registry(ncn, num_reallocs).await?;
+        Ok(())
+    }
+
+    pub async fn do_initialize_vault_registry(&mut self, ncn: Pubkey) -> TestResult<()> {
+        let ncn_config = NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+        let vault_registry =
+            VaultRegistry::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+
+        self.initialize_vault_registry(&ncn_config, &vault_registry, &ncn)
+            .await
+    }
+
+    pub async fn initialize_vault_registry(
+        &mut self,
+        ncn_config: &Pubkey,
+        vault_registry: &Pubkey,
+        ncn: &Pubkey,
+    ) -> TestResult<()> {
+        let ix = InitializeVaultRegistryBuilder::new()
+            .config(*ncn_config)
+            .vault_registry(*vault_registry)
+            .ncn(*ncn)
+            .payer(self.payer.pubkey())
+            .system_program(system_program::id())
+            .instruction();
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &[ix],
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        ))
+            .await
+    }
+    pub async fn do_realloc_vault_registry(
+        &mut self,
+        ncn: Pubkey,
+        num_reallocations: u64,
+    ) -> TestResult<()> {
+        let ncn_config = NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+        let vault_registry =
+            VaultRegistry::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+        self.realloc_vault_registry(&ncn, &ncn_config, &vault_registry, num_reallocations)
+            .await
+    }
+
+    pub async fn realloc_vault_registry(
+        &mut self,
+        ncn: &Pubkey,
+        config: &Pubkey,
+        vault_registry: &Pubkey,
+        num_reallocations: u64,
+    ) -> TestResult<()> {
+        let ix = ReallocVaultRegistryBuilder::new()
+            .ncn(*ncn)
+            .payer(self.payer.pubkey())
+            .config(*config)
+            .vault_registry(*vault_registry)
+            .system_program(system_program::id())
+            .instruction();
+
+        let ixs = vec![ix; num_reallocations as usize];
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &ixs,
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        ))
+            .await
+    }
+    pub async fn do_admin_register_st_mint(
+        &mut self,
+        ncn: Pubkey,
+        st_mint: Pubkey,
+        // ncn_fee_group: NcnFeeGroup,
+        reward_multiplier_bps: u64,
+        // switchboard_feed: Option<Pubkey>,
+        no_feed_weight: Option<u128>,
+    ) -> TestResult<()> {
+        let vault_registry =
+            VaultRegistry::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+
+        let (ncn_config, _, _) =
+            NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn);
+
+        let admin = self.payer.pubkey();
+
+        self.admin_register_st_mint(
+            ncn,
+            ncn_config,
+            vault_registry,
+            admin,
+            st_mint,
+            // ncn_fee_group,
+            reward_multiplier_bps,
+            // switchboard_feed,
+            no_feed_weight,
+        )
+            .await
+    }
+
+    pub async fn admin_register_st_mint(
+        &mut self,
+        ncn: Pubkey,
+        ncn_config: Pubkey,
+        vault_registry: Pubkey,
+        admin: Pubkey,
+        st_mint: Pubkey,
+        // ncn_fee_group: NcnFeeGroup,
+        reward_multiplier_bps: u64,
+        // switchboard_feed: Option<Pubkey>,
+        no_feed_weight: Option<u128>,
+    ) -> TestResult<()> {
+        let ix = {
+            let mut builder = AdminRegisterStMintBuilder::new();
+            builder
+                .config(ncn_config)
+                .ncn(ncn)
+                .vault_registry(vault_registry)
+                .admin(admin)
+                .restaking_program(jito_restaking_program::id())
+                .st_mint(st_mint)
+                // .ncn_fee_group(ncn_fee_group.group)
+                .reward_multiplier_bps(reward_multiplier_bps);
+
+            // if let Some(switchboard_feed) = switchboard_feed {
+            //     builder.switchboard_feed(switchboard_feed);
+            // }
+
+            if let Some(no_feed_weight) = no_feed_weight {
+                builder.no_feed_weight(no_feed_weight);
+            }
+
+            builder.instruction()
+        };
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &[ix],
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
             blockhash,
         ))
             .await

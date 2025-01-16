@@ -7,55 +7,50 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 
 /// Accounts.
-pub struct InitializeConfig {
+pub struct InitializeVaultRegistry {
     pub config: solana_program::pubkey::Pubkey,
+
+    pub vault_registry: solana_program::pubkey::Pubkey,
 
     pub ncn: solana_program::pubkey::Pubkey,
 
-    pub ncn_admin: solana_program::pubkey::Pubkey,
-
-    pub restaking_program: solana_program::pubkey::Pubkey,
+    pub payer: solana_program::pubkey::Pubkey,
 
     pub system_program: solana_program::pubkey::Pubkey,
 }
 
-impl InitializeConfig {
-    pub fn instruction(
-        &self,
-        args: InitializeConfigInstructionArgs,
-    ) -> solana_program::instruction::Instruction {
-        self.instruction_with_remaining_accounts(args, &[])
+impl InitializeVaultRegistry {
+    pub fn instruction(&self) -> solana_program::instruction::Instruction {
+        self.instruction_with_remaining_accounts(&[])
     }
     #[allow(clippy::vec_init_then_push)]
     pub fn instruction_with_remaining_accounts(
         &self,
-        args: InitializeConfigInstructionArgs,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
         let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
-        accounts.push(solana_program::instruction::AccountMeta::new(
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.config,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.vault_registry,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.ncn, false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            self.ncn_admin,
-            true,
-        ));
-        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            self.restaking_program,
-            false,
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.payer, true,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.system_program,
             false,
         ));
         accounts.extend_from_slice(remaining_accounts);
-        let mut data = InitializeConfigInstructionData::new().try_to_vec().unwrap();
-        let mut args = args.try_to_vec().unwrap();
-        data.append(&mut args);
+        let data = InitializeVaultRegistryInstructionData::new()
+            .try_to_vec()
+            .unwrap();
 
         solana_program::instruction::Instruction {
             program_id: crate::RELAYER_NCN_PROGRAM_ID,
@@ -66,51 +61,42 @@ impl InitializeConfig {
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct InitializeConfigInstructionData {
+pub struct InitializeVaultRegistryInstructionData {
     discriminator: u8,
 }
 
-impl InitializeConfigInstructionData {
+impl InitializeVaultRegistryInstructionData {
     pub fn new() -> Self {
-        Self { discriminator: 0 }
+        Self { discriminator: 1 }
     }
 }
 
-impl Default for InitializeConfigInstructionData {
+impl Default for InitializeVaultRegistryInstructionData {
     fn default() -> Self {
         Self::new()
     }
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct InitializeConfigInstructionArgs {
-    pub epochs_before_stall: u64,
-    pub valid_slots_after_consensus: u64,
-}
-
-/// Instruction builder for `InitializeConfig`.
+/// Instruction builder for `InitializeVaultRegistry`.
 ///
 /// ### Accounts:
 ///
-///   0. `[writable]` config
-///   1. `[]` ncn
-///   2. `[signer]` ncn_admin
-///   3. `[]` restaking_program
+///   0. `[]` config
+///   1. `[writable]` vault_registry
+///   2. `[]` ncn
+///   3. `[writable, signer]` payer
 ///   4. `[optional]` system_program (default to `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
-pub struct InitializeConfigBuilder {
+pub struct InitializeVaultRegistryBuilder {
     config: Option<solana_program::pubkey::Pubkey>,
+    vault_registry: Option<solana_program::pubkey::Pubkey>,
     ncn: Option<solana_program::pubkey::Pubkey>,
-    ncn_admin: Option<solana_program::pubkey::Pubkey>,
-    restaking_program: Option<solana_program::pubkey::Pubkey>,
+    payer: Option<solana_program::pubkey::Pubkey>,
     system_program: Option<solana_program::pubkey::Pubkey>,
-    epochs_before_stall: Option<u64>,
-    valid_slots_after_consensus: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
-impl InitializeConfigBuilder {
+impl InitializeVaultRegistryBuilder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -120,37 +106,24 @@ impl InitializeConfigBuilder {
         self
     }
     #[inline(always)]
+    pub fn vault_registry(&mut self, vault_registry: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.vault_registry = Some(vault_registry);
+        self
+    }
+    #[inline(always)]
     pub fn ncn(&mut self, ncn: solana_program::pubkey::Pubkey) -> &mut Self {
         self.ncn = Some(ncn);
         self
     }
     #[inline(always)]
-    pub fn ncn_admin(&mut self, ncn_admin: solana_program::pubkey::Pubkey) -> &mut Self {
-        self.ncn_admin = Some(ncn_admin);
-        self
-    }
-    #[inline(always)]
-    pub fn restaking_program(
-        &mut self,
-        restaking_program: solana_program::pubkey::Pubkey,
-    ) -> &mut Self {
-        self.restaking_program = Some(restaking_program);
+    pub fn payer(&mut self, payer: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.payer = Some(payer);
         self
     }
     /// `[optional account, default to '11111111111111111111111111111111']`
     #[inline(always)]
     pub fn system_program(&mut self, system_program: solana_program::pubkey::Pubkey) -> &mut Self {
         self.system_program = Some(system_program);
-        self
-    }
-    #[inline(always)]
-    pub fn epochs_before_stall(&mut self, epochs_before_stall: u64) -> &mut Self {
-        self.epochs_before_stall = Some(epochs_before_stall);
-        self
-    }
-    #[inline(always)]
-    pub fn valid_slots_after_consensus(&mut self, valid_slots_after_consensus: u64) -> &mut Self {
-        self.valid_slots_after_consensus = Some(valid_slots_after_consensus);
         self
     }
     /// Add an additional account to the instruction.
@@ -173,77 +146,61 @@ impl InitializeConfigBuilder {
     }
     #[allow(clippy::clone_on_copy)]
     pub fn instruction(&self) -> solana_program::instruction::Instruction {
-        let accounts = InitializeConfig {
+        let accounts = InitializeVaultRegistry {
             config: self.config.expect("config is not set"),
+            vault_registry: self.vault_registry.expect("vault_registry is not set"),
             ncn: self.ncn.expect("ncn is not set"),
-            ncn_admin: self.ncn_admin.expect("ncn_admin is not set"),
-            restaking_program: self
-                .restaking_program
-                .expect("restaking_program is not set"),
+            payer: self.payer.expect("payer is not set"),
             system_program: self
                 .system_program
                 .unwrap_or(solana_program::pubkey!("11111111111111111111111111111111")),
         };
-        let args = InitializeConfigInstructionArgs {
-            epochs_before_stall: self
-                .epochs_before_stall
-                .clone()
-                .expect("epochs_before_stall is not set"),
-            valid_slots_after_consensus: self
-                .valid_slots_after_consensus
-                .clone()
-                .expect("valid_slots_after_consensus is not set"),
-        };
 
-        accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
+        accounts.instruction_with_remaining_accounts(&self.__remaining_accounts)
     }
 }
 
-/// `initialize_config` CPI accounts.
-pub struct InitializeConfigCpiAccounts<'a, 'b> {
+/// `initialize_vault_registry` CPI accounts.
+pub struct InitializeVaultRegistryCpiAccounts<'a, 'b> {
     pub config: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub vault_registry: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub ncn: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub ncn_admin: &'b solana_program::account_info::AccountInfo<'a>,
-
-    pub restaking_program: &'b solana_program::account_info::AccountInfo<'a>,
+    pub payer: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
 }
 
-/// `initialize_config` CPI instruction.
-pub struct InitializeConfigCpi<'a, 'b> {
+/// `initialize_vault_registry` CPI instruction.
+pub struct InitializeVaultRegistryCpi<'a, 'b> {
     /// The program to invoke.
     pub __program: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub config: &'b solana_program::account_info::AccountInfo<'a>,
 
+    pub vault_registry: &'b solana_program::account_info::AccountInfo<'a>,
+
     pub ncn: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub ncn_admin: &'b solana_program::account_info::AccountInfo<'a>,
-
-    pub restaking_program: &'b solana_program::account_info::AccountInfo<'a>,
+    pub payer: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
-    /// The arguments for the instruction.
-    pub __args: InitializeConfigInstructionArgs,
 }
 
-impl<'a, 'b> InitializeConfigCpi<'a, 'b> {
+impl<'a, 'b> InitializeVaultRegistryCpi<'a, 'b> {
     pub fn new(
         program: &'b solana_program::account_info::AccountInfo<'a>,
-        accounts: InitializeConfigCpiAccounts<'a, 'b>,
-        args: InitializeConfigInstructionArgs,
+        accounts: InitializeVaultRegistryCpiAccounts<'a, 'b>,
     ) -> Self {
         Self {
             __program: program,
             config: accounts.config,
+            vault_registry: accounts.vault_registry,
             ncn: accounts.ncn,
-            ncn_admin: accounts.ncn_admin,
-            restaking_program: accounts.restaking_program,
+            payer: accounts.payer,
             system_program: accounts.system_program,
-            __args: args,
         }
     }
     #[inline(always)]
@@ -280,21 +237,21 @@ impl<'a, 'b> InitializeConfigCpi<'a, 'b> {
         )],
     ) -> solana_program::entrypoint::ProgramResult {
         let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
-        accounts.push(solana_program::instruction::AccountMeta::new(
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.config.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.vault_registry.key,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.ncn.key,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            *self.ncn_admin.key,
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.payer.key,
             true,
-        ));
-        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            *self.restaking_program.key,
-            false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.system_program.key,
@@ -307,9 +264,9 @@ impl<'a, 'b> InitializeConfigCpi<'a, 'b> {
                 is_writable: remaining_account.2,
             })
         });
-        let mut data = InitializeConfigInstructionData::new().try_to_vec().unwrap();
-        let mut args = self.__args.try_to_vec().unwrap();
-        data.append(&mut args);
+        let data = InitializeVaultRegistryInstructionData::new()
+            .try_to_vec()
+            .unwrap();
 
         let instruction = solana_program::instruction::Instruction {
             program_id: crate::RELAYER_NCN_PROGRAM_ID,
@@ -319,9 +276,9 @@ impl<'a, 'b> InitializeConfigCpi<'a, 'b> {
         let mut account_infos = Vec::with_capacity(5 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.config.clone());
+        account_infos.push(self.vault_registry.clone());
         account_infos.push(self.ncn.clone());
-        account_infos.push(self.ncn_admin.clone());
-        account_infos.push(self.restaking_program.clone());
+        account_infos.push(self.payer.clone());
         account_infos.push(self.system_program.clone());
         remaining_accounts
             .iter()
@@ -335,31 +292,29 @@ impl<'a, 'b> InitializeConfigCpi<'a, 'b> {
     }
 }
 
-/// Instruction builder for `InitializeConfig` via CPI.
+/// Instruction builder for `InitializeVaultRegistry` via CPI.
 ///
 /// ### Accounts:
 ///
-///   0. `[writable]` config
-///   1. `[]` ncn
-///   2. `[signer]` ncn_admin
-///   3. `[]` restaking_program
+///   0. `[]` config
+///   1. `[writable]` vault_registry
+///   2. `[]` ncn
+///   3. `[writable, signer]` payer
 ///   4. `[]` system_program
 #[derive(Clone, Debug)]
-pub struct InitializeConfigCpiBuilder<'a, 'b> {
-    instruction: Box<InitializeConfigCpiBuilderInstruction<'a, 'b>>,
+pub struct InitializeVaultRegistryCpiBuilder<'a, 'b> {
+    instruction: Box<InitializeVaultRegistryCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> InitializeConfigCpiBuilder<'a, 'b> {
+impl<'a, 'b> InitializeVaultRegistryCpiBuilder<'a, 'b> {
     pub fn new(program: &'b solana_program::account_info::AccountInfo<'a>) -> Self {
-        let instruction = Box::new(InitializeConfigCpiBuilderInstruction {
+        let instruction = Box::new(InitializeVaultRegistryCpiBuilderInstruction {
             __program: program,
             config: None,
+            vault_registry: None,
             ncn: None,
-            ncn_admin: None,
-            restaking_program: None,
+            payer: None,
             system_program: None,
-            epochs_before_stall: None,
-            valid_slots_after_consensus: None,
             __remaining_accounts: Vec::new(),
         });
         Self { instruction }
@@ -373,24 +328,21 @@ impl<'a, 'b> InitializeConfigCpiBuilder<'a, 'b> {
         self
     }
     #[inline(always)]
+    pub fn vault_registry(
+        &mut self,
+        vault_registry: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.vault_registry = Some(vault_registry);
+        self
+    }
+    #[inline(always)]
     pub fn ncn(&mut self, ncn: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
         self.instruction.ncn = Some(ncn);
         self
     }
     #[inline(always)]
-    pub fn ncn_admin(
-        &mut self,
-        ncn_admin: &'b solana_program::account_info::AccountInfo<'a>,
-    ) -> &mut Self {
-        self.instruction.ncn_admin = Some(ncn_admin);
-        self
-    }
-    #[inline(always)]
-    pub fn restaking_program(
-        &mut self,
-        restaking_program: &'b solana_program::account_info::AccountInfo<'a>,
-    ) -> &mut Self {
-        self.instruction.restaking_program = Some(restaking_program);
+    pub fn payer(&mut self, payer: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
+        self.instruction.payer = Some(payer);
         self
     }
     #[inline(always)]
@@ -399,16 +351,6 @@ impl<'a, 'b> InitializeConfigCpiBuilder<'a, 'b> {
         system_program: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
         self.instruction.system_program = Some(system_program);
-        self
-    }
-    #[inline(always)]
-    pub fn epochs_before_stall(&mut self, epochs_before_stall: u64) -> &mut Self {
-        self.instruction.epochs_before_stall = Some(epochs_before_stall);
-        self
-    }
-    #[inline(always)]
-    pub fn valid_slots_after_consensus(&mut self, valid_slots_after_consensus: u64) -> &mut Self {
-        self.instruction.valid_slots_after_consensus = Some(valid_slots_after_consensus);
         self
     }
     /// Add an additional account to the instruction.
@@ -452,37 +394,24 @@ impl<'a, 'b> InitializeConfigCpiBuilder<'a, 'b> {
         &self,
         signers_seeds: &[&[&[u8]]],
     ) -> solana_program::entrypoint::ProgramResult {
-        let args = InitializeConfigInstructionArgs {
-            epochs_before_stall: self
-                .instruction
-                .epochs_before_stall
-                .clone()
-                .expect("epochs_before_stall is not set"),
-            valid_slots_after_consensus: self
-                .instruction
-                .valid_slots_after_consensus
-                .clone()
-                .expect("valid_slots_after_consensus is not set"),
-        };
-        let instruction = InitializeConfigCpi {
+        let instruction = InitializeVaultRegistryCpi {
             __program: self.instruction.__program,
 
             config: self.instruction.config.expect("config is not set"),
 
+            vault_registry: self
+                .instruction
+                .vault_registry
+                .expect("vault_registry is not set"),
+
             ncn: self.instruction.ncn.expect("ncn is not set"),
 
-            ncn_admin: self.instruction.ncn_admin.expect("ncn_admin is not set"),
-
-            restaking_program: self
-                .instruction
-                .restaking_program
-                .expect("restaking_program is not set"),
+            payer: self.instruction.payer.expect("payer is not set"),
 
             system_program: self
                 .instruction
                 .system_program
                 .expect("system_program is not set"),
-            __args: args,
         };
         instruction.invoke_signed_with_remaining_accounts(
             signers_seeds,
@@ -492,15 +421,13 @@ impl<'a, 'b> InitializeConfigCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct InitializeConfigCpiBuilderInstruction<'a, 'b> {
+struct InitializeVaultRegistryCpiBuilderInstruction<'a, 'b> {
     __program: &'b solana_program::account_info::AccountInfo<'a>,
     config: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    vault_registry: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     ncn: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    ncn_admin: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    restaking_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    payer: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     system_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    epochs_before_stall: Option<u64>,
-    valid_slots_after_consensus: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(
         &'b solana_program::account_info::AccountInfo<'a>,

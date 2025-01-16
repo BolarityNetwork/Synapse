@@ -7,3 +7,5 @@
  */
 
 export * from './config';
+export * from './vaultRegistry';
+export * from './weightTable';

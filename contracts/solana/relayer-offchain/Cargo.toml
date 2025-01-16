@@ -80,7 +80,7 @@ spl-token-2022 = "=1.0.0"
 switchboard-on-demand = "0.1.0"
 syn = "2.0.72"
 thiserror = "1.0.57"
-tokio = { version = "1.36.0", features = ["full"], default-features = false }
+tokio = { version = "1.36.0", features = ["full"] }
 relayer-ncn-client = { path = "./clients/rust/relayer_ncn", version = "0.0.1" }
 relayer-ncn-core = { path = "./core", version = "=0.0.1" }
 relayer-ncn-program = { path = "./program", version = "=0.0.1" }

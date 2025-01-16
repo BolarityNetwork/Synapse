@@ -27,8 +27,9 @@ use solana_sdk::{
     transaction::Transaction,
 };
 use spl_stake_pool::find_withdraw_authority_program_address;
+use relayer_ncn_core::constants::JITOSOL_MINT;
 use super::{
-    // generated_switchboard_accounts::get_switchboard_accounts,
+    generated_switchboard_accounts::get_switchboard_accounts,
     restaking_client::NcnRoot,
     // stake_pool_client::{PoolRoot, StakePoolClient},
     // tip_distribution_client::TipDistributionClient,
@@ -71,27 +72,27 @@ impl Debug for TestBuilder {
     }
 }
 
-// pub fn token_mint_account(withdraw_authority: &Pubkey) -> Account {
-//     let account = spl_token::state::Mint {
-//         mint_authority: solana_sdk::program_option::COption::Some(*withdraw_authority),
-//         supply: 0,
-//         decimals: 9,
-//         is_initialized: true,
-//         freeze_authority: solana_sdk::program_option::COption::None,
-//     };
-//
-//     let mut data = [0; 82];
-//
-//     spl_token::state::Mint::pack(account, &mut data).unwrap();
-//
-//     Account {
-//         lamports: 1000000000,
-//         owner: spl_token::id(),
-//         executable: false,
-//         rent_epoch: 0,
-//         data: data.to_vec(),
-//     }
-// }
+pub fn token_mint_account(withdraw_authority: &Pubkey) -> Account {
+    let account = spl_token::state::Mint {
+        mint_authority: solana_sdk::program_option::COption::Some(*withdraw_authority),
+        supply: 0,
+        decimals: 9,
+        is_initialized: true,
+        freeze_authority: solana_sdk::program_option::COption::None,
+    };
+
+    let mut data = [0; 82];
+
+    spl_token::state::Mint::pack(account, &mut data).unwrap();
+
+    Account {
+        lamports: 1000000000,
+        owner: spl_token::id(),
+        executable: false,
+        rent_epoch: 0,
+        data: data.to_vec(),
+    }
+}
 
 impl TestBuilder {
     pub async fn new() -> Self {
@@ -144,7 +145,7 @@ impl TestBuilder {
         //         program_test.add_account(*address, account.clone());
         //     }
         // }
-
+        //
         // Stake pool keypair is needed to create the pool, and JitoSOL mint authority is based on this keypair
         let stake_pool_keypair = Keypair::new();
         // let jitosol_mint_authority = find_withdraw_authority_program_address(
@@ -445,7 +446,7 @@ impl TestBuilder {
 
     // 5. Setup Tracked Mints
     pub async fn add_vault_registry_to_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
-        // let mut tip_router_client = self.tip_router_client();
+        let mut relayer_ncn_client = self.relayer_ncn_client();
         let mut restaking_client = self.restaking_program_client();
         let mut vault_client = self.vault_program_client();
 
@@ -481,16 +482,16 @@ impl TestBuilder {
             let ncn_vault_ticket =
                 NcnVaultTicket::find_program_address(&jito_restaking_program::id(), &ncn, &vault).0;
 
-            // tip_router_client
-            //     .do_admin_register_st_mint(
-            //         ncn,
-            //         st_mint,
-            //         NcnFeeGroup::lst(),
-            //         10_000,
-            //         Some(JTO_SOL_FEED),
-            //         None,
-            //     )
-            //     .await?;
+            relayer_ncn_client
+                .do_admin_register_st_mint(
+                    ncn,
+                    st_mint,
+                    // NcnFeeGroup::lst(),
+                    10_000,
+                    // Some(JTO_SOL_FEED),
+                    None,
+                )
+                .await?;
             //
             // tip_router_client
             //     .do_register_vault(ncn, vault, vault_ncn_ticket, ncn_vault_ticket)

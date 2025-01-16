@@ -1,4 +1,7 @@
 mod initialize_ncn_config;
+mod admin_register_st_mint;
+mod initialize_vault_registry;
+mod realloc_vault_registry;
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
@@ -23,6 +26,10 @@ declare_id!(str_to_pubkey(env!("RELAYER_NCN_PROGRAM_ID")));
 
 #[cfg(not(feature = "no-entrypoint"))]
 use solana_security_txt::security_txt;
+use crate::admin_register_st_mint::process_admin_register_st_mint;
+use crate::initialize_vault_registry::process_initialize_vault_registry;
+use crate::realloc_vault_registry::process_realloc_vault_registry;
+
 #[cfg(not(feature = "no-entrypoint"))]
 security_txt! {
     // Required fields
@@ -63,6 +70,30 @@ pub fn process_instruction(
                 accounts,
                 epochs_before_stall,
                 valid_slots_after_consensus,
+            )
+        }
+        RelayerNcnInstruction::InitializeVaultRegistry => {
+            msg!("Instruction: InitializeVaultRegistry");
+            process_initialize_vault_registry(program_id, accounts)
+        }
+        RelayerNcnInstruction::ReallocVaultRegistry => {
+            msg!("Instruction: ReallocVaultRegistry");
+            process_realloc_vault_registry(program_id, accounts)
+        }
+        RelayerNcnInstruction::AdminRegisterStMint {
+            // ncn_fee_group,
+            reward_multiplier_bps,
+            // switchboard_feed,
+            no_feed_weight,
+        } => {
+            msg!("Instruction: AdminRegisterStMint");
+            process_admin_register_st_mint(
+                program_id,
+                accounts,
+                // ncn_fee_group,
+                reward_multiplier_bps,
+                // switchboard_feed,
+                no_feed_weight,
             )
         }
     }

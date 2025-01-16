@@ -7,3 +7,6 @@
  */
 
 export * from './configAdminRole';
+export * from './stMintEntry';
+export * from './vaultEntry';
+export * from './weightEntry';
