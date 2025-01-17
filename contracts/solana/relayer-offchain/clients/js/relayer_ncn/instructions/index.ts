@@ -7,7 +7,14 @@
  */
 
 export * from './adminRegisterStMint';
+export * from './adminSetWeight';
 export * from './initializeConfig';
+export * from './initializeEpochSnapshot';
+export * from './initializeOperatorSnapshot';
 export * from './initializeVaultRegistry';
+export * from './initializeWeightTable';
+export * from './reallocOperatorSnapshot';
 export * from './reallocVaultRegistry';
+export * from './reallocWeightTable';
 export * from './registerVault';
+export * from './snapshotVaultOperatorDelegation';

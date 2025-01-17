@@ -35,6 +35,7 @@ use relayer_ncn_core::{
     config::Config as NcnConfig,
 };
 use relayer_ncn_core::constants::MAX_REALLOC_BYTES;
+use relayer_ncn_core::epoch_snapshot::{EpochSnapshot, OperatorSnapshot};
 use relayer_ncn_core::vault_registry::VaultRegistry;
 use relayer_ncn_core::weight_table::WeightTable;
 
@@ -366,6 +367,393 @@ impl RelayerNcnClient {
 
             builder.instruction()
         };
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &[ix],
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        ))
+            .await
+    }
+
+    pub async fn do_full_initialize_weight_table(
+        &mut self,
+        ncn: Pubkey,
+        epoch: u64,
+    ) -> TestResult<()> {
+        self.do_initialize_weight_table(ncn, epoch).await?;
+        let num_reallocs = (WeightTable::SIZE as f64 / MAX_REALLOC_BYTES as f64).ceil() as u64 - 1;
+        self.do_realloc_weight_table(ncn, epoch, num_reallocs)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn do_initialize_weight_table(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<()> {
+        self.initialize_weight_table(ncn, epoch).await
+    }
+
+    pub async fn initialize_weight_table(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<()> {
+        let vault_registry =
+            VaultRegistry::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+        let weight_table =
+            WeightTable::find_program_address(&relayer_ncn_program::id(), &ncn, epoch).0;
+
+        let ix = InitializeWeightTableBuilder::new()
+            .vault_registry(vault_registry)
+            .ncn(ncn)
+            .weight_table(weight_table)
+            .payer(self.payer.pubkey())
+            .restaking_program(jito_restaking_program::id())
+            .system_program(system_program::id())
+            .epoch(epoch)
+            .instruction();
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &[ix],
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        ))
+            .await
+    }
+
+    pub async fn do_realloc_weight_table(
+        &mut self,
+        ncn: Pubkey,
+        epoch: u64,
+        num_reallocations: u64,
+    ) -> Result<(), TestError> {
+        let ncn_config = NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+        let weight_table =
+            WeightTable::find_program_address(&relayer_ncn_program::id(), &ncn, epoch).0;
+        let vault_registry =
+            VaultRegistry::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+
+        self.realloc_weight_table(
+            ncn_config,
+            weight_table,
+            ncn,
+            vault_registry,
+            epoch,
+            num_reallocations,
+        )
+            .await
+    }
+
+    pub async fn realloc_weight_table(
+        &mut self,
+        ncn_config: Pubkey,
+        weight_table: Pubkey,
+        ncn: Pubkey,
+        vault_registry: Pubkey,
+        epoch: u64,
+        num_reallocations: u64,
+    ) -> Result<(), TestError> {
+        let ix = ReallocWeightTableBuilder::new()
+            .config(ncn_config)
+            .weight_table(weight_table)
+            .ncn(ncn)
+            .vault_registry(vault_registry)
+            .epoch(epoch)
+            .payer(self.payer.pubkey())
+            .system_program(system_program::id())
+            .instruction();
+
+        let ixs = vec![ix; num_reallocations as usize];
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &ixs,
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        ))
+            .await
+    }
+
+    pub async fn do_admin_set_weight(
+        &mut self,
+        ncn: Pubkey,
+        epoch: u64,
+        st_mint: Pubkey,
+        weight: u128,
+    ) -> TestResult<()> {
+        self.admin_set_weight(ncn, epoch, st_mint, weight).await
+    }
+
+    pub async fn admin_set_weight(
+        &mut self,
+        ncn: Pubkey,
+        epoch: u64,
+        st_mint: Pubkey,
+        weight: u128,
+    ) -> TestResult<()> {
+        let weight_table =
+            WeightTable::find_program_address(&relayer_ncn_program::id(), &ncn, epoch).0;
+
+        let ix = AdminSetWeightBuilder::new()
+            .ncn(ncn)
+            .weight_table(weight_table)
+            .weight_table_admin(self.payer.pubkey())
+            .restaking_program(jito_restaking_program::id())
+            .st_mint(st_mint)
+            .weight(weight)
+            .epoch(epoch)
+            .instruction();
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &[ix],
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        ))
+            .await
+    }
+
+    pub async fn do_initialize_epoch_snapshot(
+        &mut self,
+        ncn: Pubkey,
+        epoch: u64,
+    ) -> TestResult<()> {
+        self.initialize_epoch_snapshot(ncn, epoch).await
+    }
+
+    pub async fn initialize_epoch_snapshot(&mut self, ncn: Pubkey, epoch: u64) -> TestResult<()> {
+        let config_pda = NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+        let weight_table =
+            WeightTable::find_program_address(&relayer_ncn_program::id(), &ncn, epoch).0;
+        let epoch_snapshot =
+            EpochSnapshot::find_program_address(&relayer_ncn_program::id(), &ncn, epoch).0;
+
+        let ix = InitializeEpochSnapshotBuilder::new()
+            .config(config_pda)
+            .ncn(ncn)
+            .weight_table(weight_table)
+            .epoch_snapshot(epoch_snapshot)
+            .payer(self.payer.pubkey())
+            .restaking_program(jito_restaking_program::id())
+            .system_program(system_program::id())
+            .epoch(epoch)
+            .instruction();
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &[ix],
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        ))
+            .await
+    }
+    pub async fn do_full_initialize_operator_snapshot(
+        &mut self,
+        operator: Pubkey,
+        ncn: Pubkey,
+        epoch: u64,
+    ) -> TestResult<()> {
+        self.do_initialize_operator_snapshot(operator, ncn, epoch)
+            .await?;
+        let num_reallocs =
+            (OperatorSnapshot::SIZE as f64 / MAX_REALLOC_BYTES as f64).ceil() as u64 - 1;
+        self.do_realloc_operator_snapshot(operator, ncn, epoch, num_reallocs)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn do_initialize_operator_snapshot(
+        &mut self,
+        operator: Pubkey,
+        ncn: Pubkey,
+        epoch: u64,
+    ) -> TestResult<()> {
+        self.initialize_operator_snapshot(operator, ncn, epoch)
+            .await
+    }
+
+    pub async fn initialize_operator_snapshot(
+        &mut self,
+        operator: Pubkey,
+        ncn: Pubkey,
+        epoch: u64,
+    ) -> TestResult<()> {
+        let config_pda = NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+        let ncn_operator_state =
+            NcnOperatorState::find_program_address(&jito_restaking_program::id(), &ncn, &operator)
+                .0;
+        let epoch_snapshot =
+            EpochSnapshot::find_program_address(&relayer_ncn_program::id(), &ncn, epoch).0;
+        let operator_snapshot = OperatorSnapshot::find_program_address(
+            &relayer_ncn_program::id(),
+            &operator,
+            &ncn,
+            epoch,
+        )
+            .0;
+
+        let ix = InitializeOperatorSnapshotBuilder::new()
+            .config(config_pda)
+            .ncn(ncn)
+            .operator(operator)
+            .ncn_operator_state(ncn_operator_state)
+            .epoch_snapshot(epoch_snapshot)
+            .operator_snapshot(operator_snapshot)
+            .payer(self.payer.pubkey())
+            .restaking_program(jito_restaking_program::id())
+            .system_program(system_program::id())
+            .epoch(epoch)
+            .instruction();
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &[ix],
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        ))
+            .await
+    }
+
+    pub async fn do_realloc_operator_snapshot(
+        &mut self,
+        operator: Pubkey,
+        ncn: Pubkey,
+        epoch: u64,
+        num_reallocations: u64,
+    ) -> Result<(), TestError> {
+        let ncn_config = NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+        let restaking_config = Config::find_program_address(&jito_restaking_program::id()).0;
+        let ncn_operator_state =
+            NcnOperatorState::find_program_address(&jito_restaking_program::id(), &ncn, &operator)
+                .0;
+        let epoch_snapshot =
+            EpochSnapshot::find_program_address(&relayer_ncn_program::id(), &ncn, epoch).0;
+        let operator_snapshot = OperatorSnapshot::find_program_address(
+            &relayer_ncn_program::id(),
+            &operator,
+            &ncn,
+            epoch,
+        )
+            .0;
+
+        self.realloc_operator_snapshot(
+            ncn_config,
+            restaking_config,
+            ncn,
+            operator,
+            ncn_operator_state,
+            epoch_snapshot,
+            operator_snapshot,
+            epoch,
+            num_reallocations,
+        )
+            .await
+    }
+
+    pub async fn realloc_operator_snapshot(
+        &mut self,
+        ncn_config: Pubkey,
+        restaking_config: Pubkey,
+        ncn: Pubkey,
+        operator: Pubkey,
+        ncn_operator_state: Pubkey,
+        epoch_snapshot: Pubkey,
+        operator_snapshot: Pubkey,
+        epoch: u64,
+        num_reallocations: u64,
+    ) -> Result<(), TestError> {
+        let ix = ReallocOperatorSnapshotBuilder::new()
+            .ncn_config(ncn_config)
+            .restaking_config(restaking_config)
+            .ncn(ncn)
+            .operator(operator)
+            .ncn_operator_state(ncn_operator_state)
+            .epoch_snapshot(epoch_snapshot)
+            .operator_snapshot(operator_snapshot)
+            .payer(self.payer.pubkey())
+            .restaking_program(jito_restaking_program::id())
+            .system_program(system_program::id())
+            .epoch(epoch)
+            .instruction();
+
+        let ixs = vec![ix.clone(); num_reallocations as usize];
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &ixs,
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        ))
+            .await
+    }
+    pub async fn do_snapshot_vault_operator_delegation(
+        &mut self,
+        vault: Pubkey,
+        operator: Pubkey,
+        ncn: Pubkey,
+        epoch: u64,
+    ) -> TestResult<()> {
+        self.snapshot_vault_operator_delegation(vault, operator, ncn, epoch)
+            .await
+    }
+
+    pub async fn snapshot_vault_operator_delegation(
+        &mut self,
+        vault: Pubkey,
+        operator: Pubkey,
+        ncn: Pubkey,
+        epoch: u64,
+    ) -> TestResult<()> {
+        let restaking_config = Config::find_program_address(&jito_restaking_program::id()).0;
+
+        let config_pda = NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+
+        let epoch_snapshot =
+            EpochSnapshot::find_program_address(&relayer_ncn_program::id(), &ncn, epoch).0;
+        let operator_snapshot = OperatorSnapshot::find_program_address(
+            &relayer_ncn_program::id(),
+            &operator,
+            &ncn,
+            epoch,
+        )
+            .0;
+
+        let vault_ncn_ticket =
+            VaultNcnTicket::find_program_address(&jito_vault_program::id(), &vault, &ncn).0;
+
+        let ncn_vault_ticket =
+            NcnVaultTicket::find_program_address(&jito_restaking_program::id(), &ncn, &vault).0;
+
+        let vault_operator_delegation = VaultOperatorDelegation::find_program_address(
+            &jito_vault_program::id(),
+            &vault,
+            &operator,
+        )
+            .0;
+
+        let weight_table =
+            WeightTable::find_program_address(&relayer_ncn_program::id(), &ncn, epoch).0;
+
+        let ix = SnapshotVaultOperatorDelegationBuilder::new()
+            .config(config_pda)
+            .restaking_config(restaking_config)
+            .ncn(ncn)
+            .operator(operator)
+            .vault(vault)
+            .vault_ncn_ticket(vault_ncn_ticket)
+            .ncn_vault_ticket(ncn_vault_ticket)
+            .vault_operator_delegation(vault_operator_delegation)
+            .weight_table(weight_table)
+            .epoch_snapshot(epoch_snapshot)
+            .operator_snapshot(operator_snapshot)
+            .vault_program(jito_vault_program::id())
+            .restaking_program(jito_restaking_program::id())
+            .epoch(epoch)
+            .instruction();
 
         let blockhash = self.banks_client.get_latest_blockhash().await?;
         self.process_transaction(&Transaction::new_signed_with_payer(

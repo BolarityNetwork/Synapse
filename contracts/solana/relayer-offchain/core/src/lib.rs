@@ -8,3 +8,5 @@ pub mod vault_registry;
 pub mod weight_table;
 pub mod weight_entry;
 pub mod utils;
+pub mod epoch_snapshot;
+pub mod stake_weight;

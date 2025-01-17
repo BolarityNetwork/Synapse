@@ -3,6 +3,13 @@ mod admin_register_st_mint;
 mod initialize_vault_registry;
 mod realloc_vault_registry;
 mod register_vault;
+mod initialize_weight_table;
+mod realloc_weight_table;
+mod admin_set_weight;
+mod initialize_epoch_snapshot;
+mod initialize_operator_snapshot;
+mod realloc_operator_snapshot;
+mod snapshot_vault_operator_delegation;
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
@@ -28,9 +35,16 @@ declare_id!(str_to_pubkey(env!("RELAYER_NCN_PROGRAM_ID")));
 #[cfg(not(feature = "no-entrypoint"))]
 use solana_security_txt::security_txt;
 use crate::admin_register_st_mint::process_admin_register_st_mint;
+use crate::admin_set_weight::process_admin_set_weight;
+use crate::initialize_epoch_snapshot::process_initialize_epoch_snapshot;
+use crate::initialize_operator_snapshot::process_initialize_operator_snapshot;
 use crate::initialize_vault_registry::process_initialize_vault_registry;
+use crate::initialize_weight_table::process_initialize_weight_table;
+use crate::realloc_operator_snapshot::process_realloc_operator_snapshot;
 use crate::realloc_vault_registry::process_realloc_vault_registry;
+use crate::realloc_weight_table::process_realloc_weight_table;
 use crate::register_vault::process_register_vault;
+use crate::snapshot_vault_operator_delegation::process_snapshot_vault_operator_delegation;
 
 #[cfg(not(feature = "no-entrypoint"))]
 security_txt! {
@@ -101,6 +115,39 @@ pub fn process_instruction(
         RelayerNcnInstruction::RegisterVault => {
             msg!("Instruction: RegisterVault");
             process_register_vault(program_id, accounts)
+        }
+        RelayerNcnInstruction::InitializeWeightTable { epoch } => {
+            msg!("Instruction: InitializeWeightTable");
+            process_initialize_weight_table(program_id, accounts, epoch)
+        }
+        RelayerNcnInstruction::ReallocWeightTable { epoch } => {
+            msg!("Instruction: ReallocWeightTable");
+            process_realloc_weight_table(program_id, accounts, epoch)
+        }
+
+        RelayerNcnInstruction::AdminSetWeight {
+            st_mint,
+            weight,
+            epoch,
+        } => {
+            msg!("Instruction: AdminSetWeight");
+            process_admin_set_weight(program_id, accounts, &st_mint, epoch, weight)
+        }
+        RelayerNcnInstruction::InitializeEpochSnapshot { epoch } => {
+            msg!("Instruction: InitializeEpochSnapshot");
+            process_initialize_epoch_snapshot(program_id, accounts, epoch)
+        }
+        RelayerNcnInstruction::InitializeOperatorSnapshot { epoch } => {
+            msg!("Instruction: InitializeOperatorSnapshot");
+            process_initialize_operator_snapshot(program_id, accounts, epoch)
+        }
+        RelayerNcnInstruction::ReallocOperatorSnapshot { epoch } => {
+            msg!("Instruction: ReallocOperatorSnapshot");
+            process_realloc_operator_snapshot(program_id, accounts, epoch)
+        }
+        RelayerNcnInstruction::SnapshotVaultOperatorDelegation { epoch } => {
+            msg!("Instruction: SnapshotVaultOperatorDelegation");
+            process_snapshot_vault_operator_delegation(program_id, accounts, epoch)
         }
     }
 }

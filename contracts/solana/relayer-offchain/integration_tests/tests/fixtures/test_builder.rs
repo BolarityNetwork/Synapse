@@ -521,7 +521,7 @@ impl TestBuilder {
 
     // 6a. Admin Set weights
     pub async fn add_admin_weights_for_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
-        // let mut tip_router_client = self.tip_router_client();
+        let mut relayer_ncn_client = self.relayer_ncn_client();
         let mut vault_client = self.vault_program_client();
 
         const WEIGHT: u128 = 100;
@@ -531,18 +531,18 @@ impl TestBuilder {
 
         let clock = self.clock().await;
         let epoch = clock.epoch;
-        // tip_router_client
-        //     .do_full_initialize_weight_table(test_ncn.ncn_root.ncn_pubkey, epoch)
-        //     .await?;
+        relayer_ncn_client
+            .do_full_initialize_weight_table(test_ncn.ncn_root.ncn_pubkey, epoch)
+            .await?;
 
         for vault_root in test_ncn.vaults.iter() {
             let vault = vault_client.get_vault(&vault_root.vault_pubkey).await?;
 
             let st_mint = vault.supported_mint;
 
-            // tip_router_client
-            //     .do_admin_set_weight(test_ncn.ncn_root.ncn_pubkey, epoch, st_mint, WEIGHT)
-            //     .await?;
+            relayer_ncn_client
+                .do_admin_set_weight(test_ncn.ncn_root.ncn_pubkey, epoch, st_mint, WEIGHT)
+                .await?;
         }
 
         Ok(())
@@ -582,14 +582,14 @@ impl TestBuilder {
     //
     // 7. Create Epoch Snapshot
     pub async fn add_epoch_snapshot_to_test_ncn(&mut self, test_ncn: &TestNcn) -> TestResult<()> {
-        // let mut tip_router_client = self.tip_router_client();
-        //
-        // let clock = self.clock().await;
-        // let epoch = clock.epoch;
-        //
-        // tip_router_client
-        //     .do_initialize_epoch_snapshot(test_ncn.ncn_root.ncn_pubkey, epoch)
-        //     .await?;
+        let mut relayer_ncn_client = self.relayer_ncn_client();
+
+        let clock = self.clock().await;
+        let epoch = clock.epoch;
+
+        relayer_ncn_client
+            .do_initialize_epoch_snapshot(test_ncn.ncn_root.ncn_pubkey, epoch)
+            .await?;
 
         Ok(())
     }
@@ -599,20 +599,20 @@ impl TestBuilder {
         &mut self,
         test_ncn: &TestNcn,
     ) -> TestResult<()> {
-        // let mut tip_router_client = self.tip_router_client();
-        //
-        // let clock = self.clock().await;
-        // let epoch = clock.epoch;
-        //
-        // let ncn = test_ncn.ncn_root.ncn_pubkey;
-        //
-        // for operator_root in test_ncn.operators.iter() {
-        //     let operator = operator_root.operator_pubkey;
-        //
-        //     tip_router_client
-        //         .do_full_initialize_operator_snapshot(operator, ncn, epoch)
-        //         .await?;
-        // }
+        let mut relayer_ncn_client = self.relayer_ncn_client();
+
+        let clock = self.clock().await;
+        let epoch = clock.epoch;
+
+        let ncn = test_ncn.ncn_root.ncn_pubkey;
+
+        for operator_root in test_ncn.operators.iter() {
+            let operator = operator_root.operator_pubkey;
+
+            relayer_ncn_client
+                .do_full_initialize_operator_snapshot(operator, ncn, epoch)
+                .await?;
+        }
 
         Ok(())
     }
@@ -622,22 +622,22 @@ impl TestBuilder {
         &mut self,
         test_ncn: &TestNcn,
     ) -> TestResult<()> {
-        // let mut tip_router_client = self.tip_router_client();
-        //
-        // let clock = self.clock().await;
-        // let epoch = clock.epoch;
-        // let ncn = test_ncn.ncn_root.ncn_pubkey;
-        //
-        // for operator_root in test_ncn.operators.iter() {
-        //     let operator = operator_root.operator_pubkey;
-        //     for vault_root in test_ncn.vaults.iter() {
-        //         let vault = vault_root.vault_pubkey;
-        //
-        //         tip_router_client
-        //             .do_snapshot_vault_operator_delegation(vault, operator, ncn, epoch)
-        //             .await?;
-        //     }
-        // }
+        let mut relayer_ncn_client = self.relayer_ncn_client();
+
+        let clock = self.clock().await;
+        let epoch = clock.epoch;
+        let ncn = test_ncn.ncn_root.ncn_pubkey;
+
+        for operator_root in test_ncn.operators.iter() {
+            let operator = operator_root.operator_pubkey;
+            for vault_root in test_ncn.vaults.iter() {
+                let vault = vault_root.vault_pubkey;
+
+                relayer_ncn_client
+                    .do_snapshot_vault_operator_delegation(vault, operator, ncn, epoch)
+                    .await?;
+            }
+        }
 
         Ok(())
     }

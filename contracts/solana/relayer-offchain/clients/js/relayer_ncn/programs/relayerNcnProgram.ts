@@ -14,10 +14,17 @@ import {
 } from '@solana/web3.js';
 import {
   type ParsedAdminRegisterStMintInstruction,
+  type ParsedAdminSetWeightInstruction,
   type ParsedInitializeConfigInstruction,
+  type ParsedInitializeEpochSnapshotInstruction,
+  type ParsedInitializeOperatorSnapshotInstruction,
   type ParsedInitializeVaultRegistryInstruction,
+  type ParsedInitializeWeightTableInstruction,
+  type ParsedReallocOperatorSnapshotInstruction,
   type ParsedReallocVaultRegistryInstruction,
+  type ParsedReallocWeightTableInstruction,
   type ParsedRegisterVaultInstruction,
+  type ParsedSnapshotVaultOperatorDelegationInstruction,
 } from '../instructions';
 
 export const RELAYER_NCN_PROGRAM_PROGRAM_ADDRESS =
@@ -25,6 +32,8 @@ export const RELAYER_NCN_PROGRAM_PROGRAM_ADDRESS =
 
 export enum RelayerNcnProgramAccount {
   Config,
+  EpochSnapshot,
+  OperatorSnapshot,
   VaultRegistry,
   WeightTable,
 }
@@ -35,6 +44,13 @@ export enum RelayerNcnProgramInstruction {
   ReallocVaultRegistry,
   AdminRegisterStMint,
   RegisterVault,
+  InitializeWeightTable,
+  ReallocWeightTable,
+  AdminSetWeight,
+  InitializeEpochSnapshot,
+  InitializeOperatorSnapshot,
+  ReallocOperatorSnapshot,
+  SnapshotVaultOperatorDelegation,
 }
 
 export function identifyRelayerNcnProgramInstruction(
@@ -55,6 +71,27 @@ export function identifyRelayerNcnProgramInstruction(
   }
   if (containsBytes(data, getU8Encoder().encode(4), 0)) {
     return RelayerNcnProgramInstruction.RegisterVault;
+  }
+  if (containsBytes(data, getU8Encoder().encode(5), 0)) {
+    return RelayerNcnProgramInstruction.InitializeWeightTable;
+  }
+  if (containsBytes(data, getU8Encoder().encode(6), 0)) {
+    return RelayerNcnProgramInstruction.ReallocWeightTable;
+  }
+  if (containsBytes(data, getU8Encoder().encode(7), 0)) {
+    return RelayerNcnProgramInstruction.AdminSetWeight;
+  }
+  if (containsBytes(data, getU8Encoder().encode(8), 0)) {
+    return RelayerNcnProgramInstruction.InitializeEpochSnapshot;
+  }
+  if (containsBytes(data, getU8Encoder().encode(9), 0)) {
+    return RelayerNcnProgramInstruction.InitializeOperatorSnapshot;
+  }
+  if (containsBytes(data, getU8Encoder().encode(10), 0)) {
+    return RelayerNcnProgramInstruction.ReallocOperatorSnapshot;
+  }
+  if (containsBytes(data, getU8Encoder().encode(11), 0)) {
+    return RelayerNcnProgramInstruction.SnapshotVaultOperatorDelegation;
   }
   throw new Error(
     'The provided instruction could not be identified as a relayerNcnProgram instruction.'
@@ -78,4 +115,25 @@ export type ParsedRelayerNcnProgramInstruction<
     } & ParsedAdminRegisterStMintInstruction<TProgram>)
   | ({
       instructionType: RelayerNcnProgramInstruction.RegisterVault;
-    } & ParsedRegisterVaultInstruction<TProgram>);
+    } & ParsedRegisterVaultInstruction<TProgram>)
+  | ({
+      instructionType: RelayerNcnProgramInstruction.InitializeWeightTable;
+    } & ParsedInitializeWeightTableInstruction<TProgram>)
+  | ({
+      instructionType: RelayerNcnProgramInstruction.ReallocWeightTable;
+    } & ParsedReallocWeightTableInstruction<TProgram>)
+  | ({
+      instructionType: RelayerNcnProgramInstruction.AdminSetWeight;
+    } & ParsedAdminSetWeightInstruction<TProgram>)
+  | ({
+      instructionType: RelayerNcnProgramInstruction.InitializeEpochSnapshot;
+    } & ParsedInitializeEpochSnapshotInstruction<TProgram>)
+  | ({
+      instructionType: RelayerNcnProgramInstruction.InitializeOperatorSnapshot;
+    } & ParsedInitializeOperatorSnapshotInstruction<TProgram>)
+  | ({
+      instructionType: RelayerNcnProgramInstruction.ReallocOperatorSnapshot;
+    } & ParsedReallocOperatorSnapshotInstruction<TProgram>)
+  | ({
+      instructionType: RelayerNcnProgramInstruction.SnapshotVaultOperatorDelegation;
+    } & ParsedSnapshotVaultOperatorDelegationInstruction<TProgram>);

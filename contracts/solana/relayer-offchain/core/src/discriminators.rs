@@ -5,4 +5,6 @@ pub enum Discriminators {
     VaultRegistry = 0x02,
 
     WeightTable = 0x03,
+    EpochSnapshot = 0x04,
+    OperatorSnapshot = 0x05,
 }
