@@ -6,8 +6,11 @@
  * @see https://github.com/kinobi-so/kinobi
  */
 
+export * from './ballot';
+export * from './ballotTally';
 export * from './configAdminRole';
 export * from './ncnFeeGroupWeight';
+export * from './operatorVote';
 export * from './stakeWeights';
 export * from './stMintEntry';
 export * from './vaultEntry';

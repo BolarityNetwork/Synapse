@@ -7,4 +7,5 @@ pub enum Discriminators {
     WeightTable = 0x03,
     EpochSnapshot = 0x04,
     OperatorSnapshot = 0x05,
+    BallotBox = 0x06,
 }

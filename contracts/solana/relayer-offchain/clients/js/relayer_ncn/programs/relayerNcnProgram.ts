@@ -15,11 +15,14 @@ import {
 import {
   type ParsedAdminRegisterStMintInstruction,
   type ParsedAdminSetWeightInstruction,
+  type ParsedCastVoteInstruction,
+  type ParsedInitializeBallotBoxInstruction,
   type ParsedInitializeConfigInstruction,
   type ParsedInitializeEpochSnapshotInstruction,
   type ParsedInitializeOperatorSnapshotInstruction,
   type ParsedInitializeVaultRegistryInstruction,
   type ParsedInitializeWeightTableInstruction,
+  type ParsedReallocBallotBoxInstruction,
   type ParsedReallocOperatorSnapshotInstruction,
   type ParsedReallocVaultRegistryInstruction,
   type ParsedReallocWeightTableInstruction,
@@ -31,6 +34,7 @@ export const RELAYER_NCN_PROGRAM_PROGRAM_ADDRESS =
   'J2rxY1z3Wgt4VYrN4EVh6FGnEZHnEyHqQcwvd2kfKnxh' as Address<'J2rxY1z3Wgt4VYrN4EVh6FGnEZHnEyHqQcwvd2kfKnxh'>;
 
 export enum RelayerNcnProgramAccount {
+  BallotBox,
   Config,
   EpochSnapshot,
   OperatorSnapshot,
@@ -51,6 +55,9 @@ export enum RelayerNcnProgramInstruction {
   InitializeOperatorSnapshot,
   ReallocOperatorSnapshot,
   SnapshotVaultOperatorDelegation,
+  InitializeBallotBox,
+  ReallocBallotBox,
+  CastVote,
 }
 
 export function identifyRelayerNcnProgramInstruction(
@@ -92,6 +99,15 @@ export function identifyRelayerNcnProgramInstruction(
   }
   if (containsBytes(data, getU8Encoder().encode(11), 0)) {
     return RelayerNcnProgramInstruction.SnapshotVaultOperatorDelegation;
+  }
+  if (containsBytes(data, getU8Encoder().encode(12), 0)) {
+    return RelayerNcnProgramInstruction.InitializeBallotBox;
+  }
+  if (containsBytes(data, getU8Encoder().encode(13), 0)) {
+    return RelayerNcnProgramInstruction.ReallocBallotBox;
+  }
+  if (containsBytes(data, getU8Encoder().encode(14), 0)) {
+    return RelayerNcnProgramInstruction.CastVote;
   }
   throw new Error(
     'The provided instruction could not be identified as a relayerNcnProgram instruction.'
@@ -136,4 +152,13 @@ export type ParsedRelayerNcnProgramInstruction<
     } & ParsedReallocOperatorSnapshotInstruction<TProgram>)
   | ({
       instructionType: RelayerNcnProgramInstruction.SnapshotVaultOperatorDelegation;
-    } & ParsedSnapshotVaultOperatorDelegationInstruction<TProgram>);
+    } & ParsedSnapshotVaultOperatorDelegationInstruction<TProgram>)
+  | ({
+      instructionType: RelayerNcnProgramInstruction.InitializeBallotBox;
+    } & ParsedInitializeBallotBoxInstruction<TProgram>)
+  | ({
+      instructionType: RelayerNcnProgramInstruction.ReallocBallotBox;
+    } & ParsedReallocBallotBoxInstruction<TProgram>)
+  | ({
+      instructionType: RelayerNcnProgramInstruction.CastVote;
+    } & ParsedCastVoteInstruction<TProgram>);

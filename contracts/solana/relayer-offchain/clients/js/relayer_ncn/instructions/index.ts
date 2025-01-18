@@ -8,11 +8,14 @@
 
 export * from './adminRegisterStMint';
 export * from './adminSetWeight';
+export * from './castVote';
+export * from './initializeBallotBox';
 export * from './initializeConfig';
 export * from './initializeEpochSnapshot';
 export * from './initializeOperatorSnapshot';
 export * from './initializeVaultRegistry';
 export * from './initializeWeightTable';
+export * from './reallocBallotBox';
 export * from './reallocOperatorSnapshot';
 export * from './reallocVaultRegistry';
 export * from './reallocWeightTable';

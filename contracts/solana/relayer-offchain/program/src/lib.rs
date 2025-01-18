@@ -10,6 +10,9 @@ mod initialize_epoch_snapshot;
 mod initialize_operator_snapshot;
 mod realloc_operator_snapshot;
 mod snapshot_vault_operator_delegation;
+mod initialize_ballot_box;
+mod realloc_ballot_box;
+mod cast_vote;
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
@@ -36,10 +39,13 @@ declare_id!(str_to_pubkey(env!("RELAYER_NCN_PROGRAM_ID")));
 use solana_security_txt::security_txt;
 use crate::admin_register_st_mint::process_admin_register_st_mint;
 use crate::admin_set_weight::process_admin_set_weight;
+use crate::cast_vote::process_cast_vote;
+use crate::initialize_ballot_box::process_initialize_ballot_box;
 use crate::initialize_epoch_snapshot::process_initialize_epoch_snapshot;
 use crate::initialize_operator_snapshot::process_initialize_operator_snapshot;
 use crate::initialize_vault_registry::process_initialize_vault_registry;
 use crate::initialize_weight_table::process_initialize_weight_table;
+use crate::realloc_ballot_box::process_realloc_ballot_box;
 use crate::realloc_operator_snapshot::process_realloc_operator_snapshot;
 use crate::realloc_vault_registry::process_realloc_vault_registry;
 use crate::realloc_weight_table::process_realloc_weight_table;
@@ -148,6 +154,21 @@ pub fn process_instruction(
         RelayerNcnInstruction::SnapshotVaultOperatorDelegation { epoch } => {
             msg!("Instruction: SnapshotVaultOperatorDelegation");
             process_snapshot_vault_operator_delegation(program_id, accounts, epoch)
+        }
+        RelayerNcnInstruction::InitializeBallotBox { epoch } => {
+            msg!("Instruction: InitializeBallotBox");
+            process_initialize_ballot_box(program_id, accounts, epoch)
+        }
+        RelayerNcnInstruction::ReallocBallotBox { epoch } => {
+            msg!("Instruction: ReallocBallotBox");
+            process_realloc_ballot_box(program_id, accounts, epoch)
+        }
+        RelayerNcnInstruction::CastVote {
+            meta_merkle_root,
+            epoch,
+        } => {
+            msg!("Instruction: CastVote");
+            process_cast_vote(program_id, accounts, &meta_merkle_root, epoch)
         }
     }
 }

@@ -6,7 +6,11 @@ mod push_transaction{
         },
         // helpers::ballot_box::serialized_ballot_box_account,
     };
-    use relayer_hub_sdk::relayer_hub;
+    use relayer_ncn_core::{
+        ballot_box::{Ballot, BallotBox},
+        config::Config as NcnConfig,
+        error::RelayerNcnError,
+    };
     #[tokio::test]
     async fn test_push_transaction_ok() -> TestResult<()> {
         let mut fixture = TestBuilder::new().await;
@@ -20,7 +24,21 @@ mod push_transaction{
         let epoch = clock.epoch;
 
         let ncn = test_ncn.ncn_root.ncn_pubkey;
-        println!("{:?}", ncn);
+        let ncn_config_address =
+            NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+
+        // Initialize ballot box
+        relayer_ncn_client
+            .do_full_initialize_ballot_box(ncn, epoch)
+            .await?;
+        let winning_root = [1u8;32];
+
+        let operator = test_ncn.operators[0].operator_pubkey;
+        let operator_admin = &test_ncn.operators[0].operator_admin;
+
+        relayer_ncn_client
+            .do_cast_vote(ncn, operator, operator_admin, winning_root, epoch)
+            .await?;
         Ok(())
     }
 }

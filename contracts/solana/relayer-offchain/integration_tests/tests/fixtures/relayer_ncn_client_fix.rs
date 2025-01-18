@@ -34,6 +34,7 @@ use crate::fixtures::{TestError, TestResult};
 use relayer_ncn_core::{
     config::Config as NcnConfig,
 };
+use relayer_ncn_core::ballot_box::BallotBox;
 use relayer_ncn_core::constants::MAX_REALLOC_BYTES;
 use relayer_ncn_core::epoch_snapshot::{EpochSnapshot, OperatorSnapshot};
 use relayer_ncn_core::vault_registry::VaultRegistry;
@@ -760,6 +761,190 @@ impl RelayerNcnClient {
             &[ix],
             Some(&self.payer.pubkey()),
             &[&self.payer],
+            blockhash,
+        ))
+            .await
+    }
+
+    pub async fn do_full_initialize_ballot_box(
+        &mut self,
+        ncn: Pubkey,
+        epoch: u64,
+    ) -> TestResult<()> {
+        self.do_initialize_ballot_box(ncn, epoch).await?;
+        let num_reallocs = (BallotBox::SIZE as f64 / MAX_REALLOC_BYTES as f64).ceil() as u64 - 1;
+        self.do_realloc_ballot_box(ncn, epoch, num_reallocs).await?;
+        Ok(())
+    }
+
+    pub async fn do_initialize_ballot_box(
+        &mut self,
+        ncn: Pubkey,
+        epoch: u64,
+    ) -> Result<(), TestError> {
+        let ncn_config = NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+
+        let ballot_box = BallotBox::find_program_address(
+            &relayer_ncn_program::id(),
+            &ncn,
+            epoch,
+        )
+            .0;
+
+        self.initialize_ballot_box(ncn_config, ballot_box, ncn, epoch)
+            .await
+    }
+
+    pub async fn initialize_ballot_box(
+        &mut self,
+        config: Pubkey,
+        ballot_box: Pubkey,
+        ncn: Pubkey,
+        epoch: u64,
+    ) -> Result<(), TestError> {
+        let ix = InitializeBallotBoxBuilder::new()
+            .config(config)
+            .ballot_box(ballot_box)
+            .ncn(ncn)
+            .epoch(epoch)
+            .payer(self.payer.pubkey())
+            .instruction();
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &[ix],
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        ))
+            .await
+    }
+
+    pub async fn do_realloc_ballot_box(
+        &mut self,
+        ncn: Pubkey,
+        epoch: u64,
+        num_reallocations: u64,
+    ) -> Result<(), TestError> {
+        let ncn_config = NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+
+        let ballot_box = BallotBox::find_program_address(
+            &relayer_ncn_program::id(),
+            &ncn,
+            epoch,
+        )
+            .0;
+
+        self.realloc_ballot_box(ncn_config, ballot_box, ncn, epoch, num_reallocations)
+            .await
+    }
+
+    pub async fn realloc_ballot_box(
+        &mut self,
+        config: Pubkey,
+        ballot_box: Pubkey,
+        ncn: Pubkey,
+        epoch: u64,
+        num_reallocations: u64,
+    ) -> Result<(), TestError> {
+        let ix = ReallocBallotBoxBuilder::new()
+            .config(config)
+            .ballot_box(ballot_box)
+            .ncn(ncn)
+            .epoch(epoch)
+            .payer(self.payer.pubkey())
+            .instruction();
+
+        let ixs = vec![ix; num_reallocations as usize];
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &ixs,
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            blockhash,
+        ))
+            .await
+    }
+
+    pub async fn do_cast_vote(
+        &mut self,
+        ncn: Pubkey,
+        operator: Pubkey,
+        operator_admin: &Keypair,
+        meta_merkle_root: [u8; 32],
+        epoch: u64,
+    ) -> Result<(), TestError> {
+        let ncn_config = NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+
+        let ballot_box = BallotBox::find_program_address(
+            &relayer_ncn_program::id(),
+            &ncn,
+            epoch,
+        )
+            .0;
+
+        let epoch_snapshot =
+            EpochSnapshot::find_program_address(
+                &relayer_ncn_program::id(),
+                &ncn,
+                epoch,
+            )
+                .0;
+
+        let operator_snapshot =
+            OperatorSnapshot::find_program_address(
+                &relayer_ncn_program::id(),
+                &operator,
+                &ncn,
+                epoch,
+            )
+                .0;
+
+        self.cast_vote(
+            ncn_config,
+            ballot_box,
+            ncn,
+            epoch_snapshot,
+            operator_snapshot,
+            operator,
+            operator_admin,
+            meta_merkle_root,
+            epoch,
+        )
+            .await
+    }
+
+    pub async fn cast_vote(
+        &mut self,
+        ncn_config: Pubkey,
+        ballot_box: Pubkey,
+        ncn: Pubkey,
+        epoch_snapshot: Pubkey,
+        operator_snapshot: Pubkey,
+        operator: Pubkey,
+        operator_admin: &Keypair,
+        meta_merkle_root: [u8; 32],
+        epoch: u64,
+    ) -> Result<(), TestError> {
+        let ix = CastVoteBuilder::new()
+            .config(ncn_config)
+            .ballot_box(ballot_box)
+            .ncn(ncn)
+            .epoch_snapshot(epoch_snapshot)
+            .operator_snapshot(operator_snapshot)
+            .operator(operator)
+            .operator_admin(operator_admin.pubkey())
+            .restaking_program(jito_restaking_program::id())
+            .meta_merkle_root(meta_merkle_root)
+            .epoch(epoch)
+            .instruction();
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &[ix],
+            Some(&self.payer.pubkey()),
+            &[&self.payer, operator_admin],
             blockhash,
         ))
             .await
