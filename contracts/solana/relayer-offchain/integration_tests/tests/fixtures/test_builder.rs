@@ -40,6 +40,7 @@ use crate::fixtures::{
     vault_client::{VaultProgramClient, VaultRoot},
     TestResult,
 };
+use crate::fixtures::relayer_hub_client::RelayerHubClient;
 use crate::fixtures::relayer_ncn_client_fix::RelayerNcnClient;
 
 pub struct TestNcn {
@@ -232,13 +233,13 @@ impl TestBuilder {
         )
     }
 
-    // pub fn tip_distribution_client(&self) -> TipDistributionClient {
-    //     TipDistributionClient::new(
-    //         self.context.banks_client.clone(),
-    //         self.context.payer.insecure_clone(),
-    //     )
-    // }
-    //
+    pub fn relayer_hub_client(&self) -> RelayerHubClient {
+        RelayerHubClient::new(
+            self.context.banks_client.clone(),
+            self.context.payer.insecure_clone(),
+        )
+    }
+
     // pub fn stake_pool_client(&self) -> StakePoolClient {
     //     StakePoolClient::new(
     //         self.context.banks_client.clone(),

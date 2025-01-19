@@ -4525,6 +4525,7 @@ dependencies = [
  "jito-vault-core",
  "jito-vault-program",
  "jito-vault-sdk",
+ "relayer-hub-sdk",
  "relayer-ncn-core",
  "shank",
  "solana-program",

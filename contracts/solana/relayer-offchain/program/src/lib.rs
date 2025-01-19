@@ -13,6 +13,7 @@ mod snapshot_vault_operator_delegation;
 mod initialize_ballot_box;
 mod realloc_ballot_box;
 mod cast_vote;
+mod send_transaction;
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
@@ -31,26 +32,29 @@ use const_str_to_pubkey::str_to_pubkey;
 use shank::ShankInstruction;
 use shank::{ShankAccount, ShankType};
 use relayer_ncn_core::instruction::RelayerNcnInstruction;
-use crate::initialize_ncn_config::process_initialize_ncn_config;
+use crate::{
+    initialize_ncn_config::process_initialize_ncn_config,
+    admin_register_st_mint::process_admin_register_st_mint,
+    admin_set_weight::process_admin_set_weight,
+    cast_vote::process_cast_vote,
+    initialize_ballot_box::process_initialize_ballot_box,
+    initialize_epoch_snapshot::process_initialize_epoch_snapshot,
+    initialize_operator_snapshot::process_initialize_operator_snapshot,
+    initialize_vault_registry::process_initialize_vault_registry,
+    initialize_weight_table::process_initialize_weight_table,
+    realloc_ballot_box::process_realloc_ballot_box,
+    realloc_operator_snapshot::process_realloc_operator_snapshot,
+    realloc_vault_registry::process_realloc_vault_registry,
+    realloc_weight_table::process_realloc_weight_table,
+    register_vault::process_register_vault,
+    send_transaction::process_send_transaction,
+    snapshot_vault_operator_delegation::process_snapshot_vault_operator_delegation,
+};
 
 declare_id!(str_to_pubkey(env!("RELAYER_NCN_PROGRAM_ID")));
 
 #[cfg(not(feature = "no-entrypoint"))]
 use solana_security_txt::security_txt;
-use crate::admin_register_st_mint::process_admin_register_st_mint;
-use crate::admin_set_weight::process_admin_set_weight;
-use crate::cast_vote::process_cast_vote;
-use crate::initialize_ballot_box::process_initialize_ballot_box;
-use crate::initialize_epoch_snapshot::process_initialize_epoch_snapshot;
-use crate::initialize_operator_snapshot::process_initialize_operator_snapshot;
-use crate::initialize_vault_registry::process_initialize_vault_registry;
-use crate::initialize_weight_table::process_initialize_weight_table;
-use crate::realloc_ballot_box::process_realloc_ballot_box;
-use crate::realloc_operator_snapshot::process_realloc_operator_snapshot;
-use crate::realloc_vault_registry::process_realloc_vault_registry;
-use crate::realloc_weight_table::process_realloc_weight_table;
-use crate::register_vault::process_register_vault;
-use crate::snapshot_vault_operator_delegation::process_snapshot_vault_operator_delegation;
 
 #[cfg(not(feature = "no-entrypoint"))]
 security_txt! {
@@ -169,6 +173,20 @@ pub fn process_instruction(
         } => {
             msg!("Instruction: CastVote");
             process_cast_vote(program_id, accounts, &meta_merkle_root, epoch)
+        }
+        RelayerNcnInstruction::SendTransaction {
+            epoch,
+            chain,
+            sequence,
+        } => {
+            msg!("Instruction: SendTransaction");
+            process_send_transaction(
+                program_id,
+                accounts,
+                epoch,
+                chain,
+                sequence,
+            )
         }
     }
 }

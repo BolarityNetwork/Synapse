@@ -748,6 +748,74 @@
         "type": "u8",
         "value": 14
       }
+    },
+    {
+      "name": "SendTransaction",
+      "accounts": [
+        {
+          "name": "config",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "ncn",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "ballotBox",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "hubConfig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "relayerInfo",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "pool",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "relayerHubProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "restakingProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u64"
+        },
+        {
+          "name": "chain",
+          "type": "u16"
+        },
+        {
+          "name": "sequence",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 15
+      }
     }
   ],
   "accounts": [

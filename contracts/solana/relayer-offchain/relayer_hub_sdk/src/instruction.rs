@@ -10,6 +10,7 @@ pub fn initialize_ix(
     relayer_info: Pubkey,
     payer: Pubkey,
     system_program: Pubkey,
+    authority: Pubkey,
 ) -> Instruction {
     Instruction {
         program_id: relayer_hub::ID,
@@ -21,7 +22,82 @@ pub fn initialize_ix(
         }
             .to_account_metas(None),
         data: relayer_hub::client::args::Initialize {
+            authority,
+        }.data(),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn register_relayer(
+    config: Pubkey,
+    relayer_info: Pubkey,
+    payer: Pubkey,
+    relayer: Pubkey,
+    system_program: Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id: relayer_hub::ID,
+        accounts: relayer_hub::client::accounts::RegisterRelayer {
+            config,
+            relayer_info,
+            payer,
+            system_program,
+            relayer,
         }
-            .data(),
+            .to_account_metas(None),
+        data: relayer_hub::client::args::RegisterRelayer {
+        }.data(),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn register_tx_pool(
+    config: Pubkey,
+    pool: Pubkey,
+    owner: Pubkey,
+    system_program: Pubkey,
+    chain: u16
+) -> Instruction {
+    Instruction {
+        program_id: relayer_hub::ID,
+        accounts: relayer_hub::client::accounts::RegisterTxPool {
+            config,
+            pool,
+            owner,
+            system_program,
+        }
+            .to_account_metas(None),
+        data: relayer_hub::client::args::RegisterTxPool {
+            chain
+        }.data(),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn send_transaction(
+    config: Pubkey,
+    pool: Pubkey,
+    relayer: Pubkey,
+    relayer_info: Pubkey,
+    // transaction: Pubkey,
+    system_program: Pubkey,
+    chain: u16,
+    sequence: u64
+) -> Instruction {
+    Instruction {
+        program_id: relayer_hub::ID,
+        accounts: relayer_hub::client::accounts::SendTransaction {
+            config,
+            pool,
+            relayer,
+            relayer_info,
+            // transaction,
+            system_program,
+        }
+            .to_account_metas(None),
+        data: relayer_hub::client::args::SendTransaction {
+            chain,
+            sequence,
+        }.data(),
     }
 }

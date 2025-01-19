@@ -90,7 +90,12 @@
           "address": "11111111111111111111111111111111"
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "authority",
+          "type": "pubkey"
+        }
+      ]
     },
     {
       "name": "register_relayer",
@@ -354,13 +359,6 @@
           ]
         },
         {
-          "name": "transaction",
-          "docs": [
-            "Transaction account."
-          ],
-          "writable": true
-        },
-        {
           "name": "system_program",
           "docs": [
             "System program."
@@ -418,19 +416,6 @@
         76,
         212,
         183
-      ]
-    },
-    {
-      "name": "Transaction",
-      "discriminator": [
-        11,
-        24,
-        174,
-        129,
-        203,
-        117,
-        242,
-        23
       ]
     },
     {
@@ -513,6 +498,10 @@
               "The total number of transaction pools."
             ],
             "type": "u16"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
           }
         ]
       }
@@ -555,38 +544,6 @@
             "type": {
               "vec": "pubkey"
             }
-          }
-        ]
-      }
-    },
-    {
-      "name": "Transaction",
-      "docs": [
-        "Transaction account."
-      ],
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "pool_index",
-            "docs": [
-              "Index of transaction pool."
-            ],
-            "type": "u16"
-          },
-          {
-            "name": "sequence",
-            "docs": [
-              "The sequence number of the transaction."
-            ],
-            "type": "u64"
-          },
-          {
-            "name": "sender",
-            "docs": [
-              "The sender of the transaction."
-            ],
-            "type": "pubkey"
           }
         ]
       }

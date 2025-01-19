@@ -182,4 +182,19 @@ pub enum RelayerNcnInstruction {
         meta_merkle_root: [u8; 32],
         epoch: u64,
     },
+
+    #[account(0, writable, name = "config")]
+    #[account(1, name = "ncn")]
+    #[account(2, name = "ballot_box")]
+    #[account(3, name = "hub_config")]
+    #[account(4, name = "relayer_info")]
+    #[account(5, name = "pool")]
+    #[account(6, name = "relayer_hub_program")]
+    #[account(7, name = "restaking_program")]
+    #[account(8, name = "system_program")]
+    SendTransaction {
+        epoch: u64,
+        chain: u16,
+        sequence: u64,
+    }
 }

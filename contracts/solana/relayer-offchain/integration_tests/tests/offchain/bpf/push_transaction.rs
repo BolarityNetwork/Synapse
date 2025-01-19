@@ -15,6 +15,7 @@ mod push_transaction{
     async fn test_push_transaction_ok() -> TestResult<()> {
         let mut fixture = TestBuilder::new().await;
         let mut relayer_ncn_client = fixture.relayer_ncn_client();
+        let mut relayer_hub_client = fixture.relayer_hub_client();
         let test_ncn = fixture.create_initial_test_ncn(1, 1, None).await?;
 
         fixture.warp_slot_incremental(1000).await?;
@@ -27,6 +28,18 @@ mod push_transaction{
         let ncn_config_address =
             NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn).0;
 
+        relayer_hub_client
+            .do_initialize(ncn_config_address)
+            .await?;
+
+        relayer_hub_client
+            .do_register_relayer()
+            .await?;
+        let chain = 1;
+        relayer_hub_client
+            .do_register_tx_pool(chain)
+            .await?;
+
         // Initialize ballot box
         relayer_ncn_client
             .do_full_initialize_ballot_box(ncn, epoch)
@@ -38,6 +51,10 @@ mod push_transaction{
 
         relayer_ncn_client
             .do_cast_vote(ncn, operator, operator_admin, winning_root, epoch)
+            .await?;
+        let sequence = 1;
+        relayer_ncn_client
+            .do_send_transaction(ncn, epoch, chain, sequence)
             .await?;
         Ok(())
     }
