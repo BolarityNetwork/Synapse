@@ -30,6 +30,7 @@ pub struct SendTransaction<'info> {
     pub relayer_info: Box<Account<'info, RelayerInfo>>,
 
     #[account(
+    mut,
     seeds = [
         TransactionPool::SEED_PREFIX,
         &chain.to_le_bytes()[..]
@@ -95,7 +96,6 @@ pub fn send_transaction(ctx: Context<SendTransaction>, _chain: u16, _sequence: u
     // require!( pass_check,
     //     ErrorCode::MessageFormatError);
 
-
     let pool = &mut ctx.accounts.pool;
     // let transaction = &mut ctx.accounts.transaction;
     // transaction.pool_index = pool.index;
@@ -103,7 +103,6 @@ pub fn send_transaction(ctx: Context<SendTransaction>, _chain: u16, _sequence: u
     // transaction.data = data;
 
     pool.total = pool.total + 1;
-
 
     Ok(())
 }
