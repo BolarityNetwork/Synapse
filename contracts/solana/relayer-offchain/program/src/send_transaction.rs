@@ -33,27 +33,6 @@ pub fn process_send_transaction(
     Ncn::load(restaking_program_id.key, ncn, false)?;
     BallotBox::load(program_id, ncn.key, epoch, ballot_box, false)?;
 
-    // let (config, _) = derive_config_account_address(
-    //     relayer_hub_program_id.key
-    // );
-    // let (relayer_info, _) = derive_relayer_info_account_address(
-    //     relayer_hub_program_id.key
-    // );
-    // let valid_slots_after_consensus = {
-    //     let ncn_config_data = ncn_config.data.borrow();
-    //     let ncn_config = NcnConfig::try_from_slice_unchecked(&ncn_config_data)?;
-    //     ncn_config.ncn
-    // };
-    // let (pool, _) = derive_pool_account_address(
-    //     relayer_hub_program_id.key,
-    //     chain
-    // );
-    // let (transaction, _) = derive_transaction_account_address(
-    //     relayer_hub_program_id.key,
-    //     chain,
-    //     sequence
-    // );
-
     let ballot_box_data = ballot_box.data.borrow();
     let ballot_box = BallotBox::try_from_slice_unchecked(&ballot_box_data)?;
 

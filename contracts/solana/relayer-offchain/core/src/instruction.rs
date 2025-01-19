@@ -188,7 +188,7 @@ pub enum RelayerNcnInstruction {
     #[account(2, name = "ballot_box")]
     #[account(3, name = "hub_config")]
     #[account(4, name = "relayer_info")]
-    #[account(5, name = "pool")]
+    #[account(5, writable, name = "pool")]
     #[account(6, name = "relayer_hub_program")]
     #[account(7, name = "restaking_program")]
     #[account(8, name = "system_program")]

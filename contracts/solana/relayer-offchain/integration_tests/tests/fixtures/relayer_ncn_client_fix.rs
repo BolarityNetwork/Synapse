@@ -965,6 +965,7 @@ impl RelayerNcnClient {
         let restaking_program_id = jito_restaking_program::id();
         let (relayer_info, _) =relayer_hub_sdk::derive_relayer_info_account_address(&relayer_hub::ID);
         let (pool, _) =relayer_hub_sdk::derive_pool_account_address(&relayer_hub::ID, chain);
+
         let (hub_config, _) =relayer_hub_sdk::derive_config_account_address(&relayer_hub::ID);
         self.send_transaction(
             ncn_config,

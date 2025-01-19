@@ -60,7 +60,7 @@ impl SendTransaction {
             self.relayer_info,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+        accounts.push(solana_program::instruction::AccountMeta::new(
             self.pool, false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
@@ -122,7 +122,7 @@ pub struct SendTransactionInstructionArgs {
 ///   2. `[]` ballot_box
 ///   3. `[]` hub_config
 ///   4. `[]` relayer_info
-///   5. `[]` pool
+///   5. `[writable]` pool
 ///   6. `[]` relayer_hub_program
 ///   7. `[]` restaking_program
 ///   8. `[optional]` system_program (default to `11111111111111111111111111111111`)
@@ -382,7 +382,7 @@ impl<'a, 'b> SendTransactionCpi<'a, 'b> {
             *self.relayer_info.key,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+        accounts.push(solana_program::instruction::AccountMeta::new(
             *self.pool.key,
             false,
         ));
@@ -446,7 +446,7 @@ impl<'a, 'b> SendTransactionCpi<'a, 'b> {
 ///   2. `[]` ballot_box
 ///   3. `[]` hub_config
 ///   4. `[]` relayer_info
-///   5. `[]` pool
+///   5. `[writable]` pool
 ///   6. `[]` relayer_hub_program
 ///   7. `[]` restaking_program
 ///   8. `[]` system_program

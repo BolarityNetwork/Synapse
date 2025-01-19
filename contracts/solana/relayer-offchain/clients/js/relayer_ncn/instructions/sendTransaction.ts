@@ -69,7 +69,7 @@ export type SendTransactionInstruction<
         ? ReadonlyAccount<TAccountRelayerInfo>
         : TAccountRelayerInfo,
       TAccountPool extends string
-        ? ReadonlyAccount<TAccountPool>
+        ? WritableAccount<TAccountPool>
         : TAccountPool,
       TAccountRelayerHubProgram extends string
         ? ReadonlyAccount<TAccountRelayerHubProgram>
@@ -200,7 +200,7 @@ export function getSendTransactionInstruction<
     ballotBox: { value: input.ballotBox ?? null, isWritable: false },
     hubConfig: { value: input.hubConfig ?? null, isWritable: false },
     relayerInfo: { value: input.relayerInfo ?? null, isWritable: false },
-    pool: { value: input.pool ?? null, isWritable: false },
+    pool: { value: input.pool ?? null, isWritable: true },
     relayerHubProgram: {
       value: input.relayerHubProgram ?? null,
       isWritable: false,

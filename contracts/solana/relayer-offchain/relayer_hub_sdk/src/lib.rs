@@ -4,6 +4,7 @@ use anchor_lang::prelude::Pubkey;
 use anchor_lang::solana_program::clock::Epoch;
 
 declare_program!(relayer_hub);
+pub use relayer_hub::accounts::TransactionPool;
 
 pub mod instruction;
 

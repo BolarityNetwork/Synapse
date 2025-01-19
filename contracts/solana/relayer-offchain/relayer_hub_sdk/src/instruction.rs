@@ -79,7 +79,6 @@ pub fn send_transaction(
     pool: Pubkey,
     relayer: Pubkey,
     relayer_info: Pubkey,
-    // transaction: Pubkey,
     system_program: Pubkey,
     chain: u16,
     sequence: u64
@@ -91,7 +90,6 @@ pub fn send_transaction(
             pool,
             relayer,
             relayer_info,
-            // transaction,
             system_program,
         }
             .to_account_metas(None),

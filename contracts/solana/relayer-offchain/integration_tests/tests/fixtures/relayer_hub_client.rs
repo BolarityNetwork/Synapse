@@ -14,7 +14,7 @@ use solana_sdk::{
         state::{VoteInit, VoteStateVersions},
     },
 };
-
+use relayer_hub_sdk::relayer_hub::accounts::TransactionPool;
 use crate::fixtures::TestResult;
 
 pub struct RelayerHubClient {
@@ -189,5 +189,26 @@ impl RelayerHubClient {
             blockhash,
         ))
             .await
+    }
+
+    pub async fn get_tx_count(
+        &mut self,
+        chain: u16,
+    ) -> TestResult<u64> {
+        let (pool_address, _) =
+            relayer_hub_sdk::derive_pool_account_address(
+                &relayer_hub::ID,
+                chain,
+            );
+
+        let pool_account = self
+            .banks_client
+            .get_account(pool_address)
+            .await?
+            .unwrap();
+        let mut pool_account_data = pool_account.data.as_slice();
+        let pool = TransactionPool::try_deserialize(&mut pool_account_data)?;
+
+        Ok(pool.total)
     }
 }

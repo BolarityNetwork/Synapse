@@ -356,7 +356,8 @@
           "name": "pool",
           "docs": [
             "Transaction pool account.One transaction pool per chain."
-          ]
+          ],
+          "writable": true
         },
         {
           "name": "system_program",

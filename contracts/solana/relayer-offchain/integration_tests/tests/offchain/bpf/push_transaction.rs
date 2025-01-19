@@ -56,6 +56,8 @@ mod push_transaction{
         relayer_ncn_client
             .do_send_transaction(ncn, epoch, chain, sequence)
             .await?;
+        let total = relayer_hub_client.get_tx_count(chain).await?;
+        assert_eq!(total, 1);
         Ok(())
     }
 }
