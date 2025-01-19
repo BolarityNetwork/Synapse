@@ -39,18 +39,18 @@ pub struct SendTransaction<'info> {
     /// Transaction pool account.One transaction pool per chain.
     pub pool: Box<Account<'info, TransactionPool>>,
 
-    #[account(
-    init,
-    seeds = [
-        Transaction::SEED_PREFIX,
-        &sequence.to_le_bytes()[..]
-    ],
-    bump,
-    payer = relayer,
-    space = 8 + Transaction::MAX_SIZE
-    )]
-    /// Transaction account.
-    pub transaction: Box<Account<'info, Transaction>>,
+    // #[account(
+    // init,
+    // seeds = [
+    //     Transaction::SEED_PREFIX,
+    //     &sequence.to_le_bytes()[..]
+    // ],
+    // bump,
+    // payer = relayer,
+    // space = 8 + Transaction::MAX_SIZE
+    // )]
+    // /// Transaction account.
+    // pub transaction: Box<Account<'info, Transaction>>,
 
     /// System program.
     pub system_program: Program<'info, System>,
@@ -64,7 +64,7 @@ pub struct SendTransaction<'info> {
 /// * `chain`   - Chain ID
 /// * `sequence`   - Trasaction sequence
 /// * `data`   - Transaction data pushed to the transaction pool.
-pub fn send_transaction(ctx: Context<SendTransaction>, _chain: u16, _sequence: u64, data:Vec<u8>) -> Result<()> {
+pub fn send_transaction(ctx: Context<SendTransaction>, _chain: u16, _sequence: u64) -> Result<()> {
     let config_state = &mut ctx.accounts.config;
     // To initialize first.
     if !config_state.initialized {
@@ -72,35 +72,35 @@ pub fn send_transaction(ctx: Context<SendTransaction>, _chain: u16, _sequence: u
     }
     // Check if it is in its own epoch.
     // Get the Clock sysvar
-    let clock = Clock::get()?;
-    let relayer_info = &ctx.accounts.relayer_info;
+    // let clock = Clock::get()?;
+    // let relayer_info = &ctx.accounts.relayer_info;
+    //
+    // let relayer_count = relayer_info.relayer_list.len() as u64;
+    // let relayer_index:usize = (clock.epoch % relayer_count) as usize;
+    //
+    // require!(relayer_info.relayer_list[relayer_index] == *ctx.accounts.relayer.key ,
+    //     ErrorCode::NotYourEpoch);
 
-    let relayer_count = relayer_info.relayer_list.len() as u64;
-    let relayer_index:usize = (clock.epoch % relayer_count) as usize;
-
-    require!(relayer_info.relayer_list[relayer_index] == *ctx.accounts.relayer.key ,
-        ErrorCode::NotYourEpoch);
-
-    let message_format = get_msg_format(&data);
-    require!( message_format != MessageFormat::UNDEFINED,
-        ErrorCode::UndefinedMessageFormat);
-
-    let pass_check = match message_format {
-        MessageFormat::WORMHOLE=>{
-            check_wormhole_message(&data)
-        },
-        _ => false,
-    };
-
-    require!( pass_check,
-        ErrorCode::MessageFormatError);
+    // let message_format = get_msg_format(&data);
+    // require!( message_format != MessageFormat::UNDEFINED,
+    //     ErrorCode::UndefinedMessageFormat);
+    //
+    // let pass_check = match message_format {
+    //     MessageFormat::WORMHOLE=>{
+    //         check_wormhole_message(&data)
+    //     },
+    //     _ => false,
+    // };
+    //
+    // require!( pass_check,
+    //     ErrorCode::MessageFormatError);
 
 
     let pool = &mut ctx.accounts.pool;
-    let transaction = &mut ctx.accounts.transaction;
-    transaction.pool_index = pool.index;
-    transaction.sequence = pool.total;
-    transaction.data = data;
+    // let transaction = &mut ctx.accounts.transaction;
+    // transaction.pool_index = pool.index;
+    // transaction.sequence = pool.total;
+    // transaction.data = data;
 
     pool.total = pool.total + 1;
 

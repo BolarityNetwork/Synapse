@@ -41,13 +41,14 @@ pub struct Initialize<'info> {
 /// # Arguments
 ///
 /// * `ctx` - `Initialize` context
-pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+pub fn initialize(ctx: Context<Initialize>, authority: Pubkey) -> Result<()> {
     let config_state = &mut ctx.accounts.config;
     // Initialize only once.
     if config_state.initialized {
         return Err(ErrorCode::Initialized.into());
     }
     config_state.initialized = true;
+    config_state.authority = authority;
     // Record the owner of the program.
     config_state.owner = ctx.accounts.payer.key();
     config_state.tx_pool_number = 0;

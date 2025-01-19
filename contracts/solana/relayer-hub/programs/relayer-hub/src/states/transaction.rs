@@ -9,8 +9,8 @@ pub struct Transaction {
     pub sequence: u64,
     /// The sender of the transaction.
     pub sender:Pubkey,
-    /// Transaction data.
-    pub data:Vec<u8>,
+    // /// Transaction data.
+    // pub data:Vec<u8>,
 }
 
 impl Transaction {

@@ -10,6 +10,7 @@ pub struct Config {
     pub initialized: bool,
     /// The total number of transaction pools.
     pub tx_pool_number:u16,
+    pub authority: Pubkey,
 }
 
 impl Config {

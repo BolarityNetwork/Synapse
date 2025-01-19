@@ -18,8 +18,8 @@ pub mod relayer_hub {
     /// # Arguments
     ///
     /// * `ctx` - `Initialize` context
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        instructions::initialize::initialize(ctx)
+    pub fn initialize(ctx: Context<Initialize>, authority: Pubkey) -> Result<()> {
+        instructions::initialize::initialize(ctx, authority)
     }
 
     /// This instruction registers the relayer and must be used after initialization.
@@ -49,8 +49,8 @@ pub mod relayer_hub {
     /// * `chain`   - Chain ID
     /// * `sequence`   - Trasaction sequence
     /// * `data`   - Transaction data pushed to the transaction pool.
-    pub fn send_transaction(ctx: Context<SendTransaction>, chain: u16, sequence: u64, data:Vec<u8>) -> Result<()> {
-        instructions::transaction_pool::send_transaction(ctx, chain, sequence, data)
+    pub fn send_transaction(ctx: Context<SendTransaction>, chain: u16, sequence: u64) -> Result<()> {
+        instructions::transaction_pool::send_transaction(ctx, chain, sequence)
     }
 
 }
