@@ -22,7 +22,7 @@ pub struct RelayerInfo {
 }
 
 impl RelayerInfo {
-    pub const SEED_PREFIX: &'static [u8; 7] = b"relayer";
+    pub const SEED_PREFIX: &'static [u8; 12] = b"relayer_info";
     // Up to 100 relayers.
     pub const MAX_SIZE: usize = 2 + 32*100;
 }

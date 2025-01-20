@@ -41,6 +41,7 @@ pub struct Initialize<'info> {
 /// # Arguments
 ///
 /// * `ctx` - `Initialize` context
+/// * `authority` - Upload state root authorizer.
 pub fn initialize(ctx: Context<Initialize>, authority: Pubkey) -> Result<()> {
     let config_state = &mut ctx.accounts.config;
     // Initialize only once.
@@ -51,7 +52,7 @@ pub fn initialize(ctx: Context<Initialize>, authority: Pubkey) -> Result<()> {
     config_state.authority = authority;
     // Record the owner of the program.
     config_state.owner = ctx.accounts.payer.key();
-    config_state.tx_pool_number = 0;
+
     let relayer_info = &mut ctx.accounts.relayer_info;
     // Record the number of relayers.
     relayer_info.number = 0;

@@ -4,7 +4,7 @@ use crate::states::relayer::*;
 use anchor_lang::prelude::*;
 use crate::states::hub::Config;
 use crate::errors::error::ErrorCode;
-use crate::states::transaction::TransactionPool;
+use crate::states::transaction::{FinalTransactionPool, TransactionPool};
 
 #[derive(Accounts)]
 /// Context used to register relayer.
@@ -63,7 +63,6 @@ pub fn register_relayer(ctx: Context<RegisterRelayer>) -> Result<()> {
 }
 
 #[derive(Accounts)]
-#[instruction(chain: u16)]
 /// Context used to register transaction pool.
 pub struct RegisterTxPool<'info> {
     #[account(mut)]
@@ -82,7 +81,6 @@ pub struct RegisterTxPool<'info> {
     init_if_needed,
     seeds = [
         TransactionPool::SEED_PREFIX,
-        &chain.to_le_bytes()[..]
     ],
     bump,
     payer = owner,
@@ -90,6 +88,18 @@ pub struct RegisterTxPool<'info> {
     )]
     /// Transaction pool account.One transaction pool per chain.
     pub pool: Box<Account<'info, TransactionPool>>,
+
+    #[account(
+    init_if_needed,
+    seeds = [
+        FinalTransactionPool::SEED_PREFIX,
+    ],
+    bump,
+    payer = owner,
+    space = 8 + FinalTransactionPool::INIT_SPACE
+    )]
+    /// Transaction pool account.One transaction pool per chain.
+    pub final_pool: Box<Account<'info, FinalTransactionPool>>,
     /// System program.
     pub system_program: Program<'info, System>,
 }
@@ -100,7 +110,7 @@ pub struct RegisterTxPool<'info> {
 ///
 /// * `ctx` - `Initialize` context
 /// * `chain`   - Chain ID
-pub fn register_tx_pool(ctx: Context<RegisterTxPool>, chain: u16) -> Result<()> {
+pub fn register_tx_pool(ctx: Context<RegisterTxPool>) -> Result<()> {
     let config_state = &mut ctx.accounts.config;
     // To initialize first.
     if !config_state.initialized {
@@ -108,9 +118,9 @@ pub fn register_tx_pool(ctx: Context<RegisterTxPool>, chain: u16) -> Result<()> 
     }
 
     let pool = &mut ctx.accounts.pool;
-    pool.index = config_state.tx_pool_number;
     pool.total = 0;
-    pool.chain = chain;
 
+    let final_pool = &mut ctx.accounts.final_pool;
+    final_pool.total = 0;
     Ok(())
 }

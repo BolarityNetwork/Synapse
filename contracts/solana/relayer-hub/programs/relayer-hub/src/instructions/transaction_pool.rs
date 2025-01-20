@@ -8,9 +8,9 @@ use crate::errors::error::ErrorCode;
 use crate::utils::message::*;
 
 #[derive(Accounts)]
-#[instruction(chain: u16, sequence: u64)]
+#[instruction(sequence: u64)]
 /// Context used to push transaction to transaction pool.
-pub struct SendTransaction<'info> {
+pub struct InitTransaction<'info> {
     #[account(mut)]
     /// Relayer account.
     pub relayer: Signer<'info>,
@@ -33,25 +33,24 @@ pub struct SendTransaction<'info> {
     mut,
     seeds = [
         TransactionPool::SEED_PREFIX,
-        &chain.to_le_bytes()[..]
     ],
     bump,
     )]
     /// Transaction pool account.One transaction pool per chain.
     pub pool: Box<Account<'info, TransactionPool>>,
 
-    // #[account(
-    // init,
-    // seeds = [
-    //     Transaction::SEED_PREFIX,
-    //     &sequence.to_le_bytes()[..]
-    // ],
-    // bump,
-    // payer = relayer,
-    // space = 8 + Transaction::MAX_SIZE
-    // )]
-    // /// Transaction account.
-    // pub transaction: Box<Account<'info, Transaction>>,
+    #[account(
+    init,
+    seeds = [
+        Transaction::SEED_PREFIX,
+        &sequence.to_le_bytes()[..]
+    ],
+    bump,
+    payer = relayer,
+    space = 8 + Transaction::MAX_SIZE
+    )]
+    /// Transaction account.
+    pub transaction: Box<Account<'info, Transaction>>,
 
     /// System program.
     pub system_program: Program<'info, System>,
@@ -65,7 +64,7 @@ pub struct SendTransaction<'info> {
 /// * `chain`   - Chain ID
 /// * `sequence`   - Trasaction sequence
 /// * `data`   - Transaction data pushed to the transaction pool.
-pub fn send_transaction(ctx: Context<SendTransaction>, _chain: u16, _sequence: u64) -> Result<()> {
+pub fn init_transaction(ctx: Context<InitTransaction>, _sequence: u64) -> Result<()> {
     let config_state = &mut ctx.accounts.config;
     // To initialize first.
     if !config_state.initialized {
@@ -73,14 +72,14 @@ pub fn send_transaction(ctx: Context<SendTransaction>, _chain: u16, _sequence: u
     }
     // Check if it is in its own epoch.
     // Get the Clock sysvar
-    // let clock = Clock::get()?;
-    // let relayer_info = &ctx.accounts.relayer_info;
-    //
-    // let relayer_count = relayer_info.relayer_list.len() as u64;
-    // let relayer_index:usize = (clock.epoch % relayer_count) as usize;
-    //
-    // require!(relayer_info.relayer_list[relayer_index] == *ctx.accounts.relayer.key ,
-    //     ErrorCode::NotYourEpoch);
+    let clock = Clock::get()?;
+    let relayer_info = &ctx.accounts.relayer_info;
+
+    let relayer_count = relayer_info.relayer_list.len() as u64;
+    let relayer_index:usize = (clock.epoch % relayer_count) as usize;
+
+    require!(relayer_info.relayer_list[relayer_index] == *ctx.accounts.relayer.key ,
+        ErrorCode::NotYourEpoch);
 
     // let message_format = get_msg_format(&data);
     // require!( message_format != MessageFormat::UNDEFINED,
@@ -97,12 +96,182 @@ pub fn send_transaction(ctx: Context<SendTransaction>, _chain: u16, _sequence: u
     //     ErrorCode::MessageFormatError);
 
     let pool = &mut ctx.accounts.pool;
-    // let transaction = &mut ctx.accounts.transaction;
-    // transaction.pool_index = pool.index;
-    // transaction.sequence = pool.total;
-    // transaction.data = data;
-
     pool.total = pool.total + 1;
 
+    let transaction = &mut ctx.accounts.transaction;
+    transaction.sequence = pool.total;
+    // transaction.data = data;
+
+    Ok(())
+}
+
+#[derive(Accounts)]
+#[instruction(sequence: u64)]
+/// Context used to push transaction to transaction pool.
+pub struct ExecTransaction<'info> {
+    #[account(mut)]
+    /// Relayer account.
+    pub relayer: Signer<'info>,
+
+    #[account(
+    seeds = [Config::SEED_PREFIX],
+    bump,
+    )]
+    /// Program configuration account.
+    pub config: Box<Account<'info, Config>>,
+
+    #[account(
+    seeds = [RelayerInfo::SEED_PREFIX],
+    bump,
+    )]
+    /// Relayer configuration account.
+    pub relayer_info: Box<Account<'info, RelayerInfo>>,
+
+    #[account(
+    mut,
+    seeds = [
+        Transaction::SEED_PREFIX,
+        &sequence.to_le_bytes()[..]
+    ],
+    bump,
+    )]
+    /// Transaction account.
+    pub transaction: Box<Account<'info, Transaction>>,
+
+    /// System program.
+    pub system_program: Program<'info, System>,
+}
+
+pub fn execute_transaction(ctx: Context<ExecTransaction>, _sequence: u64, success: bool) -> Result<()> {
+    let config_state = &mut ctx.accounts.config;
+    // To initialize first.
+    if !config_state.initialized {
+        return Err(ErrorCode::NotInitialized.into());
+    }
+    // Check if it is in its own epoch.
+    // Get the Clock sysvar
+    let clock = Clock::get()?;
+    let relayer_info = &ctx.accounts.relayer_info;
+
+    let relayer_count = relayer_info.relayer_list.len() as u64;
+    let relayer_index:usize = (clock.epoch % relayer_count) as usize;
+
+    require!(relayer_info.relayer_list[relayer_index] == *ctx.accounts.relayer.key ,
+        ErrorCode::NotYourEpoch);
+
+
+    let transaction = &mut ctx.accounts.transaction;
+    transaction.status = if success { Status::Executed} else {Status::Failing};
+
+    Ok(())
+}
+
+
+#[derive(Accounts)]
+#[instruction(sequence: u64)]
+/// Context used to push transaction to transaction pool.
+pub struct FinalizeTransaction<'info> {
+    #[account(mut)]
+    /// Relayer account.
+    pub relayer: Signer<'info>,
+
+    #[account(
+    seeds = [Config::SEED_PREFIX],
+    bump,
+    )]
+    /// Program configuration account.
+    pub config: Box<Account<'info, Config>>,
+
+    #[account(
+    seeds = [RelayerInfo::SEED_PREFIX],
+    bump,
+    )]
+    /// Relayer configuration account.
+    pub relayer_info: Box<Account<'info, RelayerInfo>>,
+
+    #[account(
+    mut,
+    seeds = [
+        Transaction::SEED_PREFIX,
+        &sequence.to_le_bytes()[..]
+    ],
+    bump,
+    )]
+    /// Transaction account.
+    pub transaction: Box<Account<'info, Transaction>>,
+
+    /// System program.
+    pub system_program: Program<'info, System>,
+}
+
+pub fn finalize_transaction(ctx: Context<FinalizeTransaction>, _sequence: u64, finalize: bool, state_root: [u8;32]) -> Result<()> {
+    let config_state = &mut ctx.accounts.config;
+    // To initialize first.
+    if !config_state.initialized {
+        return Err(ErrorCode::NotInitialized.into());
+    }
+    // Check if it is in its own epoch.
+    // Get the Clock sysvar
+    let clock = Clock::get()?;
+    let relayer_info = &ctx.accounts.relayer_info;
+
+    let relayer_count = relayer_info.relayer_list.len() as u64;
+    let relayer_index:usize = (clock.epoch % relayer_count) as usize;
+
+    require!(relayer_info.relayer_list[relayer_index] == *ctx.accounts.relayer.key ,
+        ErrorCode::NotYourEpoch);
+
+
+    let transaction = &mut ctx.accounts.transaction;
+    transaction.status = if finalize { Status::Finality} else {Status::Failed};
+    transaction.state_root = state_root;
+    Ok(())
+}
+
+
+#[derive(Accounts)]
+#[instruction(sequence: u64)]
+/// Context used to push transaction to transaction pool.
+pub struct RollupTransaction<'info> {
+    #[account(mut)]
+    /// Relayer account.
+    pub relayer: Signer<'info>,
+
+    #[account(
+    seeds = [Config::SEED_PREFIX],
+    bump,
+    )]
+    /// Program configuration account.
+    pub config: Box<Account<'info, Config>>,
+
+
+    #[account(
+    mut,
+    seeds = [
+        FinalTransaction::SEED_PREFIX,
+        &sequence.to_le_bytes()[..]
+    ],
+    bump,
+    )]
+    /// Transaction account.
+    pub transaction: Box<Account<'info, FinalTransaction>>,
+
+    /// System program.
+    pub system_program: Program<'info, System>,
+}
+
+pub fn rollup_transaction(ctx: Context<RollupTransaction>, _sequence: u64, accept: bool, state_root: [u8;32], vote: u8, epoch: u64) -> Result<()> {
+    let config_state = &mut ctx.accounts.config;
+    // To initialize first.
+    if !config_state.initialized {
+        return Err(ErrorCode::NotInitialized.into());
+    }
+
+
+    let transaction = &mut ctx.accounts.transaction;
+    transaction.state_root = state_root;
+    transaction.epoch = epoch;
+    transaction.votes = vote;
+    transaction.accepted = accept;
     Ok(())
 }
