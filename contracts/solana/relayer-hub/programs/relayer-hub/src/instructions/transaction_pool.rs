@@ -64,7 +64,7 @@ pub struct InitTransaction<'info> {
 /// * `chain`   - Chain ID
 /// * `sequence`   - Trasaction sequence
 /// * `data`   - Transaction data pushed to the transaction pool.
-pub fn init_transaction(ctx: Context<InitTransaction>, _sequence: u64) -> Result<()> {
+pub fn init_transaction(ctx: Context<InitTransaction>, _sequence: u64, data: Vec<u8>) -> Result<()> {
     let config_state = &mut ctx.accounts.config;
     // To initialize first.
     if !config_state.initialized {
@@ -81,26 +81,27 @@ pub fn init_transaction(ctx: Context<InitTransaction>, _sequence: u64) -> Result
     require!(relayer_info.relayer_list[relayer_index] == *ctx.accounts.relayer.key ,
         ErrorCode::NotYourEpoch);
 
-    // let message_format = get_msg_format(&data);
-    // require!( message_format != MessageFormat::UNDEFINED,
-    //     ErrorCode::UndefinedMessageFormat);
-    //
-    // let pass_check = match message_format {
-    //     MessageFormat::WORMHOLE=>{
-    //         check_wormhole_message(&data)
-    //     },
-    //     _ => false,
-    // };
-    //
-    // require!( pass_check,
-    //     ErrorCode::MessageFormatError);
+    let message_format = get_msg_format(&data);
+    require!( message_format != MessageFormat::UNDEFINED,
+        ErrorCode::UndefinedMessageFormat);
+
+    let pass_check = match message_format {
+        MessageFormat::WORMHOLE=>{
+            check_wormhole_message(&data)
+        },
+        _ => false,
+    };
+
+    require!( pass_check,
+        ErrorCode::MessageFormatError);
 
     let pool = &mut ctx.accounts.pool;
-    pool.total = pool.total + 1;
 
     let transaction = &mut ctx.accounts.transaction;
     transaction.sequence = pool.total;
     // transaction.data = data;
+
+    pool.total = pool.total + 1;
 
     Ok(())
 }

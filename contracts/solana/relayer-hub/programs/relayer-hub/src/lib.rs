@@ -49,8 +49,8 @@ pub mod relayer_hub {
     /// * `chain`   - Chain ID
     /// * `sequence`   - Trasaction sequence
     /// * `data`   - Transaction data pushed to the transaction pool.
-    pub fn init_transaction(ctx: Context<InitTransaction>, sequence: u64) -> Result<()> {
-        instructions::transaction_pool::init_transaction(ctx, sequence)
+    pub fn init_transaction(ctx: Context<InitTransaction>, sequence: u64, data: Vec<u8>) -> Result<()> {
+        instructions::transaction_pool::init_transaction(ctx, sequence, data)
     }
 
     pub fn execute_transaction(ctx: Context<ExecTransaction>, sequence: u64, success: bool) -> Result<()> {
