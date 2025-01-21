@@ -2,7 +2,7 @@ use jito_bytemuck::AccountDeserialize;
 use jito_jsm_core::loader::load_system_program;
 use jito_restaking_core::ncn::Ncn;
 use relayer_hub_sdk::{
-    instruction::send_transaction,
+    // instruction::send_transaction,
     derive_relayer_info_account_address,
     derive_relayer_account_address,
     derive_pool_account_address,
@@ -44,29 +44,29 @@ pub fn process_send_transaction(
     let (_, bump, mut ncn_config_seeds) = NcnConfig::find_program_address(program_id, ncn.key);
     ncn_config_seeds.push(vec![bump]);
 
-    invoke_signed(
-        &send_transaction(
-            *hub_config.key,
-            *pool.key,
-            *ncn_config.key,
-            *relayer_info.key,
-            *system_program.key,
-            chain,
-            sequence,
-        ),
-        &[
-            ncn_config.clone(),
-            hub_config.clone(),
-            relayer_info.clone(),
-            pool.clone(),
-            system_program.clone(),
-        ],
-        &[ncn_config_seeds
-            .iter()
-            .map(|s| s.as_slice())
-            .collect::<Vec<&[u8]>>()
-            .as_slice()],
-    )?;
+    // invoke_signed(
+    //     &send_transaction(
+    //         *hub_config.key,
+    //         *pool.key,
+    //         *ncn_config.key,
+    //         *relayer_info.key,
+    //         *system_program.key,
+    //         chain,
+    //         sequence,
+    //     ),
+    //     &[
+    //         ncn_config.clone(),
+    //         hub_config.clone(),
+    //         relayer_info.clone(),
+    //         pool.clone(),
+    //         system_program.clone(),
+    //     ],
+    //     &[ncn_config_seeds
+    //         .iter()
+    //         .map(|s| s.as_slice())
+    //         .collect::<Vec<&[u8]>>()
+    //         .as_slice()],
+    // )?;
 
     Ok(())
 }

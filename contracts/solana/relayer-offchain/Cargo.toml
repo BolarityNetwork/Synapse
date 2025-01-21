@@ -2,6 +2,7 @@
 members = [
     "cli",
     "clients/rust/relayer_ncn",
+    "clients/rust/relayer_hub",
     "core",
     "integration_tests",
     "program",
@@ -82,6 +83,7 @@ syn = "2.0.72"
 thiserror = "1.0.57"
 tokio = { version = "1.36.0", features = ["full"] }
 relayer-ncn-client = { path = "./clients/rust/relayer_ncn", version = "0.0.1" }
+relayer-hub-client = { path = "./clients/rust/relayer_hub", version = "0.0.1" }
 relayer-ncn-core = { path = "./core", version = "=0.0.1" }
 relayer-ncn-program = { path = "./program", version = "=0.0.1" }
 relayer-ncn-shank-cli = { path = "./shank_cli", version = "=0.0.1" }

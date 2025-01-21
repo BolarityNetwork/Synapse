@@ -4,7 +4,7 @@ use std::{
 };
 
 use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
-use relayer_hub_sdk::relayer_hub;
+// use relayer_hub_sdk::relayer_hub;
 // use jito_tip_router_core::{
 //     base_fee_group::BaseFeeGroup,
 //     base_reward_router::BaseRewardReceiver,
@@ -41,7 +41,7 @@ use crate::fixtures::{
     TestResult,
 };
 use crate::fixtures::relayer_hub_client::RelayerHubClient;
-use crate::fixtures::relayer_ncn_client_fix::RelayerNcnClient;
+use crate::fixtures::relayer_ncn_client::RelayerNcnClient;
 
 pub struct TestNcn {
     pub ncn_root: NcnRoot,
@@ -111,7 +111,7 @@ impl TestBuilder {
 
             // Tests that invoke this program should be in the "bpf" module so we can run them separately with the bpf vm.
             // Anchor programs do not expose a compatible entrypoint for solana_program_test::processor!
-            program_test.add_program("relayer_hub", relayer_hub::ID, None);
+            program_test.add_program("relayer_hub", relayer_hub_client::programs::RELAYER_HUB_ID, None);
 
             program_test
         } else {

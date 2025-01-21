@@ -8,6 +8,330 @@
   },
   "instructions": [
     {
+      "name": "execute_transaction",
+      "discriminator": [
+        231,
+        173,
+        49,
+        91,
+        235,
+        24,
+        68,
+        19
+      ],
+      "accounts": [
+        {
+          "name": "relayer",
+          "docs": [
+            "Relayer account."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "docs": [
+            "Program configuration account."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "relayer_info",
+          "docs": [
+            "Relayer configuration account."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "transaction",
+          "docs": [
+            "Transaction account."
+          ],
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "docs": [
+            "System program."
+          ],
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "success",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "finalize_transaction",
+      "discriminator": [
+        60,
+        244,
+        109,
+        218,
+        61,
+        102,
+        51,
+        116
+      ],
+      "accounts": [
+        {
+          "name": "relayer",
+          "docs": [
+            "Relayer account."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "docs": [
+            "Program configuration account."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "relayer_info",
+          "docs": [
+            "Relayer configuration account."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "transaction",
+          "docs": [
+            "Transaction account."
+          ],
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "docs": [
+            "System program."
+          ],
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "finalize",
+          "type": "bool"
+        },
+        {
+          "name": "state_root",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "init_transaction",
+      "docs": [
+        "This instruction is used to push transaction to transaction pool of a certain chain.",
+        "",
+        "# Arguments",
+        "",
+        "* `ctx` - `Initialize` context",
+        "* `chain`   - Chain ID",
+        "* `sequence`   - Trasaction sequence",
+        "* `data`   - Transaction data pushed to the transaction pool."
+      ],
+      "discriminator": [
+        144,
+        48,
+        27,
+        226,
+        98,
+        225,
+        195,
+        163
+      ],
+      "accounts": [
+        {
+          "name": "relayer",
+          "docs": [
+            "Relayer account."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "docs": [
+            "Program configuration account."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "relayer_info",
+          "docs": [
+            "Relayer configuration account."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "docs": [
+            "Transaction pool account.One transaction pool per chain."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "transaction",
+          "docs": [
+            "Transaction account."
+          ],
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "docs": [
+            "System program."
+          ],
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "data",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
       "name": "initialize",
       "docs": [
         "This instruction initializes the program config.",
@@ -68,7 +392,12 @@
                   97,
                   121,
                   101,
-                  114
+                  114,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
                 ]
               }
             ]
@@ -163,7 +492,12 @@
                   97,
                   121,
                   101,
-                  114
+                  114,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
                 ]
               }
             ]
@@ -261,7 +595,46 @@
           "docs": [
             "Transaction pool account.One transaction pool per chain."
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "final_pool",
+          "docs": [
+            "Transaction pool account.One transaction pool per chain."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  105,
+                  110,
+                  97,
+                  108,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "system_program",
@@ -271,34 +644,19 @@
           "address": "11111111111111111111111111111111"
         }
       ],
-      "args": [
-        {
-          "name": "chain",
-          "type": "u16"
-        }
-      ]
+      "args": []
     },
     {
-      "name": "send_transaction",
-      "docs": [
-        "This instruction is used to push transaction to transaction pool of a certain chain.",
-        "",
-        "# Arguments",
-        "",
-        "* `ctx` - `Initialize` context",
-        "* `chain`   - Chain ID",
-        "* `sequence`   - Trasaction sequence",
-        "* `data`   - Transaction data pushed to the transaction pool."
-      ],
+      "name": "rollup_transaction",
       "discriminator": [
-        225,
-        51,
-        34,
-        207,
-        197,
-        184,
-        103,
-        138
+        76,
+        200,
+        142,
+        150,
+        37,
+        230,
+        160,
+        83
       ],
       "accounts": [
         {
@@ -331,31 +689,9 @@
           }
         },
         {
-          "name": "relayer_info",
+          "name": "transaction",
           "docs": [
-            "Relayer configuration account."
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  108,
-                  97,
-                  121,
-                  101,
-                  114
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "pool",
-          "docs": [
-            "Transaction pool account.One transaction pool per chain."
+            "Transaction account."
           ],
           "writable": true
         },
@@ -369,11 +705,28 @@
       ],
       "args": [
         {
-          "name": "chain",
-          "type": "u16"
+          "name": "sequence",
+          "type": "u64"
         },
         {
-          "name": "sequence",
+          "name": "accept",
+          "type": "bool"
+        },
+        {
+          "name": "state_root",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "vote",
+          "type": "u8"
+        },
+        {
+          "name": "epoch",
           "type": "u64"
         }
       ]
@@ -391,6 +744,32 @@
         250,
         204,
         130
+      ]
+    },
+    {
+      "name": "FinalTransaction",
+      "discriminator": [
+        89,
+        4,
+        197,
+        225,
+        76,
+        48,
+        1,
+        148
+      ]
+    },
+    {
+      "name": "FinalTransactionPool",
+      "discriminator": [
+        66,
+        211,
+        206,
+        53,
+        169,
+        17,
+        190,
+        207
       ]
     },
     {
@@ -417,6 +796,19 @@
         76,
         212,
         183
+      ]
+    },
+    {
+      "name": "Transaction",
+      "discriminator": [
+        11,
+        24,
+        174,
+        129,
+        203,
+        117,
+        242,
+        23
       ]
     },
     {
@@ -494,15 +886,74 @@
             "type": "bool"
           },
           {
-            "name": "tx_pool_number",
+            "name": "authority",
             "docs": [
-              "The total number of transaction pools."
+              "Upload state root authorizer."
             ],
-            "type": "u16"
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FinalTransaction",
+      "docs": [
+        "Transaction account."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sequence",
+            "docs": [
+              "The sequence number of the transaction."
+            ],
+            "type": "u64"
           },
           {
-            "name": "authority",
-            "type": "pubkey"
+            "name": "state_root",
+            "docs": [
+              "Root of transaction's state."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "epoch",
+            "docs": [
+              "Epoch for which this account was created."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "accepted",
+            "type": "bool"
+          },
+          {
+            "name": "votes",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FinalTransactionPool",
+      "docs": [
+        "Transaction pool account."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "total",
+            "docs": [
+              "The total number of transactions."
+            ],
+            "type": "u64"
           }
         ]
       }
@@ -550,6 +1001,105 @@
       }
     },
     {
+      "name": "Status",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Failing"
+          },
+          {
+            "name": "Failed"
+          },
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "Executed"
+          },
+          {
+            "name": "Finality"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Transaction",
+      "docs": [
+        "Transaction account."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sequence",
+            "docs": [
+              "The sequence number of the transaction."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "timestamp",
+            "type": "u32"
+          },
+          {
+            "name": "from_chain",
+            "type": "u16"
+          },
+          {
+            "name": "to_chain",
+            "type": "u16"
+          },
+          {
+            "name": "relayer",
+            "docs": [
+              "The sender of the transaction."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "state_root",
+            "docs": [
+              "Root of transaction's state."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "epoch",
+            "docs": [
+              "Epoch for which this account was created."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "status",
+            "docs": [
+              "254 failing 255 failed 0 pending 1 executed 2 finality"
+            ],
+            "type": {
+              "defined": {
+                "name": "Status"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "TransactionPool",
       "docs": [
         "Transaction pool account."
@@ -558,25 +1108,11 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "index",
-            "docs": [
-              "Index of transaction pool."
-            ],
-            "type": "u16"
-          },
-          {
             "name": "total",
             "docs": [
               "The total number of transactions."
             ],
             "type": "u64"
-          },
-          {
-            "name": "chain",
-            "docs": [
-              "Chain ID.Refer to wormhole:https://wormhole.com/docs/build/reference/chain-ids/"
-            ],
-            "type": "u16"
           }
         ]
       }
