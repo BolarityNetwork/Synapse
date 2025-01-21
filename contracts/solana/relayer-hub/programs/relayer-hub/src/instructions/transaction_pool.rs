@@ -6,7 +6,7 @@ use crate::states::hub::Config;
 use crate::states::relayer::RelayerInfo;
 use crate::errors::error::ErrorCode;
 use crate::utils::message::*;
-
+use crate::states::transaction::Status;
 #[derive(Accounts)]
 #[instruction(sequence: u64)]
 /// Context used to push transaction to transaction pool.
@@ -99,6 +99,7 @@ pub fn init_transaction(ctx: Context<InitTransaction>, _sequence: u64, data: Vec
 
     let transaction = &mut ctx.accounts.transaction;
     transaction.sequence = pool.total;
+    transaction.status = Status::Pending;
     // transaction.data = data;
 
     pool.total = pool.total + 1;
@@ -162,7 +163,15 @@ pub fn execute_transaction(ctx: Context<ExecTransaction>, _sequence: u64, succes
 
 
     let transaction = &mut ctx.accounts.transaction;
-    transaction.status = if success { Status::Executed} else {Status::Failing};
+    let old_status = transaction.status.clone();
+
+    if let Status::Pending = old_status{
+        transaction.status = if success {
+            Status::Executed
+        } else {
+            Status::Failing
+        };
+    }
 
     Ok(())
 }
@@ -224,7 +233,16 @@ pub fn finalize_transaction(ctx: Context<FinalizeTransaction>, _sequence: u64, f
 
 
     let transaction = &mut ctx.accounts.transaction;
-    transaction.status = if finalize { Status::Finality} else {Status::Failed};
+    let old_status = transaction.status.clone();
+    match old_status {
+        Status::Executed =>{
+            transaction.status =Status::Finality;
+        },
+        Status::Failing =>{
+            transaction.status =Status::Failed;
+        },
+        _ =>{}
+    };
     transaction.state_root = state_root;
     Ok(())
 }
