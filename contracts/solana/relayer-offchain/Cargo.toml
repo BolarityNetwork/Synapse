@@ -7,6 +7,7 @@ members = [
     "integration_tests",
     "program",
     "shank_cli",
+    "relayer-ncn-operator-cli",
     "relayer_hub_sdk",
 ]
 
