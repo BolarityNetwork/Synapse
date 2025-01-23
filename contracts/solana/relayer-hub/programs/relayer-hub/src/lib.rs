@@ -6,7 +6,7 @@ mod utils;
 use anchor_lang::prelude::*;
 use instructions::{initialize::*, registration::*, transaction_pool::*};
 
-declare_id!("48Xgerygjftsx9brotJQbkDZtLov9Gyuj4G3Y7eMirJL");
+declare_id!("4WPicCsUXGofFXT5HkpXa4tsiSPTeXP8XcxBbWytvEn9");
 
 #[program]
 pub mod relayer_hub {

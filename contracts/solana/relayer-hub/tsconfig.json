@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
-    "types": ["mocha", "chai"],
+    "types": ["mocha", "chai", "node"],
     "typeRoots": ["./node_modules/@types"],
-    "lib": ["ES2020", "DOM"],
+    "lib": ["es2015"],
     "module": "commonjs",
-    "target": "es6",
-    "esModuleInterop": true,
+    "target": "ES2020",
     "resolveJsonModule": true,
+    "esModuleInterop": true
   }
 }

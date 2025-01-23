@@ -30,6 +30,7 @@ relayer-ncn-program = { workspace = true }
 relayer-hub-client = { workspace = true }
 relayer-ncn-core = { workspace = true }
 relayer-hub-sdk = { workspace = true }
+merkle-tree = { workspace = true }
 
 [dependencies]
 relayer-ncn-client = { workspace = true }

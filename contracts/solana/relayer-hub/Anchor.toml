@@ -9,19 +9,19 @@ members = [
     "programs/relayer-hub",
 ]
 [programs.mainnet]
-relayer_hub = "48Xgerygjftsx9brotJQbkDZtLov9Gyuj4G3Y7eMirJL"
+relayer_hub = "4WPicCsUXGofFXT5HkpXa4tsiSPTeXP8XcxBbWytvEn9"
 
 [programs.localnet]
-relayer_hub = "48Xgerygjftsx9brotJQbkDZtLov9Gyuj4G3Y7eMirJL"
+relayer_hub = "4WPicCsUXGofFXT5HkpXa4tsiSPTeXP8XcxBbWytvEn9"
 
 [programs.devnet]
-relayer_hub = "48Xgerygjftsx9brotJQbkDZtLov9Gyuj4G3Y7eMirJL"
+relayer_hub = "4WPicCsUXGofFXT5HkpXa4tsiSPTeXP8XcxBbWytvEn9"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

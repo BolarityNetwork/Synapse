@@ -64,7 +64,7 @@ pub struct InitTransaction<'info> {
 /// * `chain`   - Chain ID
 /// * `sequence`   - Trasaction sequence
 /// * `data`   - Transaction data pushed to the transaction pool.
-pub fn init_transaction(ctx: Context<InitTransaction>, _sequence: u64, data: Vec<u8>) -> Result<()> {
+pub fn init_transaction(ctx: Context<InitTransaction>, sequence: u64, data: Vec<u8>) -> Result<()> {
     let config_state = &mut ctx.accounts.config;
     // To initialize first.
     if !config_state.initialized {
@@ -73,10 +73,11 @@ pub fn init_transaction(ctx: Context<InitTransaction>, _sequence: u64, data: Vec
     // Check if it is in its own epoch.
     // Get the Clock sysvar
     let clock = Clock::get()?;
+    let epoch = clock.epoch;
     let relayer_info = &ctx.accounts.relayer_info;
 
     let relayer_count = relayer_info.relayer_list.len() as u64;
-    let relayer_index:usize = (clock.epoch % relayer_count) as usize;
+    let relayer_index:usize = (epoch % relayer_count) as usize;
 
     require!(relayer_info.relayer_list[relayer_index] == *ctx.accounts.relayer.key ,
         ErrorCode::NotYourEpoch);
@@ -100,6 +101,8 @@ pub fn init_transaction(ctx: Context<InitTransaction>, _sequence: u64, data: Vec
     let transaction = &mut ctx.accounts.transaction;
     transaction.sequence = pool.total;
     transaction.status = Status::Pending;
+    transaction.epoch = epoch;
+    transaction.relayer = ctx.accounts.relayer.key.clone();
     // transaction.data = data;
 
     pool.total = pool.total + 1;
