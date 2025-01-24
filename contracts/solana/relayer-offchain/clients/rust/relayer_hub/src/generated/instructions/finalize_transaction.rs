@@ -10,21 +10,16 @@ use borsh::BorshDeserialize;
 
 /// Accounts.
 pub struct FinalizeTransaction {
-            /// Relayer account.
+            /// Operator account.
 
     
               
-          pub relayer: solana_program::pubkey::Pubkey,
+          pub operator: solana_program::pubkey::Pubkey,
                 /// Program configuration account.
 
     
               
           pub config: solana_program::pubkey::Pubkey,
-                /// Relayer configuration account.
-
-    
-              
-          pub relayer_info: solana_program::pubkey::Pubkey,
                 /// Transaction account.
 
     
@@ -43,17 +38,13 @@ impl FinalizeTransaction {
   }
   #[allow(clippy::vec_init_then_push)]
   pub fn instruction_with_remaining_accounts(&self, args: FinalizeTransactionInstructionArgs, remaining_accounts: &[solana_program::instruction::AccountMeta]) -> solana_program::instruction::Instruction {
-    let mut accounts = Vec::with_capacity(5+ remaining_accounts.len());
+    let mut accounts = Vec::with_capacity(4+ remaining_accounts.len());
                             accounts.push(solana_program::instruction::AccountMeta::new(
-            self.relayer,
+            self.operator,
             true
           ));
                                           accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.config,
-            false
-          ));
-                                          accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            self.relayer_info,
             false
           ));
                                           accounts.push(solana_program::instruction::AccountMeta::new(
@@ -110,16 +101,14 @@ impl Default for FinalizeTransactionInstructionData {
 ///
 /// ### Accounts:
 ///
-                      ///   0. `[writable, signer]` relayer
+                      ///   0. `[writable, signer]` operator
           ///   1. `[]` config
-          ///   2. `[]` relayer_info
-                ///   3. `[writable]` transaction
-                ///   4. `[optional]` system_program (default to `11111111111111111111111111111111`)
+                ///   2. `[writable]` transaction
+                ///   3. `[optional]` system_program (default to `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
 pub struct FinalizeTransactionBuilder {
-            relayer: Option<solana_program::pubkey::Pubkey>,
+            operator: Option<solana_program::pubkey::Pubkey>,
                 config: Option<solana_program::pubkey::Pubkey>,
-                relayer_info: Option<solana_program::pubkey::Pubkey>,
                 transaction: Option<solana_program::pubkey::Pubkey>,
                 system_program: Option<solana_program::pubkey::Pubkey>,
                         sequence: Option<u64>,
@@ -132,22 +121,16 @@ impl FinalizeTransactionBuilder {
   pub fn new() -> Self {
     Self::default()
   }
-            /// Relayer account.
+            /// Operator account.
 #[inline(always)]
-    pub fn relayer(&mut self, relayer: solana_program::pubkey::Pubkey) -> &mut Self {
-                        self.relayer = Some(relayer);
+    pub fn operator(&mut self, operator: solana_program::pubkey::Pubkey) -> &mut Self {
+                        self.operator = Some(operator);
                     self
     }
             /// Program configuration account.
 #[inline(always)]
     pub fn config(&mut self, config: solana_program::pubkey::Pubkey) -> &mut Self {
                         self.config = Some(config);
-                    self
-    }
-            /// Relayer configuration account.
-#[inline(always)]
-    pub fn relayer_info(&mut self, relayer_info: solana_program::pubkey::Pubkey) -> &mut Self {
-                        self.relayer_info = Some(relayer_info);
                     self
     }
             /// Transaction account.
@@ -193,9 +176,8 @@ impl FinalizeTransactionBuilder {
   #[allow(clippy::clone_on_copy)]
   pub fn instruction(&self) -> solana_program::instruction::Instruction {
     let accounts = FinalizeTransaction {
-                              relayer: self.relayer.expect("relayer is not set"),
+                              operator: self.operator.expect("operator is not set"),
                                         config: self.config.expect("config is not set"),
-                                        relayer_info: self.relayer_info.expect("relayer_info is not set"),
                                         transaction: self.transaction.expect("transaction is not set"),
                                         system_program: self.system_program.unwrap_or(solana_program::pubkey!("11111111111111111111111111111111")),
                       };
@@ -211,21 +193,16 @@ impl FinalizeTransactionBuilder {
 
   /// `finalize_transaction` CPI accounts.
   pub struct FinalizeTransactionCpiAccounts<'a, 'b> {
-                  /// Relayer account.
+                  /// Operator account.
 
       
                     
-              pub relayer: &'b solana_program::account_info::AccountInfo<'a>,
+              pub operator: &'b solana_program::account_info::AccountInfo<'a>,
                         /// Program configuration account.
 
       
                     
               pub config: &'b solana_program::account_info::AccountInfo<'a>,
-                        /// Relayer configuration account.
-
-      
-                    
-              pub relayer_info: &'b solana_program::account_info::AccountInfo<'a>,
                         /// Transaction account.
 
       
@@ -242,21 +219,16 @@ impl FinalizeTransactionBuilder {
 pub struct FinalizeTransactionCpi<'a, 'b> {
   /// The program to invoke.
   pub __program: &'b solana_program::account_info::AccountInfo<'a>,
-            /// Relayer account.
+            /// Operator account.
 
     
               
-          pub relayer: &'b solana_program::account_info::AccountInfo<'a>,
+          pub operator: &'b solana_program::account_info::AccountInfo<'a>,
                 /// Program configuration account.
 
     
               
           pub config: &'b solana_program::account_info::AccountInfo<'a>,
-                /// Relayer configuration account.
-
-    
-              
-          pub relayer_info: &'b solana_program::account_info::AccountInfo<'a>,
                 /// Transaction account.
 
     
@@ -279,9 +251,8 @@ impl<'a, 'b> FinalizeTransactionCpi<'a, 'b> {
       ) -> Self {
     Self {
       __program: program,
-              relayer: accounts.relayer,
+              operator: accounts.operator,
               config: accounts.config,
-              relayer_info: accounts.relayer_info,
               transaction: accounts.transaction,
               system_program: accounts.system_program,
                     __args: args,
@@ -306,17 +277,13 @@ impl<'a, 'b> FinalizeTransactionCpi<'a, 'b> {
     signers_seeds: &[&[&[u8]]],
     remaining_accounts: &[(&'b solana_program::account_info::AccountInfo<'a>, bool, bool)]
   ) -> solana_program::entrypoint::ProgramResult {
-    let mut accounts = Vec::with_capacity(5+ remaining_accounts.len());
+    let mut accounts = Vec::with_capacity(4+ remaining_accounts.len());
                             accounts.push(solana_program::instruction::AccountMeta::new(
-            *self.relayer.key,
+            *self.operator.key,
             true
           ));
                                           accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.config.key,
-            false
-          ));
-                                          accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            *self.relayer_info.key,
             false
           ));
                                           accounts.push(solana_program::instruction::AccountMeta::new(
@@ -343,11 +310,10 @@ impl<'a, 'b> FinalizeTransactionCpi<'a, 'b> {
       accounts,
       data,
     };
-    let mut account_infos = Vec::with_capacity(6 + remaining_accounts.len());
+    let mut account_infos = Vec::with_capacity(5 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
-                  account_infos.push(self.relayer.clone());
+                  account_infos.push(self.operator.clone());
                         account_infos.push(self.config.clone());
-                        account_infos.push(self.relayer_info.clone());
                         account_infos.push(self.transaction.clone());
                         account_infos.push(self.system_program.clone());
               remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -364,11 +330,10 @@ impl<'a, 'b> FinalizeTransactionCpi<'a, 'b> {
 ///
 /// ### Accounts:
 ///
-                      ///   0. `[writable, signer]` relayer
+                      ///   0. `[writable, signer]` operator
           ///   1. `[]` config
-          ///   2. `[]` relayer_info
-                ///   3. `[writable]` transaction
-          ///   4. `[]` system_program
+                ///   2. `[writable]` transaction
+          ///   3. `[]` system_program
 #[derive(Clone, Debug)]
 pub struct FinalizeTransactionCpiBuilder<'a, 'b> {
   instruction: Box<FinalizeTransactionCpiBuilderInstruction<'a, 'b>>,
@@ -378,9 +343,8 @@ impl<'a, 'b> FinalizeTransactionCpiBuilder<'a, 'b> {
   pub fn new(program: &'b solana_program::account_info::AccountInfo<'a>) -> Self {
     let instruction = Box::new(FinalizeTransactionCpiBuilderInstruction {
       __program: program,
-              relayer: None,
+              operator: None,
               config: None,
-              relayer_info: None,
               transaction: None,
               system_program: None,
                                             sequence: None,
@@ -390,22 +354,16 @@ impl<'a, 'b> FinalizeTransactionCpiBuilder<'a, 'b> {
     });
     Self { instruction }
   }
-      /// Relayer account.
+      /// Operator account.
 #[inline(always)]
-    pub fn relayer(&mut self, relayer: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.relayer = Some(relayer);
+    pub fn operator(&mut self, operator: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.operator = Some(operator);
                     self
     }
       /// Program configuration account.
 #[inline(always)]
     pub fn config(&mut self, config: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
                         self.instruction.config = Some(config);
-                    self
-    }
-      /// Relayer configuration account.
-#[inline(always)]
-    pub fn relayer_info(&mut self, relayer_info: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.relayer_info = Some(relayer_info);
                     self
     }
       /// Transaction account.
@@ -465,11 +423,9 @@ impl<'a, 'b> FinalizeTransactionCpiBuilder<'a, 'b> {
         let instruction = FinalizeTransactionCpi {
         __program: self.instruction.__program,
                   
-          relayer: self.instruction.relayer.expect("relayer is not set"),
+          operator: self.instruction.operator.expect("operator is not set"),
                   
           config: self.instruction.config.expect("config is not set"),
-                  
-          relayer_info: self.instruction.relayer_info.expect("relayer_info is not set"),
                   
           transaction: self.instruction.transaction.expect("transaction is not set"),
                   
@@ -483,9 +439,8 @@ impl<'a, 'b> FinalizeTransactionCpiBuilder<'a, 'b> {
 #[derive(Clone, Debug)]
 struct FinalizeTransactionCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_program::account_info::AccountInfo<'a>,
-            relayer: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+            operator: Option<&'b solana_program::account_info::AccountInfo<'a>>,
                 config: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-                relayer_info: Option<&'b solana_program::account_info::AccountInfo<'a>>,
                 transaction: Option<&'b solana_program::account_info::AccountInfo<'a>>,
                 system_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
                         sequence: Option<u64>,

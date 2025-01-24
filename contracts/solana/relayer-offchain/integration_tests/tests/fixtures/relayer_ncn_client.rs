@@ -27,6 +27,7 @@ use spl_associated_token_account::{
     get_associated_token_address, instruction::create_associated_token_account_idempotent,
 };
 use spl_stake_pool::find_withdraw_authority_program_address;
+use relayer_hub_sdk::relayer_hub;
 // use relayer_hub_sdk::relayer_hub;
 use super::{restaking_client::NcnRoot,
             // stake_pool_client::PoolRoot
@@ -951,73 +952,69 @@ impl RelayerNcnClient {
             .await
     }
 
-    // pub async fn do_send_transaction(
-    //     &mut self,
-    //     ncn: Pubkey,
-    //     epoch: u64,
-    //     chain: u16,
-    //     sequence: u64,
-    // ) -> Result<(), TestError> {
-    //     let ncn_config = NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn).0;
-    //     let ballot_box =
-    //         BallotBox::find_program_address(&relayer_ncn_program::id(), &ncn, epoch).0;
-    //     let relayer_hub_program_id = relayer_hub::ID;
-    //     let restaking_program_id = jito_restaking_program::id();
-    //     let (relayer_info, _) =relayer_hub_sdk::derive_relayer_info_account_address(&relayer_hub::ID);
-    //     let (pool, _) =relayer_hub_sdk::derive_pool_account_address(&relayer_hub::ID, chain);
-    //
-    //     let (hub_config, _) =relayer_hub_sdk::derive_config_account_address(&relayer_hub::ID);
-    //     self.send_transaction(
-    //         ncn_config,
-    //         ncn,
-    //         ballot_box,
-    //         hub_config,
-    //         relayer_info,
-    //         pool,
-    //         relayer_hub_program_id,
-    //         restaking_program_id,
-    //         epoch,
-    //         chain,
-    //         sequence,
-    //     )
-    //         .await
-    // }
-    //
-    // pub async fn send_transaction(
-    //     &mut self,
-    //     ncn_config: Pubkey,
-    //     ncn: Pubkey,
-    //     ballot_box: Pubkey,
-    //     hub_config: Pubkey,
-    //     relayer_info: Pubkey,
-    //     pool: Pubkey,
-    //     relayer_hub_program_id: Pubkey,
-    //     restaking_program_id: Pubkey,
-    //     epoch: u64,
-    //     chain: u16,
-    //     sequence: u64,
-    // ) -> Result<(), TestError> {
-    //     let ix = SendTransactionBuilder::new()
-    //         .config(ncn_config)
-    //         .ncn(ncn)
-    //         .ballot_box(ballot_box)
-    //         .hub_config(hub_config)
-    //         .relayer_info(relayer_info)
-    //         .pool(pool)
-    //         .relayer_hub_program(relayer_hub_program_id)
-    //         .restaking_program(restaking_program_id)
-    //         .epoch(epoch)
-    //         .chain(chain)
-    //         .sequence(sequence)
-    //         .instruction();
-    //
-    //     let blockhash = self.banks_client.get_latest_blockhash().await?;
-    //     self.process_transaction(&Transaction::new_signed_with_payer(
-    //         &[ix],
-    //         Some(&self.payer.pubkey()),
-    //         &[&self.payer],
-    //         blockhash,
-    //     ))
-    //         .await
-    // }
+    pub async fn do_rollup_transaction(
+        &mut self,
+        ncn: Pubkey,
+        epoch: u64,
+        operator_admin: &Keypair,
+    ) -> Result<(), TestError> {
+        let ncn_config = NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+        let ballot_box =
+            BallotBox::find_program_address(&relayer_ncn_program::id(), &ncn, epoch).0;
+        let relayer_hub_program_id = relayer_hub::ID;
+        let restaking_program_id = jito_restaking_program::id();
+        let (pool, _) =relayer_hub_sdk::derive_final_pool_account_address(&relayer_hub::ID);
+
+        let (hub_config, _) =relayer_hub_sdk::derive_config_account_address(&relayer_hub::ID);
+        let (transaction, _) =relayer_hub_sdk::derive_final_transaction_address(&relayer_hub::ID, epoch);
+
+        self.rollup_transaction(
+            ncn_config,
+            ncn,
+            ballot_box,
+            hub_config,
+            pool,
+            relayer_hub_program_id,
+            restaking_program_id,
+            epoch,
+            operator_admin,
+            transaction,
+        )
+            .await
+    }
+
+    pub async fn rollup_transaction(
+        &mut self,
+        ncn_config: Pubkey,
+        ncn: Pubkey,
+        ballot_box: Pubkey,
+        hub_config: Pubkey,
+        pool: Pubkey,
+        relayer_hub_program_id: Pubkey,
+        restaking_program_id: Pubkey,
+        epoch: u64,
+        operator_admin: &Keypair,
+        transaction: Pubkey,
+    ) -> Result<(), TestError> {
+        let ix = RollupTransactionBuilder::new()
+            .config(ncn_config)
+            .ncn(ncn)
+            .ballot_box(ballot_box)
+            .hub_config(hub_config)
+            .pool(pool)
+            .relayer_hub_program(relayer_hub_program_id)
+            .restaking_program(restaking_program_id)
+            .transaction(transaction)
+            .epoch(epoch)
+            .instruction();
+
+        let blockhash = self.banks_client.get_latest_blockhash().await?;
+        self.process_transaction(&Transaction::new_signed_with_payer(
+            &[ix],
+            Some(&operator_admin.pubkey()),
+            &[&operator_admin],
+            blockhash,
+        ))
+            .await
+    }
 }

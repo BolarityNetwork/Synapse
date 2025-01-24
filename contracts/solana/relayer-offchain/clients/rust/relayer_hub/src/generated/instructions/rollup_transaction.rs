@@ -10,16 +10,21 @@ use borsh::BorshDeserialize;
 
 /// Accounts.
 pub struct RollupTransaction {
-            /// Relayer account.
+            /// ncn config account.
 
     
               
-          pub relayer: solana_program::pubkey::Pubkey,
+          pub rollup_authority: solana_program::pubkey::Pubkey,
                 /// Program configuration account.
 
     
               
           pub config: solana_program::pubkey::Pubkey,
+                /// Transaction pool account.One transaction pool per chain.
+
+    
+              
+          pub pool: solana_program::pubkey::Pubkey,
                 /// Transaction account.
 
     
@@ -38,13 +43,17 @@ impl RollupTransaction {
   }
   #[allow(clippy::vec_init_then_push)]
   pub fn instruction_with_remaining_accounts(&self, args: RollupTransactionInstructionArgs, remaining_accounts: &[solana_program::instruction::AccountMeta]) -> solana_program::instruction::Instruction {
-    let mut accounts = Vec::with_capacity(4+ remaining_accounts.len());
+    let mut accounts = Vec::with_capacity(5+ remaining_accounts.len());
                             accounts.push(solana_program::instruction::AccountMeta::new(
-            self.relayer,
+            self.rollup_authority,
             true
           ));
                                           accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.config,
+            false
+          ));
+                                          accounts.push(solana_program::instruction::AccountMeta::new(
+            self.pool,
             false
           ));
                                           accounts.push(solana_program::instruction::AccountMeta::new(
@@ -72,13 +81,13 @@ impl RollupTransaction {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
  pub struct RollupTransactionInstructionData {
             discriminator: [u8; 8],
-                                    }
+                              }
 
 impl RollupTransactionInstructionData {
   pub fn new() -> Self {
     Self {
                         discriminator: [76, 200, 142, 150, 37, 230, 160, 83],
-                                                                                        }
+                                                                          }
   }
 }
 
@@ -91,8 +100,7 @@ impl Default for RollupTransactionInstructionData {
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
  pub struct RollupTransactionInstructionArgs {
-                  pub sequence: u64,
-                pub accept: bool,
+                  pub accept: bool,
                 pub state_root: [u8; 32],
                 pub vote: u8,
                 pub epoch: u64,
@@ -103,18 +111,19 @@ impl Default for RollupTransactionInstructionData {
 ///
 /// ### Accounts:
 ///
-                      ///   0. `[writable, signer]` relayer
+                      ///   0. `[writable, signer]` rollup_authority
           ///   1. `[]` config
-                ///   2. `[writable]` transaction
-                ///   3. `[optional]` system_program (default to `11111111111111111111111111111111`)
+                ///   2. `[writable]` pool
+                ///   3. `[writable]` transaction
+                ///   4. `[optional]` system_program (default to `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
 pub struct RollupTransactionBuilder {
-            relayer: Option<solana_program::pubkey::Pubkey>,
+            rollup_authority: Option<solana_program::pubkey::Pubkey>,
                 config: Option<solana_program::pubkey::Pubkey>,
+                pool: Option<solana_program::pubkey::Pubkey>,
                 transaction: Option<solana_program::pubkey::Pubkey>,
                 system_program: Option<solana_program::pubkey::Pubkey>,
-                        sequence: Option<u64>,
-                accept: Option<bool>,
+                        accept: Option<bool>,
                 state_root: Option<[u8; 32]>,
                 vote: Option<u8>,
                 epoch: Option<u64>,
@@ -125,16 +134,22 @@ impl RollupTransactionBuilder {
   pub fn new() -> Self {
     Self::default()
   }
-            /// Relayer account.
+            /// ncn config account.
 #[inline(always)]
-    pub fn relayer(&mut self, relayer: solana_program::pubkey::Pubkey) -> &mut Self {
-                        self.relayer = Some(relayer);
+    pub fn rollup_authority(&mut self, rollup_authority: solana_program::pubkey::Pubkey) -> &mut Self {
+                        self.rollup_authority = Some(rollup_authority);
                     self
     }
             /// Program configuration account.
 #[inline(always)]
     pub fn config(&mut self, config: solana_program::pubkey::Pubkey) -> &mut Self {
                         self.config = Some(config);
+                    self
+    }
+            /// Transaction pool account.One transaction pool per chain.
+#[inline(always)]
+    pub fn pool(&mut self, pool: solana_program::pubkey::Pubkey) -> &mut Self {
+                        self.pool = Some(pool);
                     self
     }
             /// Transaction account.
@@ -151,11 +166,6 @@ impl RollupTransactionBuilder {
                     self
     }
                     #[inline(always)]
-      pub fn sequence(&mut self, sequence: u64) -> &mut Self {
-        self.sequence = Some(sequence);
-        self
-      }
-                #[inline(always)]
       pub fn accept(&mut self, accept: bool) -> &mut Self {
         self.accept = Some(accept);
         self
@@ -190,14 +200,14 @@ impl RollupTransactionBuilder {
   #[allow(clippy::clone_on_copy)]
   pub fn instruction(&self) -> solana_program::instruction::Instruction {
     let accounts = RollupTransaction {
-                              relayer: self.relayer.expect("relayer is not set"),
+                              rollup_authority: self.rollup_authority.expect("rollup_authority is not set"),
                                         config: self.config.expect("config is not set"),
+                                        pool: self.pool.expect("pool is not set"),
                                         transaction: self.transaction.expect("transaction is not set"),
                                         system_program: self.system_program.unwrap_or(solana_program::pubkey!("11111111111111111111111111111111")),
                       };
           let args = RollupTransactionInstructionArgs {
-                                                              sequence: self.sequence.clone().expect("sequence is not set"),
-                                                                  accept: self.accept.clone().expect("accept is not set"),
+                                                              accept: self.accept.clone().expect("accept is not set"),
                                                                   state_root: self.state_root.clone().expect("state_root is not set"),
                                                                   vote: self.vote.clone().expect("vote is not set"),
                                                                   epoch: self.epoch.clone().expect("epoch is not set"),
@@ -209,16 +219,21 @@ impl RollupTransactionBuilder {
 
   /// `rollup_transaction` CPI accounts.
   pub struct RollupTransactionCpiAccounts<'a, 'b> {
-                  /// Relayer account.
+                  /// ncn config account.
 
       
                     
-              pub relayer: &'b solana_program::account_info::AccountInfo<'a>,
+              pub rollup_authority: &'b solana_program::account_info::AccountInfo<'a>,
                         /// Program configuration account.
 
       
                     
               pub config: &'b solana_program::account_info::AccountInfo<'a>,
+                        /// Transaction pool account.One transaction pool per chain.
+
+      
+                    
+              pub pool: &'b solana_program::account_info::AccountInfo<'a>,
                         /// Transaction account.
 
       
@@ -235,16 +250,21 @@ impl RollupTransactionBuilder {
 pub struct RollupTransactionCpi<'a, 'b> {
   /// The program to invoke.
   pub __program: &'b solana_program::account_info::AccountInfo<'a>,
-            /// Relayer account.
+            /// ncn config account.
 
     
               
-          pub relayer: &'b solana_program::account_info::AccountInfo<'a>,
+          pub rollup_authority: &'b solana_program::account_info::AccountInfo<'a>,
                 /// Program configuration account.
 
     
               
           pub config: &'b solana_program::account_info::AccountInfo<'a>,
+                /// Transaction pool account.One transaction pool per chain.
+
+    
+              
+          pub pool: &'b solana_program::account_info::AccountInfo<'a>,
                 /// Transaction account.
 
     
@@ -267,8 +287,9 @@ impl<'a, 'b> RollupTransactionCpi<'a, 'b> {
       ) -> Self {
     Self {
       __program: program,
-              relayer: accounts.relayer,
+              rollup_authority: accounts.rollup_authority,
               config: accounts.config,
+              pool: accounts.pool,
               transaction: accounts.transaction,
               system_program: accounts.system_program,
                     __args: args,
@@ -293,13 +314,17 @@ impl<'a, 'b> RollupTransactionCpi<'a, 'b> {
     signers_seeds: &[&[&[u8]]],
     remaining_accounts: &[(&'b solana_program::account_info::AccountInfo<'a>, bool, bool)]
   ) -> solana_program::entrypoint::ProgramResult {
-    let mut accounts = Vec::with_capacity(4+ remaining_accounts.len());
+    let mut accounts = Vec::with_capacity(5+ remaining_accounts.len());
                             accounts.push(solana_program::instruction::AccountMeta::new(
-            *self.relayer.key,
+            *self.rollup_authority.key,
             true
           ));
                                           accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.config.key,
+            false
+          ));
+                                          accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.pool.key,
             false
           ));
                                           accounts.push(solana_program::instruction::AccountMeta::new(
@@ -326,10 +351,11 @@ impl<'a, 'b> RollupTransactionCpi<'a, 'b> {
       accounts,
       data,
     };
-    let mut account_infos = Vec::with_capacity(5 + remaining_accounts.len());
+    let mut account_infos = Vec::with_capacity(6 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
-                  account_infos.push(self.relayer.clone());
+                  account_infos.push(self.rollup_authority.clone());
                         account_infos.push(self.config.clone());
+                        account_infos.push(self.pool.clone());
                         account_infos.push(self.transaction.clone());
                         account_infos.push(self.system_program.clone());
               remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -346,10 +372,11 @@ impl<'a, 'b> RollupTransactionCpi<'a, 'b> {
 ///
 /// ### Accounts:
 ///
-                      ///   0. `[writable, signer]` relayer
+                      ///   0. `[writable, signer]` rollup_authority
           ///   1. `[]` config
-                ///   2. `[writable]` transaction
-          ///   3. `[]` system_program
+                ///   2. `[writable]` pool
+                ///   3. `[writable]` transaction
+          ///   4. `[]` system_program
 #[derive(Clone, Debug)]
 pub struct RollupTransactionCpiBuilder<'a, 'b> {
   instruction: Box<RollupTransactionCpiBuilderInstruction<'a, 'b>>,
@@ -359,12 +386,12 @@ impl<'a, 'b> RollupTransactionCpiBuilder<'a, 'b> {
   pub fn new(program: &'b solana_program::account_info::AccountInfo<'a>) -> Self {
     let instruction = Box::new(RollupTransactionCpiBuilderInstruction {
       __program: program,
-              relayer: None,
+              rollup_authority: None,
               config: None,
+              pool: None,
               transaction: None,
               system_program: None,
-                                            sequence: None,
-                                accept: None,
+                                            accept: None,
                                 state_root: None,
                                 vote: None,
                                 epoch: None,
@@ -372,16 +399,22 @@ impl<'a, 'b> RollupTransactionCpiBuilder<'a, 'b> {
     });
     Self { instruction }
   }
-      /// Relayer account.
+      /// ncn config account.
 #[inline(always)]
-    pub fn relayer(&mut self, relayer: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.relayer = Some(relayer);
+    pub fn rollup_authority(&mut self, rollup_authority: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.rollup_authority = Some(rollup_authority);
                     self
     }
       /// Program configuration account.
 #[inline(always)]
     pub fn config(&mut self, config: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
                         self.instruction.config = Some(config);
+                    self
+    }
+      /// Transaction pool account.One transaction pool per chain.
+#[inline(always)]
+    pub fn pool(&mut self, pool: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.pool = Some(pool);
                     self
     }
       /// Transaction account.
@@ -397,11 +430,6 @@ impl<'a, 'b> RollupTransactionCpiBuilder<'a, 'b> {
                     self
     }
                     #[inline(always)]
-      pub fn sequence(&mut self, sequence: u64) -> &mut Self {
-        self.instruction.sequence = Some(sequence);
-        self
-      }
-                #[inline(always)]
       pub fn accept(&mut self, accept: bool) -> &mut Self {
         self.instruction.accept = Some(accept);
         self
@@ -444,8 +472,7 @@ impl<'a, 'b> RollupTransactionCpiBuilder<'a, 'b> {
   #[allow(clippy::vec_init_then_push)]
   pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program::entrypoint::ProgramResult {
           let args = RollupTransactionInstructionArgs {
-                                                              sequence: self.instruction.sequence.clone().expect("sequence is not set"),
-                                                                  accept: self.instruction.accept.clone().expect("accept is not set"),
+                                                              accept: self.instruction.accept.clone().expect("accept is not set"),
                                                                   state_root: self.instruction.state_root.clone().expect("state_root is not set"),
                                                                   vote: self.instruction.vote.clone().expect("vote is not set"),
                                                                   epoch: self.instruction.epoch.clone().expect("epoch is not set"),
@@ -453,9 +480,11 @@ impl<'a, 'b> RollupTransactionCpiBuilder<'a, 'b> {
         let instruction = RollupTransactionCpi {
         __program: self.instruction.__program,
                   
-          relayer: self.instruction.relayer.expect("relayer is not set"),
+          rollup_authority: self.instruction.rollup_authority.expect("rollup_authority is not set"),
                   
           config: self.instruction.config.expect("config is not set"),
+                  
+          pool: self.instruction.pool.expect("pool is not set"),
                   
           transaction: self.instruction.transaction.expect("transaction is not set"),
                   
@@ -469,12 +498,12 @@ impl<'a, 'b> RollupTransactionCpiBuilder<'a, 'b> {
 #[derive(Clone, Debug)]
 struct RollupTransactionCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_program::account_info::AccountInfo<'a>,
-            relayer: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+            rollup_authority: Option<&'b solana_program::account_info::AccountInfo<'a>>,
                 config: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+                pool: Option<&'b solana_program::account_info::AccountInfo<'a>>,
                 transaction: Option<&'b solana_program::account_info::AccountInfo<'a>>,
                 system_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-                        sequence: Option<u64>,
-                accept: Option<bool>,
+                        accept: Option<bool>,
                 state_root: Option<[u8; 32]>,
                 vote: Option<u8>,
                 epoch: Option<u64>,

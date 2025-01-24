@@ -8,645 +8,6 @@
   },
   "instructions": [
     {
-      "name": "execute_transaction",
-      "discriminator": [
-        231,
-        173,
-        49,
-        91,
-        235,
-        24,
-        68,
-        19
-      ],
-      "accounts": [
-        {
-          "name": "relayer",
-          "docs": [
-            "Relayer account."
-          ],
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "config",
-          "docs": [
-            "Program configuration account."
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "relayer_info",
-          "docs": [
-            "Relayer configuration account."
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  108,
-                  97,
-                  121,
-                  101,
-                  114,
-                  95,
-                  105,
-                  110,
-                  102,
-                  111
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "transaction",
-          "docs": [
-            "Transaction account."
-          ],
-          "writable": true
-        },
-        {
-          "name": "system_program",
-          "docs": [
-            "System program."
-          ],
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "sequence",
-          "type": "u64"
-        },
-        {
-          "name": "success",
-          "type": "bool"
-        }
-      ]
-    },
-    {
-      "name": "finalize_transaction",
-      "discriminator": [
-        60,
-        244,
-        109,
-        218,
-        61,
-        102,
-        51,
-        116
-      ],
-      "accounts": [
-        {
-          "name": "relayer",
-          "docs": [
-            "Relayer account."
-          ],
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "config",
-          "docs": [
-            "Program configuration account."
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "relayer_info",
-          "docs": [
-            "Relayer configuration account."
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  108,
-                  97,
-                  121,
-                  101,
-                  114,
-                  95,
-                  105,
-                  110,
-                  102,
-                  111
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "transaction",
-          "docs": [
-            "Transaction account."
-          ],
-          "writable": true
-        },
-        {
-          "name": "system_program",
-          "docs": [
-            "System program."
-          ],
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "sequence",
-          "type": "u64"
-        },
-        {
-          "name": "finalize",
-          "type": "bool"
-        },
-        {
-          "name": "state_root",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "init_transaction",
-      "docs": [
-        "This instruction is used to push transaction to transaction pool of a certain chain.",
-        "",
-        "# Arguments",
-        "",
-        "* `ctx` - `Initialize` context",
-        "* `chain`   - Chain ID",
-        "* `sequence`   - Trasaction sequence",
-        "* `data`   - Transaction data pushed to the transaction pool."
-      ],
-      "discriminator": [
-        144,
-        48,
-        27,
-        226,
-        98,
-        225,
-        195,
-        163
-      ],
-      "accounts": [
-        {
-          "name": "relayer",
-          "docs": [
-            "Relayer account."
-          ],
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "config",
-          "docs": [
-            "Program configuration account."
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "relayer_info",
-          "docs": [
-            "Relayer configuration account."
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  108,
-                  97,
-                  121,
-                  101,
-                  114,
-                  95,
-                  105,
-                  110,
-                  102,
-                  111
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "pool",
-          "docs": [
-            "Transaction pool account.One transaction pool per chain."
-          ],
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "transaction",
-          "docs": [
-            "Transaction account."
-          ],
-          "writable": true
-        },
-        {
-          "name": "system_program",
-          "docs": [
-            "System program."
-          ],
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "sequence",
-          "type": "u64"
-        },
-        {
-          "name": "data",
-          "type": "bytes"
-        }
-      ]
-    },
-    {
-      "name": "initialize",
-      "docs": [
-        "This instruction initializes the program config.",
-        "It also initializes the relayer configuration.",
-        "",
-        "# Arguments",
-        "",
-        "* `ctx` - `Initialize` context"
-      ],
-      "discriminator": [
-        175,
-        175,
-        109,
-        31,
-        13,
-        152,
-        155,
-        237
-      ],
-      "accounts": [
-        {
-          "name": "config",
-          "docs": [
-            "Program configuration account.which saves program data useful for other instructions.",
-            "Also saves the payer of the initialize instruction as the program's owner."
-          ],
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "relayer_info",
-          "docs": [
-            "Relayer configuration account.Used to store data related to relayer configuration."
-          ],
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  108,
-                  97,
-                  121,
-                  101,
-                  114,
-                  95,
-                  105,
-                  110,
-                  102,
-                  111
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "payer",
-          "docs": [
-            "Owner of program."
-          ],
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "system_program",
-          "docs": [
-            "System program."
-          ],
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "authority",
-          "type": "pubkey"
-        }
-      ]
-    },
-    {
-      "name": "register_relayer",
-      "docs": [
-        "This instruction registers the relayer and must be used after initialization.",
-        "",
-        "# Arguments",
-        "",
-        "* `ctx` - `Initialize` context"
-      ],
-      "discriminator": [
-        98,
-        213,
-        0,
-        0,
-        27,
-        134,
-        109,
-        48
-      ],
-      "accounts": [
-        {
-          "name": "payer",
-          "docs": [
-            "Owner of relayer."
-          ],
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "config",
-          "docs": [
-            "Program configuration account."
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "relayer_info",
-          "docs": [
-            "Relayer configuration account."
-          ],
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  108,
-                  97,
-                  121,
-                  101,
-                  114,
-                  95,
-                  105,
-                  110,
-                  102,
-                  111
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "relayer",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  108,
-                  97,
-                  121,
-                  101,
-                  114
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "payer"
-              }
-            ]
-          }
-        },
-        {
-          "name": "system_program",
-          "docs": [
-            "System program."
-          ],
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "register_tx_pool",
-      "docs": [
-        "This instruction is used to register a transaction pool of a certain chain.",
-        "",
-        "# Arguments",
-        "",
-        "* `ctx` - `Initialize` context",
-        "* `chain`   - Chain ID"
-      ],
-      "discriminator": [
-        177,
-        142,
-        71,
-        227,
-        109,
-        58,
-        75,
-        57
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "docs": [
-            "Only owner."
-          ],
-          "writable": true,
-          "signer": true,
-          "relations": [
-            "config"
-          ]
-        },
-        {
-          "name": "config",
-          "docs": [
-            "Program configuration account."
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "pool",
-          "docs": [
-            "Transaction pool account.One transaction pool per chain."
-          ],
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "final_pool",
-          "docs": [
-            "Transaction pool account.One transaction pool per chain."
-          ],
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  102,
-                  105,
-                  110,
-                  97,
-                  108,
-                  95,
-                  112,
-                  111,
-                  111,
-                  108
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "system_program",
-          "docs": [
-            "System program."
-          ],
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": []
-    },
-    {
       "name": "rollup_transaction",
       "discriminator": [
         76,
@@ -660,9 +21,9 @@
       ],
       "accounts": [
         {
-          "name": "relayer",
+          "name": "rollup_authority",
           "docs": [
-            "Relayer account."
+            "ncn config account."
           ],
           "writable": true,
           "signer": true
@@ -689,6 +50,32 @@
           }
         },
         {
+          "name": "pool",
+          "docs": [
+            "Transaction pool account.One transaction pool per chain."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  105,
+                  110,
+                  97,
+                  108,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "transaction",
           "docs": [
             "Transaction account."
@@ -704,10 +91,6 @@
         }
       ],
       "args": [
-        {
-          "name": "sequence",
-          "type": "u64"
-        },
         {
           "name": "accept",
           "type": "bool"
@@ -744,6 +127,19 @@
         250,
         204,
         130
+      ]
+    },
+    {
+      "name": "EpochSequence",
+      "discriminator": [
+        6,
+        217,
+        126,
+        176,
+        186,
+        137,
+        25,
+        231
       ]
     },
     {
@@ -860,6 +256,11 @@
       "code": 6006,
       "name": "MessageFormatError",
       "msg": "Wrong message data format"
+    },
+    {
+      "code": 6007,
+      "name": "EpochError",
+      "msg": "Wrong epoch"
     }
   ],
   "types": [
@@ -891,6 +292,26 @@
               "Upload state root authorizer."
             ],
             "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EpochSequence",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "begin_sequence",
+            "type": "u64"
+          },
+          {
+            "name": "current_sequence",
+            "type": "u64"
           }
         ]
       }
@@ -1039,15 +460,6 @@
             "type": "u64"
           },
           {
-            "name": "hash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
             "name": "timestamp",
             "type": "u32"
           },
@@ -1095,6 +507,10 @@
                 "name": "Status"
               }
             }
+          },
+          {
+            "name": "hash",
+            "type": "bytes"
           }
         ]
       }

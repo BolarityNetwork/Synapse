@@ -18,7 +18,7 @@ pub(crate) mod r#realloc_operator_snapshot;
 pub(crate) mod r#realloc_vault_registry;
 pub(crate) mod r#realloc_weight_table;
 pub(crate) mod r#register_vault;
-pub(crate) mod r#send_transaction;
+pub(crate) mod r#rollup_transaction;
 pub(crate) mod r#snapshot_vault_operator_delegation;
 
 pub use self::{
@@ -26,5 +26,5 @@ pub use self::{
     r#initialize_config::*, r#initialize_epoch_snapshot::*, r#initialize_operator_snapshot::*,
     r#initialize_vault_registry::*, r#initialize_weight_table::*, r#realloc_ballot_box::*,
     r#realloc_operator_snapshot::*, r#realloc_vault_registry::*, r#realloc_weight_table::*,
-    r#register_vault::*, r#send_transaction::*, r#snapshot_vault_operator_delegation::*,
+    r#register_vault::*, r#rollup_transaction::*, r#snapshot_vault_operator_delegation::*,
 };

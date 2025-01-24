@@ -7,7 +7,7 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 
 /// Accounts.
-pub struct SendTransaction {
+pub struct RollupTransaction {
     pub config: solana_program::pubkey::Pubkey,
 
     pub ncn: solana_program::pubkey::Pubkey,
@@ -16,8 +16,6 @@ pub struct SendTransaction {
 
     pub hub_config: solana_program::pubkey::Pubkey,
 
-    pub relayer_info: solana_program::pubkey::Pubkey,
-
     pub pool: solana_program::pubkey::Pubkey,
 
     pub relayer_hub_program: solana_program::pubkey::Pubkey,
@@ -25,19 +23,21 @@ pub struct SendTransaction {
     pub restaking_program: solana_program::pubkey::Pubkey,
 
     pub system_program: solana_program::pubkey::Pubkey,
+
+    pub transaction: solana_program::pubkey::Pubkey,
 }
 
-impl SendTransaction {
+impl RollupTransaction {
     pub fn instruction(
         &self,
-        args: SendTransactionInstructionArgs,
+        args: RollupTransactionInstructionArgs,
     ) -> solana_program::instruction::Instruction {
         self.instruction_with_remaining_accounts(args, &[])
     }
     #[allow(clippy::vec_init_then_push)]
     pub fn instruction_with_remaining_accounts(
         &self,
-        args: SendTransactionInstructionArgs,
+        args: RollupTransactionInstructionArgs,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
         let mut accounts = Vec::with_capacity(9 + remaining_accounts.len());
@@ -56,10 +56,6 @@ impl SendTransaction {
             self.hub_config,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            self.relayer_info,
-            false,
-        ));
         accounts.push(solana_program::instruction::AccountMeta::new(
             self.pool, false,
         ));
@@ -75,8 +71,14 @@ impl SendTransaction {
             self.system_program,
             false,
         ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.transaction,
+            false,
+        ));
         accounts.extend_from_slice(remaining_accounts);
-        let mut data = SendTransactionInstructionData::new().try_to_vec().unwrap();
+        let mut data = RollupTransactionInstructionData::new()
+            .try_to_vec()
+            .unwrap();
         let mut args = args.try_to_vec().unwrap();
         data.append(&mut args);
 
@@ -89,17 +91,17 @@ impl SendTransaction {
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct SendTransactionInstructionData {
+pub struct RollupTransactionInstructionData {
     discriminator: u8,
 }
 
-impl SendTransactionInstructionData {
+impl RollupTransactionInstructionData {
     pub fn new() -> Self {
         Self { discriminator: 15 }
     }
 }
 
-impl Default for SendTransactionInstructionData {
+impl Default for RollupTransactionInstructionData {
     fn default() -> Self {
         Self::new()
     }
@@ -107,13 +109,11 @@ impl Default for SendTransactionInstructionData {
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SendTransactionInstructionArgs {
+pub struct RollupTransactionInstructionArgs {
     pub epoch: u64,
-    pub chain: u16,
-    pub sequence: u64,
 }
 
-/// Instruction builder for `SendTransaction`.
+/// Instruction builder for `RollupTransaction`.
 ///
 /// ### Accounts:
 ///
@@ -121,29 +121,27 @@ pub struct SendTransactionInstructionArgs {
 ///   1. `[]` ncn
 ///   2. `[]` ballot_box
 ///   3. `[]` hub_config
-///   4. `[]` relayer_info
-///   5. `[writable]` pool
-///   6. `[]` relayer_hub_program
-///   7. `[]` restaking_program
-///   8. `[optional]` system_program (default to `11111111111111111111111111111111`)
+///   4. `[writable]` pool
+///   5. `[]` relayer_hub_program
+///   6. `[]` restaking_program
+///   7. `[optional]` system_program (default to `11111111111111111111111111111111`)
+///   8. `[writable]` transaction
 #[derive(Clone, Debug, Default)]
-pub struct SendTransactionBuilder {
+pub struct RollupTransactionBuilder {
     config: Option<solana_program::pubkey::Pubkey>,
     ncn: Option<solana_program::pubkey::Pubkey>,
     ballot_box: Option<solana_program::pubkey::Pubkey>,
     hub_config: Option<solana_program::pubkey::Pubkey>,
-    relayer_info: Option<solana_program::pubkey::Pubkey>,
     pool: Option<solana_program::pubkey::Pubkey>,
     relayer_hub_program: Option<solana_program::pubkey::Pubkey>,
     restaking_program: Option<solana_program::pubkey::Pubkey>,
     system_program: Option<solana_program::pubkey::Pubkey>,
+    transaction: Option<solana_program::pubkey::Pubkey>,
     epoch: Option<u64>,
-    chain: Option<u16>,
-    sequence: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
-impl SendTransactionBuilder {
+impl RollupTransactionBuilder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -165,11 +163,6 @@ impl SendTransactionBuilder {
     #[inline(always)]
     pub fn hub_config(&mut self, hub_config: solana_program::pubkey::Pubkey) -> &mut Self {
         self.hub_config = Some(hub_config);
-        self
-    }
-    #[inline(always)]
-    pub fn relayer_info(&mut self, relayer_info: solana_program::pubkey::Pubkey) -> &mut Self {
-        self.relayer_info = Some(relayer_info);
         self
     }
     #[inline(always)]
@@ -200,18 +193,13 @@ impl SendTransactionBuilder {
         self
     }
     #[inline(always)]
+    pub fn transaction(&mut self, transaction: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.transaction = Some(transaction);
+        self
+    }
+    #[inline(always)]
     pub fn epoch(&mut self, epoch: u64) -> &mut Self {
         self.epoch = Some(epoch);
-        self
-    }
-    #[inline(always)]
-    pub fn chain(&mut self, chain: u16) -> &mut Self {
-        self.chain = Some(chain);
-        self
-    }
-    #[inline(always)]
-    pub fn sequence(&mut self, sequence: u64) -> &mut Self {
-        self.sequence = Some(sequence);
         self
     }
     /// Add an additional account to the instruction.
@@ -234,12 +222,11 @@ impl SendTransactionBuilder {
     }
     #[allow(clippy::clone_on_copy)]
     pub fn instruction(&self) -> solana_program::instruction::Instruction {
-        let accounts = SendTransaction {
+        let accounts = RollupTransaction {
             config: self.config.expect("config is not set"),
             ncn: self.ncn.expect("ncn is not set"),
             ballot_box: self.ballot_box.expect("ballot_box is not set"),
             hub_config: self.hub_config.expect("hub_config is not set"),
-            relayer_info: self.relayer_info.expect("relayer_info is not set"),
             pool: self.pool.expect("pool is not set"),
             relayer_hub_program: self
                 .relayer_hub_program
@@ -250,19 +237,18 @@ impl SendTransactionBuilder {
             system_program: self
                 .system_program
                 .unwrap_or(solana_program::pubkey!("11111111111111111111111111111111")),
+            transaction: self.transaction.expect("transaction is not set"),
         };
-        let args = SendTransactionInstructionArgs {
+        let args = RollupTransactionInstructionArgs {
             epoch: self.epoch.clone().expect("epoch is not set"),
-            chain: self.chain.clone().expect("chain is not set"),
-            sequence: self.sequence.clone().expect("sequence is not set"),
         };
 
         accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
     }
 }
 
-/// `send_transaction` CPI accounts.
-pub struct SendTransactionCpiAccounts<'a, 'b> {
+/// `rollup_transaction` CPI accounts.
+pub struct RollupTransactionCpiAccounts<'a, 'b> {
     pub config: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub ncn: &'b solana_program::account_info::AccountInfo<'a>,
@@ -271,8 +257,6 @@ pub struct SendTransactionCpiAccounts<'a, 'b> {
 
     pub hub_config: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub relayer_info: &'b solana_program::account_info::AccountInfo<'a>,
-
     pub pool: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub relayer_hub_program: &'b solana_program::account_info::AccountInfo<'a>,
@@ -280,10 +264,12 @@ pub struct SendTransactionCpiAccounts<'a, 'b> {
     pub restaking_program: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub transaction: &'b solana_program::account_info::AccountInfo<'a>,
 }
 
-/// `send_transaction` CPI instruction.
-pub struct SendTransactionCpi<'a, 'b> {
+/// `rollup_transaction` CPI instruction.
+pub struct RollupTransactionCpi<'a, 'b> {
     /// The program to invoke.
     pub __program: &'b solana_program::account_info::AccountInfo<'a>,
 
@@ -295,8 +281,6 @@ pub struct SendTransactionCpi<'a, 'b> {
 
     pub hub_config: &'b solana_program::account_info::AccountInfo<'a>,
 
-    pub relayer_info: &'b solana_program::account_info::AccountInfo<'a>,
-
     pub pool: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub relayer_hub_program: &'b solana_program::account_info::AccountInfo<'a>,
@@ -304,15 +288,17 @@ pub struct SendTransactionCpi<'a, 'b> {
     pub restaking_program: &'b solana_program::account_info::AccountInfo<'a>,
 
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
+
+    pub transaction: &'b solana_program::account_info::AccountInfo<'a>,
     /// The arguments for the instruction.
-    pub __args: SendTransactionInstructionArgs,
+    pub __args: RollupTransactionInstructionArgs,
 }
 
-impl<'a, 'b> SendTransactionCpi<'a, 'b> {
+impl<'a, 'b> RollupTransactionCpi<'a, 'b> {
     pub fn new(
         program: &'b solana_program::account_info::AccountInfo<'a>,
-        accounts: SendTransactionCpiAccounts<'a, 'b>,
-        args: SendTransactionInstructionArgs,
+        accounts: RollupTransactionCpiAccounts<'a, 'b>,
+        args: RollupTransactionInstructionArgs,
     ) -> Self {
         Self {
             __program: program,
@@ -320,11 +306,11 @@ impl<'a, 'b> SendTransactionCpi<'a, 'b> {
             ncn: accounts.ncn,
             ballot_box: accounts.ballot_box,
             hub_config: accounts.hub_config,
-            relayer_info: accounts.relayer_info,
             pool: accounts.pool,
             relayer_hub_program: accounts.relayer_hub_program,
             restaking_program: accounts.restaking_program,
             system_program: accounts.system_program,
+            transaction: accounts.transaction,
             __args: args,
         }
     }
@@ -378,10 +364,6 @@ impl<'a, 'b> SendTransactionCpi<'a, 'b> {
             *self.hub_config.key,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            *self.relayer_info.key,
-            false,
-        ));
         accounts.push(solana_program::instruction::AccountMeta::new(
             *self.pool.key,
             false,
@@ -398,6 +380,10 @@ impl<'a, 'b> SendTransactionCpi<'a, 'b> {
             *self.system_program.key,
             false,
         ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.transaction.key,
+            false,
+        ));
         remaining_accounts.iter().for_each(|remaining_account| {
             accounts.push(solana_program::instruction::AccountMeta {
                 pubkey: *remaining_account.0.key,
@@ -405,7 +391,9 @@ impl<'a, 'b> SendTransactionCpi<'a, 'b> {
                 is_writable: remaining_account.2,
             })
         });
-        let mut data = SendTransactionInstructionData::new().try_to_vec().unwrap();
+        let mut data = RollupTransactionInstructionData::new()
+            .try_to_vec()
+            .unwrap();
         let mut args = self.__args.try_to_vec().unwrap();
         data.append(&mut args);
 
@@ -420,11 +408,11 @@ impl<'a, 'b> SendTransactionCpi<'a, 'b> {
         account_infos.push(self.ncn.clone());
         account_infos.push(self.ballot_box.clone());
         account_infos.push(self.hub_config.clone());
-        account_infos.push(self.relayer_info.clone());
         account_infos.push(self.pool.clone());
         account_infos.push(self.relayer_hub_program.clone());
         account_infos.push(self.restaking_program.clone());
         account_infos.push(self.system_program.clone());
+        account_infos.push(self.transaction.clone());
         remaining_accounts
             .iter()
             .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -437,7 +425,7 @@ impl<'a, 'b> SendTransactionCpi<'a, 'b> {
     }
 }
 
-/// Instruction builder for `SendTransaction` via CPI.
+/// Instruction builder for `RollupTransaction` via CPI.
 ///
 /// ### Accounts:
 ///
@@ -445,32 +433,30 @@ impl<'a, 'b> SendTransactionCpi<'a, 'b> {
 ///   1. `[]` ncn
 ///   2. `[]` ballot_box
 ///   3. `[]` hub_config
-///   4. `[]` relayer_info
-///   5. `[writable]` pool
-///   6. `[]` relayer_hub_program
-///   7. `[]` restaking_program
-///   8. `[]` system_program
+///   4. `[writable]` pool
+///   5. `[]` relayer_hub_program
+///   6. `[]` restaking_program
+///   7. `[]` system_program
+///   8. `[writable]` transaction
 #[derive(Clone, Debug)]
-pub struct SendTransactionCpiBuilder<'a, 'b> {
-    instruction: Box<SendTransactionCpiBuilderInstruction<'a, 'b>>,
+pub struct RollupTransactionCpiBuilder<'a, 'b> {
+    instruction: Box<RollupTransactionCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> SendTransactionCpiBuilder<'a, 'b> {
+impl<'a, 'b> RollupTransactionCpiBuilder<'a, 'b> {
     pub fn new(program: &'b solana_program::account_info::AccountInfo<'a>) -> Self {
-        let instruction = Box::new(SendTransactionCpiBuilderInstruction {
+        let instruction = Box::new(RollupTransactionCpiBuilderInstruction {
             __program: program,
             config: None,
             ncn: None,
             ballot_box: None,
             hub_config: None,
-            relayer_info: None,
             pool: None,
             relayer_hub_program: None,
             restaking_program: None,
             system_program: None,
+            transaction: None,
             epoch: None,
-            chain: None,
-            sequence: None,
             __remaining_accounts: Vec::new(),
         });
         Self { instruction }
@@ -505,14 +491,6 @@ impl<'a, 'b> SendTransactionCpiBuilder<'a, 'b> {
         self
     }
     #[inline(always)]
-    pub fn relayer_info(
-        &mut self,
-        relayer_info: &'b solana_program::account_info::AccountInfo<'a>,
-    ) -> &mut Self {
-        self.instruction.relayer_info = Some(relayer_info);
-        self
-    }
-    #[inline(always)]
     pub fn pool(&mut self, pool: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
         self.instruction.pool = Some(pool);
         self
@@ -542,18 +520,16 @@ impl<'a, 'b> SendTransactionCpiBuilder<'a, 'b> {
         self
     }
     #[inline(always)]
+    pub fn transaction(
+        &mut self,
+        transaction: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.transaction = Some(transaction);
+        self
+    }
+    #[inline(always)]
     pub fn epoch(&mut self, epoch: u64) -> &mut Self {
         self.instruction.epoch = Some(epoch);
-        self
-    }
-    #[inline(always)]
-    pub fn chain(&mut self, chain: u16) -> &mut Self {
-        self.instruction.chain = Some(chain);
-        self
-    }
-    #[inline(always)]
-    pub fn sequence(&mut self, sequence: u64) -> &mut Self {
-        self.instruction.sequence = Some(sequence);
         self
     }
     /// Add an additional account to the instruction.
@@ -597,16 +573,10 @@ impl<'a, 'b> SendTransactionCpiBuilder<'a, 'b> {
         &self,
         signers_seeds: &[&[&[u8]]],
     ) -> solana_program::entrypoint::ProgramResult {
-        let args = SendTransactionInstructionArgs {
+        let args = RollupTransactionInstructionArgs {
             epoch: self.instruction.epoch.clone().expect("epoch is not set"),
-            chain: self.instruction.chain.clone().expect("chain is not set"),
-            sequence: self
-                .instruction
-                .sequence
-                .clone()
-                .expect("sequence is not set"),
         };
-        let instruction = SendTransactionCpi {
+        let instruction = RollupTransactionCpi {
             __program: self.instruction.__program,
 
             config: self.instruction.config.expect("config is not set"),
@@ -616,11 +586,6 @@ impl<'a, 'b> SendTransactionCpiBuilder<'a, 'b> {
             ballot_box: self.instruction.ballot_box.expect("ballot_box is not set"),
 
             hub_config: self.instruction.hub_config.expect("hub_config is not set"),
-
-            relayer_info: self
-                .instruction
-                .relayer_info
-                .expect("relayer_info is not set"),
 
             pool: self.instruction.pool.expect("pool is not set"),
 
@@ -638,6 +603,11 @@ impl<'a, 'b> SendTransactionCpiBuilder<'a, 'b> {
                 .instruction
                 .system_program
                 .expect("system_program is not set"),
+
+            transaction: self
+                .instruction
+                .transaction
+                .expect("transaction is not set"),
             __args: args,
         };
         instruction.invoke_signed_with_remaining_accounts(
@@ -648,20 +618,18 @@ impl<'a, 'b> SendTransactionCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct SendTransactionCpiBuilderInstruction<'a, 'b> {
+struct RollupTransactionCpiBuilderInstruction<'a, 'b> {
     __program: &'b solana_program::account_info::AccountInfo<'a>,
     config: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     ncn: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     ballot_box: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     hub_config: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    relayer_info: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     pool: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     relayer_hub_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     restaking_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     system_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    transaction: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     epoch: Option<u64>,
-    chain: Option<u16>,
-    sequence: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(
         &'b solana_program::account_info::AccountInfo<'a>,

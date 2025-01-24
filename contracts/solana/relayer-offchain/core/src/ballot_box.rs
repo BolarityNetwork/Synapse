@@ -244,6 +244,8 @@ pub struct BallotBox {
     operator_votes: [OperatorVote; 256],
     /// Mapping of ballots votes to stake weight
     ballot_tallies: [BallotTally; 256],
+    /// votes
+    votes: u8,
 }
 
 impl Discriminator for BallotBox {
@@ -266,6 +268,7 @@ impl BallotBox {
             operator_votes: [OperatorVote::default(); MAX_OPERATORS],
             ballot_tallies: [BallotTally::default(); MAX_OPERATORS],
             reserved: [0; 128],
+            votes: 0,
         }
     }
 
@@ -504,6 +507,7 @@ impl BallotBox {
 
         if consensus_reached && !self.winning_ballot.is_initialized() {
             self.slot_consensus_reached = PodU64::from(current_slot);
+            self.votes = (ballot_stake_weight * 100 / total_stake_weight) as u8;
             let winning_ballot = *max_tally.ballot();
 
             self.set_winning_ballot(&winning_ballot);
@@ -597,4 +601,8 @@ impl BallotBox {
     //
     //     Ok(())
     // }
+    pub fn get_votes(
+        &self,) -> u8{
+        self.votes
+    }
 }

@@ -750,7 +750,7 @@
       }
     },
     {
-      "name": "SendTransaction",
+      "name": "RollupTransaction",
       "accounts": [
         {
           "name": "config",
@@ -773,11 +773,6 @@
           "isSigner": false
         },
         {
-          "name": "relayerInfo",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
           "name": "pool",
           "isMut": true,
           "isSigner": false
@@ -796,19 +791,16 @@
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false
         }
       ],
       "args": [
         {
           "name": "epoch",
-          "type": "u64"
-        },
-        {
-          "name": "chain",
-          "type": "u16"
-        },
-        {
-          "name": "sequence",
           "type": "u64"
         }
       ],
@@ -1114,6 +1106,45 @@
                 64
               ]
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "FinalTransaction",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sequence",
+            "type": {
+              "defined": "PodU64"
+            }
+          },
+          {
+            "name": "stateRoot",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "epoch",
+            "type": {
+              "defined": "PodU64"
+            }
+          },
+          {
+            "name": "accepted",
+            "type": {
+              "defined": "PodBool"
+            }
+          },
+          {
+            "name": "votes",
+            "type": "u8"
           }
         ]
       }

@@ -27,7 +27,7 @@ import {
   type ParsedReallocVaultRegistryInstruction,
   type ParsedReallocWeightTableInstruction,
   type ParsedRegisterVaultInstruction,
-  type ParsedSendTransactionInstruction,
+  type ParsedRollupTransactionInstruction,
   type ParsedSnapshotVaultOperatorDelegationInstruction,
 } from '../instructions';
 
@@ -39,6 +39,7 @@ export enum RelayerNcnProgramAccount {
   Config,
   EpochSnapshot,
   OperatorSnapshot,
+  FinalTransaction,
   VaultRegistry,
   WeightTable,
 }
@@ -59,7 +60,7 @@ export enum RelayerNcnProgramInstruction {
   InitializeBallotBox,
   ReallocBallotBox,
   CastVote,
-  SendTransaction,
+  RollupTransaction,
 }
 
 export function identifyRelayerNcnProgramInstruction(
@@ -112,7 +113,7 @@ export function identifyRelayerNcnProgramInstruction(
     return RelayerNcnProgramInstruction.CastVote;
   }
   if (containsBytes(data, getU8Encoder().encode(15), 0)) {
-    return RelayerNcnProgramInstruction.SendTransaction;
+    return RelayerNcnProgramInstruction.RollupTransaction;
   }
   throw new Error(
     'The provided instruction could not be identified as a relayerNcnProgram instruction.'
@@ -168,5 +169,5 @@ export type ParsedRelayerNcnProgramInstruction<
       instructionType: RelayerNcnProgramInstruction.CastVote;
     } & ParsedCastVoteInstruction<TProgram>)
   | ({
-      instructionType: RelayerNcnProgramInstruction.SendTransaction;
-    } & ParsedSendTransactionInstruction<TProgram>);
+      instructionType: RelayerNcnProgramInstruction.RollupTransaction;
+    } & ParsedRollupTransactionInstruction<TProgram>);

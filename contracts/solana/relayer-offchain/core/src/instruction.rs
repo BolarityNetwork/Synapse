@@ -187,14 +187,12 @@ pub enum RelayerNcnInstruction {
     #[account(1, name = "ncn")]
     #[account(2, name = "ballot_box")]
     #[account(3, name = "hub_config")]
-    #[account(4, name = "relayer_info")]
-    #[account(5, writable, name = "pool")]
-    #[account(6, name = "relayer_hub_program")]
-    #[account(7, name = "restaking_program")]
-    #[account(8, name = "system_program")]
-    SendTransaction {
+    #[account(4, writable, name = "pool")]
+    #[account(5, name = "relayer_hub_program")]
+    #[account(6, name = "restaking_program")]
+    #[account(7, name = "system_program")]
+    #[account(8, writable, name = "transaction")]
+    RollupTransaction {
         epoch: u64,
-        chain: u16,
-        sequence: u64,
     }
 }

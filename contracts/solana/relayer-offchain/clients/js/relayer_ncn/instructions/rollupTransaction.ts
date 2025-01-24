@@ -10,8 +10,6 @@ import {
   combineCodec,
   getStructDecoder,
   getStructEncoder,
-  getU16Decoder,
-  getU16Encoder,
   getU64Decoder,
   getU64Encoder,
   getU8Decoder,
@@ -31,25 +29,25 @@ import {
 import { RELAYER_NCN_PROGRAM_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export const SEND_TRANSACTION_DISCRIMINATOR = 15;
+export const ROLLUP_TRANSACTION_DISCRIMINATOR = 15;
 
-export function getSendTransactionDiscriminatorBytes() {
-  return getU8Encoder().encode(SEND_TRANSACTION_DISCRIMINATOR);
+export function getRollupTransactionDiscriminatorBytes() {
+  return getU8Encoder().encode(ROLLUP_TRANSACTION_DISCRIMINATOR);
 }
 
-export type SendTransactionInstruction<
+export type RollupTransactionInstruction<
   TProgram extends string = typeof RELAYER_NCN_PROGRAM_PROGRAM_ADDRESS,
   TAccountConfig extends string | IAccountMeta<string> = string,
   TAccountNcn extends string | IAccountMeta<string> = string,
   TAccountBallotBox extends string | IAccountMeta<string> = string,
   TAccountHubConfig extends string | IAccountMeta<string> = string,
-  TAccountRelayerInfo extends string | IAccountMeta<string> = string,
   TAccountPool extends string | IAccountMeta<string> = string,
   TAccountRelayerHubProgram extends string | IAccountMeta<string> = string,
   TAccountRestakingProgram extends string | IAccountMeta<string> = string,
   TAccountSystemProgram extends
     | string
     | IAccountMeta<string> = '11111111111111111111111111111111',
+  TAccountTransaction extends string | IAccountMeta<string> = string,
   TRemainingAccounts extends readonly IAccountMeta<string>[] = [],
 > = IInstruction<TProgram> &
   IInstructionWithData<Uint8Array> &
@@ -65,9 +63,6 @@ export type SendTransactionInstruction<
       TAccountHubConfig extends string
         ? ReadonlyAccount<TAccountHubConfig>
         : TAccountHubConfig,
-      TAccountRelayerInfo extends string
-        ? ReadonlyAccount<TAccountRelayerInfo>
-        : TAccountRelayerInfo,
       TAccountPool extends string
         ? WritableAccount<TAccountPool>
         : TAccountPool,
@@ -80,114 +75,105 @@ export type SendTransactionInstruction<
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
+      TAccountTransaction extends string
+        ? WritableAccount<TAccountTransaction>
+        : TAccountTransaction,
       ...TRemainingAccounts,
     ]
   >;
 
-export type SendTransactionInstructionData = {
+export type RollupTransactionInstructionData = {
   discriminator: number;
   epoch: bigint;
-  chain: number;
-  sequence: bigint;
 };
 
-export type SendTransactionInstructionDataArgs = {
-  epoch: number | bigint;
-  chain: number;
-  sequence: number | bigint;
-};
+export type RollupTransactionInstructionDataArgs = { epoch: number | bigint };
 
-export function getSendTransactionInstructionDataEncoder(): Encoder<SendTransactionInstructionDataArgs> {
+export function getRollupTransactionInstructionDataEncoder(): Encoder<RollupTransactionInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ['discriminator', getU8Encoder()],
       ['epoch', getU64Encoder()],
-      ['chain', getU16Encoder()],
-      ['sequence', getU64Encoder()],
     ]),
-    (value) => ({ ...value, discriminator: SEND_TRANSACTION_DISCRIMINATOR })
+    (value) => ({ ...value, discriminator: ROLLUP_TRANSACTION_DISCRIMINATOR })
   );
 }
 
-export function getSendTransactionInstructionDataDecoder(): Decoder<SendTransactionInstructionData> {
+export function getRollupTransactionInstructionDataDecoder(): Decoder<RollupTransactionInstructionData> {
   return getStructDecoder([
     ['discriminator', getU8Decoder()],
     ['epoch', getU64Decoder()],
-    ['chain', getU16Decoder()],
-    ['sequence', getU64Decoder()],
   ]);
 }
 
-export function getSendTransactionInstructionDataCodec(): Codec<
-  SendTransactionInstructionDataArgs,
-  SendTransactionInstructionData
+export function getRollupTransactionInstructionDataCodec(): Codec<
+  RollupTransactionInstructionDataArgs,
+  RollupTransactionInstructionData
 > {
   return combineCodec(
-    getSendTransactionInstructionDataEncoder(),
-    getSendTransactionInstructionDataDecoder()
+    getRollupTransactionInstructionDataEncoder(),
+    getRollupTransactionInstructionDataDecoder()
   );
 }
 
-export type SendTransactionInput<
+export type RollupTransactionInput<
   TAccountConfig extends string = string,
   TAccountNcn extends string = string,
   TAccountBallotBox extends string = string,
   TAccountHubConfig extends string = string,
-  TAccountRelayerInfo extends string = string,
   TAccountPool extends string = string,
   TAccountRelayerHubProgram extends string = string,
   TAccountRestakingProgram extends string = string,
   TAccountSystemProgram extends string = string,
+  TAccountTransaction extends string = string,
 > = {
   config: Address<TAccountConfig>;
   ncn: Address<TAccountNcn>;
   ballotBox: Address<TAccountBallotBox>;
   hubConfig: Address<TAccountHubConfig>;
-  relayerInfo: Address<TAccountRelayerInfo>;
   pool: Address<TAccountPool>;
   relayerHubProgram: Address<TAccountRelayerHubProgram>;
   restakingProgram: Address<TAccountRestakingProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
-  epoch: SendTransactionInstructionDataArgs['epoch'];
-  chain: SendTransactionInstructionDataArgs['chain'];
-  sequence: SendTransactionInstructionDataArgs['sequence'];
+  transaction: Address<TAccountTransaction>;
+  epoch: RollupTransactionInstructionDataArgs['epoch'];
 };
 
-export function getSendTransactionInstruction<
+export function getRollupTransactionInstruction<
   TAccountConfig extends string,
   TAccountNcn extends string,
   TAccountBallotBox extends string,
   TAccountHubConfig extends string,
-  TAccountRelayerInfo extends string,
   TAccountPool extends string,
   TAccountRelayerHubProgram extends string,
   TAccountRestakingProgram extends string,
   TAccountSystemProgram extends string,
+  TAccountTransaction extends string,
   TProgramAddress extends Address = typeof RELAYER_NCN_PROGRAM_PROGRAM_ADDRESS,
 >(
-  input: SendTransactionInput<
+  input: RollupTransactionInput<
     TAccountConfig,
     TAccountNcn,
     TAccountBallotBox,
     TAccountHubConfig,
-    TAccountRelayerInfo,
     TAccountPool,
     TAccountRelayerHubProgram,
     TAccountRestakingProgram,
-    TAccountSystemProgram
+    TAccountSystemProgram,
+    TAccountTransaction
   >,
   config?: { programAddress?: TProgramAddress }
-): SendTransactionInstruction<
+): RollupTransactionInstruction<
   TProgramAddress,
   TAccountConfig,
   TAccountNcn,
   TAccountBallotBox,
   TAccountHubConfig,
-  TAccountRelayerInfo,
   TAccountPool,
   TAccountRelayerHubProgram,
   TAccountRestakingProgram,
-  TAccountSystemProgram
+  TAccountSystemProgram,
+  TAccountTransaction
 > {
   // Program address.
   const programAddress =
@@ -199,7 +185,6 @@ export function getSendTransactionInstruction<
     ncn: { value: input.ncn ?? null, isWritable: false },
     ballotBox: { value: input.ballotBox ?? null, isWritable: false },
     hubConfig: { value: input.hubConfig ?? null, isWritable: false },
-    relayerInfo: { value: input.relayerInfo ?? null, isWritable: false },
     pool: { value: input.pool ?? null, isWritable: true },
     relayerHubProgram: {
       value: input.relayerHubProgram ?? null,
@@ -210,6 +195,7 @@ export function getSendTransactionInstruction<
       isWritable: false,
     },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
+    transaction: { value: input.transaction ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -232,33 +218,33 @@ export function getSendTransactionInstruction<
       getAccountMeta(accounts.ncn),
       getAccountMeta(accounts.ballotBox),
       getAccountMeta(accounts.hubConfig),
-      getAccountMeta(accounts.relayerInfo),
       getAccountMeta(accounts.pool),
       getAccountMeta(accounts.relayerHubProgram),
       getAccountMeta(accounts.restakingProgram),
       getAccountMeta(accounts.systemProgram),
+      getAccountMeta(accounts.transaction),
     ],
     programAddress,
-    data: getSendTransactionInstructionDataEncoder().encode(
-      args as SendTransactionInstructionDataArgs
+    data: getRollupTransactionInstructionDataEncoder().encode(
+      args as RollupTransactionInstructionDataArgs
     ),
-  } as SendTransactionInstruction<
+  } as RollupTransactionInstruction<
     TProgramAddress,
     TAccountConfig,
     TAccountNcn,
     TAccountBallotBox,
     TAccountHubConfig,
-    TAccountRelayerInfo,
     TAccountPool,
     TAccountRelayerHubProgram,
     TAccountRestakingProgram,
-    TAccountSystemProgram
+    TAccountSystemProgram,
+    TAccountTransaction
   >;
 
   return instruction;
 }
 
-export type ParsedSendTransactionInstruction<
+export type ParsedRollupTransactionInstruction<
   TProgram extends string = typeof RELAYER_NCN_PROGRAM_PROGRAM_ADDRESS,
   TAccountMetas extends readonly IAccountMeta[] = readonly IAccountMeta[],
 > = {
@@ -268,23 +254,23 @@ export type ParsedSendTransactionInstruction<
     ncn: TAccountMetas[1];
     ballotBox: TAccountMetas[2];
     hubConfig: TAccountMetas[3];
-    relayerInfo: TAccountMetas[4];
-    pool: TAccountMetas[5];
-    relayerHubProgram: TAccountMetas[6];
-    restakingProgram: TAccountMetas[7];
-    systemProgram: TAccountMetas[8];
+    pool: TAccountMetas[4];
+    relayerHubProgram: TAccountMetas[5];
+    restakingProgram: TAccountMetas[6];
+    systemProgram: TAccountMetas[7];
+    transaction: TAccountMetas[8];
   };
-  data: SendTransactionInstructionData;
+  data: RollupTransactionInstructionData;
 };
 
-export function parseSendTransactionInstruction<
+export function parseRollupTransactionInstruction<
   TProgram extends string,
   TAccountMetas extends readonly IAccountMeta[],
 >(
   instruction: IInstruction<TProgram> &
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
-): ParsedSendTransactionInstruction<TProgram, TAccountMetas> {
+): ParsedRollupTransactionInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 9) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
@@ -302,12 +288,12 @@ export function parseSendTransactionInstruction<
       ncn: getNextAccount(),
       ballotBox: getNextAccount(),
       hubConfig: getNextAccount(),
-      relayerInfo: getNextAccount(),
       pool: getNextAccount(),
       relayerHubProgram: getNextAccount(),
       restakingProgram: getNextAccount(),
       systemProgram: getNextAccount(),
+      transaction: getNextAccount(),
     },
-    data: getSendTransactionInstructionDataDecoder().decode(instruction.data),
+    data: getRollupTransactionInstructionDataDecoder().decode(instruction.data),
   };
 }

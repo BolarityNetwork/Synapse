@@ -31,6 +31,9 @@ pub enum RelayerHubError {
     /// 6006 - Wrong message data format
     #[error("Wrong message data format")]
     MessageFormatError = 0x1776,
+    /// 6007 - Wrong epoch
+    #[error("Wrong epoch")]
+    EpochError = 0x1777,
 }
 
 impl solana_program::program_error::PrintProgramError for RelayerHubError {

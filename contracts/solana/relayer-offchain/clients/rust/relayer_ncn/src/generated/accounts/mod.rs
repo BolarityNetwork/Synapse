@@ -7,11 +7,12 @@
 pub(crate) mod r#ballot_box;
 pub(crate) mod r#config;
 pub(crate) mod r#epoch_snapshot;
+pub(crate) mod r#final_transaction;
 pub(crate) mod r#operator_snapshot;
 pub(crate) mod r#vault_registry;
 pub(crate) mod r#weight_table;
 
 pub use self::{
-    r#ballot_box::*, r#config::*, r#epoch_snapshot::*, r#operator_snapshot::*, r#vault_registry::*,
-    r#weight_table::*,
+    r#ballot_box::*, r#config::*, r#epoch_snapshot::*, r#final_transaction::*,
+    r#operator_snapshot::*, r#vault_registry::*, r#weight_table::*,
 };

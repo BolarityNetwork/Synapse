@@ -20,5 +20,5 @@ export * from './reallocOperatorSnapshot';
 export * from './reallocVaultRegistry';
 export * from './reallocWeightTable';
 export * from './registerVault';
-export * from './sendTransaction';
+export * from './rollupTransaction';
 export * from './snapshotVaultOperatorDelegation';

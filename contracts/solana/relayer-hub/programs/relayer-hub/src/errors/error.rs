@@ -30,4 +30,8 @@ pub enum ErrorCode {
     #[msg("Wrong message data format")]
     /// Wrong message data format.
     MessageFormatError,
+
+    #[msg("Wrong epoch")]
+    /// Wrong epoch.
+    EpochError,
 }

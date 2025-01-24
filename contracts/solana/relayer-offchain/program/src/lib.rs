@@ -13,7 +13,7 @@ mod snapshot_vault_operator_delegation;
 mod initialize_ballot_box;
 mod realloc_ballot_box;
 mod cast_vote;
-mod send_transaction;
+mod rollup_transaction;
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
@@ -47,7 +47,7 @@ use crate::{
     realloc_vault_registry::process_realloc_vault_registry,
     realloc_weight_table::process_realloc_weight_table,
     register_vault::process_register_vault,
-    send_transaction::process_send_transaction,
+    rollup_transaction::process_rollup_transaction,
     snapshot_vault_operator_delegation::process_snapshot_vault_operator_delegation,
 };
 
@@ -174,18 +174,14 @@ pub fn process_instruction(
             msg!("Instruction: CastVote");
             process_cast_vote(program_id, accounts, &meta_merkle_root, epoch)
         }
-        RelayerNcnInstruction::SendTransaction {
+        RelayerNcnInstruction::RollupTransaction {
             epoch,
-            chain,
-            sequence,
         } => {
-            msg!("Instruction: SendTransaction");
-            process_send_transaction(
+            msg!("Instruction: RollupTransaction");
+            process_rollup_transaction(
                 program_id,
                 accounts,
                 epoch,
-                chain,
-                sequence,
             )
         }
     }

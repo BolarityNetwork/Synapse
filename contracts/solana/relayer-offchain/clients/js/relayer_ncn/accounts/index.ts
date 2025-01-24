@@ -9,6 +9,7 @@
 export * from './ballotBox';
 export * from './config';
 export * from './epochSnapshot';
+export * from './finalTransaction';
 export * from './operatorSnapshot';
 export * from './vaultRegistry';
 export * from './weightTable';

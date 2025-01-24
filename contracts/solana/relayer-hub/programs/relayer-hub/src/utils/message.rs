@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use wormhole_raw_vaas::Vaa;
 
 /// # Message data format
 ///
@@ -56,20 +57,13 @@ pub fn get_msg_format(data:&Vec<u8>) -> MessageFormat {
     return format;
 }
 
-/// Check wormhole message data format.
+/// Parse wormhole message.
 ///
 /// # Arguments
 ///
 /// * `data`   - Transaction data pushed to the transaction pool.
-pub fn check_wormhole_message(data:&Vec<u8>) -> bool {
-    let mut passed = false;
-    let parse_result  = wormhole_raw_vaas::Vaa::parse(data.as_slice());
-
-    if parse_result.is_ok() {
-        passed = true;
-    }
-
-    return passed;
+pub fn parse_wormhole_message(data:&Vec<u8>) -> std::result::Result<Vaa, &'static str> {
+    wormhole_raw_vaas::Vaa::parse(data.as_slice())
 }
 
 #[cfg(test)]

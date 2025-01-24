@@ -5,35 +5,21 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-use solana_program::pubkey::Pubkey;
-use crate::generated::types::Status;
 use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
 
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Transaction {
+pub struct EpochSequence {
 pub discriminator: [u8; 8],
-/// The sequence number of the transaction.
-pub sequence: u64,
-pub timestamp: u32,
-pub from_chain: u16,
-pub to_chain: u16,
-/// The sender of the transaction.
-#[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::DisplayFromStr>"))]
-pub relayer: Pubkey,
-/// Root of transaction's state.
-pub state_root: [u8; 32],
-/// Epoch for which this account was created.
 pub epoch: u64,
-/// 254 failing 255 failed 0 pending 1 executed 2 finality
-pub status: Status,
-pub hash: Vec<u8>,
+pub begin_sequence: u64,
+pub current_sequence: u64,
 }
 
 
-impl Transaction {
+impl EpochSequence {
   
   
   
@@ -44,7 +30,7 @@ impl Transaction {
   }
 }
 
-impl<'a> TryFrom<&solana_program::account_info::AccountInfo<'a>> for Transaction {
+impl<'a> TryFrom<&solana_program::account_info::AccountInfo<'a>> for EpochSequence {
   type Error = std::io::Error;
 
   fn try_from(account_info: &solana_program::account_info::AccountInfo<'a>) -> Result<Self, Self::Error> {
@@ -54,28 +40,28 @@ impl<'a> TryFrom<&solana_program::account_info::AccountInfo<'a>> for Transaction
 }
 
   #[cfg(feature = "anchor")]
-  impl anchor_lang::AccountDeserialize for Transaction {
+  impl anchor_lang::AccountDeserialize for EpochSequence {
       fn try_deserialize_unchecked(buf: &mut &[u8]) -> anchor_lang::Result<Self> {
         Ok(Self::deserialize(buf)?)
       }
   }
 
   #[cfg(feature = "anchor")]
-  impl anchor_lang::AccountSerialize for Transaction {}
+  impl anchor_lang::AccountSerialize for EpochSequence {}
 
   #[cfg(feature = "anchor")]
-  impl anchor_lang::Owner for Transaction {
+  impl anchor_lang::Owner for EpochSequence {
       fn owner() -> Pubkey {
         crate::RELAYER_HUB_ID
       }
   }
 
   #[cfg(feature = "anchor-idl-build")]
-  impl anchor_lang::IdlBuild for Transaction {}
+  impl anchor_lang::IdlBuild for EpochSequence {}
 
   
   #[cfg(feature = "anchor-idl-build")]
-  impl anchor_lang::Discriminator for Transaction {
+  impl anchor_lang::Discriminator for EpochSequence {
     const DISCRIMINATOR: [u8; 8] = [0; 8];
   }
 

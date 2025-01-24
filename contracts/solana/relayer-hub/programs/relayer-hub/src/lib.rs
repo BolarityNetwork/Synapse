@@ -2,7 +2,7 @@ mod errors;
 mod states;
 mod instructions;
 mod utils;
-
+use solana_program::stake_history::Epoch;
 use anchor_lang::prelude::*;
 use instructions::{initialize::*, registration::*, transaction_pool::*};
 
@@ -11,7 +11,7 @@ declare_id!("4WPicCsUXGofFXT5HkpXa4tsiSPTeXP8XcxBbWytvEn9");
 #[program]
 pub mod relayer_hub {
     use super::*;
-
+    use crate::errors::error::ErrorCode;
     /// This instruction initializes the program config.
     /// It also initializes the relayer configuration.
     ///
@@ -49,8 +49,13 @@ pub mod relayer_hub {
     /// * `chain`   - Chain ID
     /// * `sequence`   - Trasaction sequence
     /// * `data`   - Transaction data pushed to the transaction pool.
-    pub fn init_transaction(ctx: Context<InitTransaction>, sequence: u64, data: Vec<u8>) -> Result<()> {
-        instructions::transaction_pool::init_transaction(ctx, sequence, data)
+    pub fn init_transaction(ctx: Context<InitTransaction>, sequence: u64, epoch: Epoch, data: Vec<u8>) -> Result<()> {
+        let clock = Clock::get()?;
+        let get_epoch = clock.epoch;
+
+        require!( get_epoch == epoch, ErrorCode::EpochError);
+
+        instructions::transaction_pool::init_transaction(ctx, sequence, epoch, data)
     }
 
     pub fn execute_transaction(ctx: Context<ExecTransaction>, sequence: u64, success: bool) -> Result<()> {
@@ -61,7 +66,11 @@ pub mod relayer_hub {
         instructions::transaction_pool::finalize_transaction(ctx, sequence, finalize, state_root)
     }
 
-    pub fn rollup_transaction(ctx: Context<RollupTransaction>, sequence: u64, accept: bool, state_root: [u8;32], vote: u8, epoch: u64) -> Result<()> {
-        instructions::transaction_pool::rollup_transaction(ctx, sequence, accept, state_root, vote, epoch)
+    pub fn rollup_transaction(ctx: Context<RollupTransaction>, accept: bool, state_root: [u8;32], vote: u8, epoch: u64) -> Result<()> {
+        let clock = Clock::get()?;
+        let get_epoch = clock.epoch;
+
+        require!( get_epoch == epoch, ErrorCode::EpochError);
+        instructions::transaction_pool::rollup_transaction(ctx, accept, state_root, vote, epoch)
     }
 }

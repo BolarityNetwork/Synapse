@@ -11,3 +11,4 @@ pub mod utils;
 pub mod epoch_snapshot;
 pub mod stake_weight;
 pub mod ballot_box;
+pub mod final_transaction;

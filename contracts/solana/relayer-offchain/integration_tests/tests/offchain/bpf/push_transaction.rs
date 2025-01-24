@@ -1,5 +1,7 @@
 mod push_transaction{
     use solana_program::clock::DEFAULT_SLOTS_PER_EPOCH;
+    use solana_sdk::signature::Keypair;
+    use solana_sdk::signer::Signer;
     use relayer_hub_client::types::Status;
     use crate::{
         fixtures::{
@@ -12,13 +14,14 @@ mod push_transaction{
     };
     use merkle_tree::merkle_tree::MerkleTree;
 
+    const RELAYER_COUNT:usize = 3;
+    const OPERATOR_COUNT:usize = 3;
     #[tokio::test]
     async fn test_push_transaction_ok() -> TestResult<()> {
         let mut fixture = TestBuilder::new().await;
         let mut relayer_ncn_client = fixture.relayer_ncn_client();
         let mut relayer_hub_client = fixture.relayer_hub_client();
-        let relayer_count = 3;
-        let test_ncn = fixture.create_initial_test_ncn(relayer_count, 1, None).await?;
+        let test_ncn = fixture.create_initial_test_ncn(OPERATOR_COUNT, 1, None).await?;
 
         fixture.warp_slot_incremental(1000).await?;
         fixture.snapshot_test_ncn(&test_ncn).await?;
@@ -26,6 +29,8 @@ mod push_transaction{
         let ncn = test_ncn.ncn_root.ncn_pubkey;
         let ncn_config_address =
             NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+        let bump =
+            NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn).1;
 
         relayer_hub_client
             .do_initialize(ncn_config_address)
@@ -36,16 +41,18 @@ mod push_transaction{
             .await?;
         let clock = fixture.clock().await;
         let epoch = clock.epoch;
-        let current_relayer_admin = &test_ncn.operators[(epoch % relayer_count as u64)as usize].operator_admin;
-        // ==================Register relayer====================
-        for i in 0..relayer_count {
-            // let operator = test_ncn.operators[i].operator_pubkey;
-            let operator_admin = &test_ncn.operators[i].operator_admin;
+        let mut relayer_keypair_list:Vec<Keypair> = vec![];
 
+        // ==================Register relayer====================
+        for i in 0..RELAYER_COUNT {
+            let relayer_keypair = Keypair::new();
+            relayer_ncn_client.airdrop(&relayer_keypair.pubkey(), 1.0).await?;
             relayer_hub_client
-                .do_register_relayer(operator_admin)
+                .do_register_relayer(&relayer_keypair)
                 .await?;
+            relayer_keypair_list.push(relayer_keypair);
         }
+        let current_relayer = &relayer_keypair_list[(epoch % RELAYER_COUNT as u64) as usize];
         // ==================Relayer Records Transactions into Bolarity Network====================
         let mut tx_nonce = relayer_hub_client.get_pool_sequence().await?;
         let vaas =[
@@ -56,7 +63,7 @@ mod push_transaction{
         let vaa = vaas[0];
 
         relayer_hub_client
-            .do_init_transaction(tx_nonce, current_relayer_admin, vaa.to_vec())
+            .do_init_transaction(tx_nonce, current_relayer, vaa.to_vec(), epoch)
             .await?;
 
         let mut total = relayer_hub_client.get_pool_count().await?;
@@ -64,7 +71,7 @@ mod push_transaction{
         tx_nonce = relayer_hub_client.get_pool_sequence().await?;
         let vaa2 =vaas[1];
         relayer_hub_client
-            .do_init_transaction(tx_nonce, current_relayer_admin, vaa2.to_vec())
+            .do_init_transaction(tx_nonce, current_relayer, vaa2.to_vec(), epoch)
             .await?;
         total = relayer_hub_client.get_pool_count().await?;
         assert_eq!(total, 2);
@@ -72,47 +79,72 @@ mod push_transaction{
         tx_nonce = relayer_hub_client.get_pool_sequence().await?;
         let vaa2 =vaas[2];
         relayer_hub_client
-            .do_init_transaction(tx_nonce, current_relayer_admin, vaa2.to_vec())
+            .do_init_transaction(tx_nonce, current_relayer, vaa2.to_vec(), epoch)
             .await?;
         total = relayer_hub_client.get_pool_count().await?;
         assert_eq!(total, 3);
         // ==================Relayer Monitors Transaction States in Parallel===========
         for i in 0..total {
             relayer_hub_client
-                .do_execute_transaction(i, current_relayer_admin, true)
+                .do_execute_transaction(i, current_relayer, true)
                 .await?;
             let status = relayer_hub_client.get_tx_status(i).await?;
             assert_eq!(status, Status::Executed);
         }
         // ==================Operator Validates Transactions and Prepares State Roots( offchain)==============
-        // TODO:generate state root
-        // let mt = MerkleTree::new(&vaas, false);
-        // println!("==================root:{:?}", mt.get_root());
-        // println!("==================node:{:?}", mt.find_path(0));
-        for i in 0..total {
-            relayer_hub_client
-                .do_finalize_transaction(i, current_relayer_admin, true, [0u8;32])
+        let current_operator = &test_ncn.operators[(epoch % OPERATOR_COUNT as u64)as usize].operator_admin;
+        let mut sequences = vec![];
+        // Find transactions that are in the Executed or Failing state in a certain epoch.
+        let state_root = if let Ok((begin_sequence, current_sequence))= relayer_hub_client.get_all_can_finalize_tx(epoch).await {
+            for i in begin_sequence..=current_sequence {
+                let old_status = relayer_hub_client.get_tx_status(i).await?;
+                if old_status == Status::Executed || old_status == Status::Failing {
+                    sequences.push(i);
+                }
+            }
+            let byte_vecs: Vec<Vec<u8>> = sequences
+                .iter()
+                .map(|&num| {
+                    num.to_le_bytes().to_vec()
+                })
+                .collect();
+            let mt = MerkleTree::new(&byte_vecs, false);
+            let state_root = mt.get_root().unwrap().to_bytes();
+            for sequence in sequences{
+                relayer_hub_client
+                    .do_finalize_transaction(sequence, current_operator, true, state_root)
+                    .await?;
+                let status = relayer_hub_client.get_tx_status(sequence).await?;
+                assert_eq!(status, Status::Finality);
+                let root = relayer_hub_client.get_tx(sequence).await?;
+                assert_eq!(root.state_root, state_root);
+            }
+            state_root
+        } else {
+            [0u8;32]
+        };
+        // ========================Operator Conducts Voting==============================
+        // Initialize ballot box
+        relayer_ncn_client
+            .do_full_initialize_ballot_box(ncn, epoch)
+            .await?;
+        let winning_root = state_root;
+
+        for i in 0..OPERATOR_COUNT {
+            let operator = test_ncn.operators[i].operator_pubkey;
+            let operator_admin = &test_ncn.operators[i].operator_admin;
+
+            relayer_ncn_client
+                .do_cast_vote(ncn, operator, operator_admin, winning_root, epoch)
                 .await?;
-            let status = relayer_hub_client.get_tx_status(i).await?;
-            assert_eq!(status, Status::Finality);
         }
+        relayer_ncn_client.do_rollup_transaction(ncn, epoch, current_operator).await?;
 
-        // // Initialize ballot box
-        // relayer_ncn_client
-        //     .do_full_initialize_ballot_box(ncn, epoch)
-        //     .await?;
-        // let winning_root = [1u8;32];
-        //
-        //
-        // relayer_ncn_client
-        //     .do_cast_vote(ncn, operator1, operator1_admin, winning_root, epoch)
-        //     .await?;
-        //
-        // relayer_ncn_client
-        //     .do_cast_vote(ncn, operator2, operator2_admin, winning_root, epoch)
-        //     .await?;
-
-
+        total = relayer_hub_client.get_final_pool_count().await?;
+        assert_eq!(total, 1);
+        let final_tx = relayer_hub_client.get_final_tx(epoch).await?;
+        assert_eq!(final_tx.state_root, state_root);
+        assert!(final_tx.votes>=66);
         Ok(())
     }
 }

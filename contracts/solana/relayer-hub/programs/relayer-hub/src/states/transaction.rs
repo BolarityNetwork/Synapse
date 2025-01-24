@@ -16,7 +16,6 @@ pub struct Transaction {
     // pub pool_index:u16,
     /// The sequence number of the transaction.
     pub sequence: u64,
-    pub hash: [u8;32],
     pub timestamp: u32,
     pub from_chain: u16,
     pub to_chain: u16,
@@ -28,6 +27,7 @@ pub struct Transaction {
     pub epoch: u64,
     /// 254 failing 255 failed 0 pending 1 executed 2 finality
     pub status: Status,
+    pub hash: Vec<u8>,
     // /// Transaction data.
     // pub data:Vec<u8>,
 }
@@ -35,7 +35,7 @@ pub struct Transaction {
 impl Transaction {
     pub const SEED_PREFIX: &'static [u8; 2] = b"tx";
     // TODO:change space
-    pub const MAX_SIZE: usize = 8 + 32 + 4 + 2 + 2 + 32 + 32 + 8 + 1;
+    pub const MAX_SIZE: usize = 8  + 4 + 2 + 2 + 32 + 32 + 8 + 1 + 100;
 }
 
 #[account]
@@ -56,6 +56,7 @@ impl TransactionPool {
 
 
 #[account]
+#[derive(InitSpace)]
 /// Transaction account.
 pub struct FinalTransaction {
     /// The sequence number of the transaction.
@@ -66,14 +67,11 @@ pub struct FinalTransaction {
     pub epoch: u64,
     pub accepted: bool,
     pub votes: u8,
-    // /// Transaction data.
-    // pub data:Vec<u8>,
 }
 
 impl FinalTransaction {
     pub const SEED_PREFIX: &'static [u8; 8] = b"final_tx";
-    // TODO:change space
-    pub const MAX_SIZE: usize = 8 + 32 + 8 + 1 + 1;
+    // pub const MAX_SIZE: usize = 8 + 32 + 8 + 1 + 1;
 }
 
 #[account]
@@ -86,4 +84,16 @@ pub struct FinalTransactionPool {
 
 impl FinalTransactionPool {
     pub const SEED_PREFIX: &'static [u8; 10] = b"final_pool";
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct EpochSequence {
+    pub epoch: u64,
+    pub begin_sequence: u64,
+    pub current_sequence: u64,
+}
+
+impl EpochSequence {
+    pub const SEED_PREFIX: &'static [u8; 14] = b"epoch_sequence";
 }

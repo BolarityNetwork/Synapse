@@ -35,6 +35,16 @@ pub struct InitTransaction {
     
               
           pub transaction: solana_program::pubkey::Pubkey,
+                /// Transaction account.
+
+    
+              
+          pub epoch_sequence: solana_program::pubkey::Pubkey,
+                /// Transaction account.
+
+    
+              
+          pub final_transaction: solana_program::pubkey::Pubkey,
                 /// System program.
 
     
@@ -48,7 +58,7 @@ impl InitTransaction {
   }
   #[allow(clippy::vec_init_then_push)]
   pub fn instruction_with_remaining_accounts(&self, args: InitTransactionInstructionArgs, remaining_accounts: &[solana_program::instruction::AccountMeta]) -> solana_program::instruction::Instruction {
-    let mut accounts = Vec::with_capacity(6+ remaining_accounts.len());
+    let mut accounts = Vec::with_capacity(8+ remaining_accounts.len());
                             accounts.push(solana_program::instruction::AccountMeta::new(
             self.relayer,
             true
@@ -67,6 +77,14 @@ impl InitTransaction {
           ));
                                           accounts.push(solana_program::instruction::AccountMeta::new(
             self.transaction,
+            false
+          ));
+                                          accounts.push(solana_program::instruction::AccountMeta::new(
+            self.epoch_sequence,
+            false
+          ));
+                                          accounts.push(solana_program::instruction::AccountMeta::new(
+            self.final_transaction,
             false
           ));
                                           accounts.push(solana_program::instruction::AccountMeta::new_readonly(
@@ -90,13 +108,13 @@ impl InitTransaction {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
  pub struct InitTransactionInstructionData {
             discriminator: [u8; 8],
-                  }
+                        }
 
 impl InitTransactionInstructionData {
   pub fn new() -> Self {
     Self {
                         discriminator: [144, 48, 27, 226, 98, 225, 195, 163],
-                                              }
+                                                            }
   }
 }
 
@@ -110,6 +128,7 @@ impl Default for InitTransactionInstructionData {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
  pub struct InitTransactionInstructionArgs {
                   pub sequence: u64,
+                pub epoch: u64,
                 pub data: Vec<u8>,
       }
 
@@ -123,7 +142,9 @@ impl Default for InitTransactionInstructionData {
           ///   2. `[]` relayer_info
                 ///   3. `[writable]` pool
                 ///   4. `[writable]` transaction
-                ///   5. `[optional]` system_program (default to `11111111111111111111111111111111`)
+                ///   5. `[writable]` epoch_sequence
+                ///   6. `[writable]` final_transaction
+                ///   7. `[optional]` system_program (default to `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
 pub struct InitTransactionBuilder {
             relayer: Option<solana_program::pubkey::Pubkey>,
@@ -131,8 +152,11 @@ pub struct InitTransactionBuilder {
                 relayer_info: Option<solana_program::pubkey::Pubkey>,
                 pool: Option<solana_program::pubkey::Pubkey>,
                 transaction: Option<solana_program::pubkey::Pubkey>,
+                epoch_sequence: Option<solana_program::pubkey::Pubkey>,
+                final_transaction: Option<solana_program::pubkey::Pubkey>,
                 system_program: Option<solana_program::pubkey::Pubkey>,
                         sequence: Option<u64>,
+                epoch: Option<u64>,
                 data: Option<Vec<u8>>,
         __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
@@ -171,6 +195,18 @@ impl InitTransactionBuilder {
                         self.transaction = Some(transaction);
                     self
     }
+            /// Transaction account.
+#[inline(always)]
+    pub fn epoch_sequence(&mut self, epoch_sequence: solana_program::pubkey::Pubkey) -> &mut Self {
+                        self.epoch_sequence = Some(epoch_sequence);
+                    self
+    }
+            /// Transaction account.
+#[inline(always)]
+    pub fn final_transaction(&mut self, final_transaction: solana_program::pubkey::Pubkey) -> &mut Self {
+                        self.final_transaction = Some(final_transaction);
+                    self
+    }
             /// `[optional account, default to '11111111111111111111111111111111']`
 /// System program.
 #[inline(always)]
@@ -181,6 +217,11 @@ impl InitTransactionBuilder {
                     #[inline(always)]
       pub fn sequence(&mut self, sequence: u64) -> &mut Self {
         self.sequence = Some(sequence);
+        self
+      }
+                #[inline(always)]
+      pub fn epoch(&mut self, epoch: u64) -> &mut Self {
+        self.epoch = Some(epoch);
         self
       }
                 #[inline(always)]
@@ -208,10 +249,13 @@ impl InitTransactionBuilder {
                                         relayer_info: self.relayer_info.expect("relayer_info is not set"),
                                         pool: self.pool.expect("pool is not set"),
                                         transaction: self.transaction.expect("transaction is not set"),
+                                        epoch_sequence: self.epoch_sequence.expect("epoch_sequence is not set"),
+                                        final_transaction: self.final_transaction.expect("final_transaction is not set"),
                                         system_program: self.system_program.unwrap_or(solana_program::pubkey!("11111111111111111111111111111111")),
                       };
           let args = InitTransactionInstructionArgs {
                                                               sequence: self.sequence.clone().expect("sequence is not set"),
+                                                                  epoch: self.epoch.clone().expect("epoch is not set"),
                                                                   data: self.data.clone().expect("data is not set"),
                                     };
     
@@ -246,6 +290,16 @@ impl InitTransactionBuilder {
       
                     
               pub transaction: &'b solana_program::account_info::AccountInfo<'a>,
+                        /// Transaction account.
+
+      
+                    
+              pub epoch_sequence: &'b solana_program::account_info::AccountInfo<'a>,
+                        /// Transaction account.
+
+      
+                    
+              pub final_transaction: &'b solana_program::account_info::AccountInfo<'a>,
                         /// System program.
 
       
@@ -282,6 +336,16 @@ pub struct InitTransactionCpi<'a, 'b> {
     
               
           pub transaction: &'b solana_program::account_info::AccountInfo<'a>,
+                /// Transaction account.
+
+    
+              
+          pub epoch_sequence: &'b solana_program::account_info::AccountInfo<'a>,
+                /// Transaction account.
+
+    
+              
+          pub final_transaction: &'b solana_program::account_info::AccountInfo<'a>,
                 /// System program.
 
     
@@ -304,6 +368,8 @@ impl<'a, 'b> InitTransactionCpi<'a, 'b> {
               relayer_info: accounts.relayer_info,
               pool: accounts.pool,
               transaction: accounts.transaction,
+              epoch_sequence: accounts.epoch_sequence,
+              final_transaction: accounts.final_transaction,
               system_program: accounts.system_program,
                     __args: args,
           }
@@ -327,7 +393,7 @@ impl<'a, 'b> InitTransactionCpi<'a, 'b> {
     signers_seeds: &[&[&[u8]]],
     remaining_accounts: &[(&'b solana_program::account_info::AccountInfo<'a>, bool, bool)]
   ) -> solana_program::entrypoint::ProgramResult {
-    let mut accounts = Vec::with_capacity(6+ remaining_accounts.len());
+    let mut accounts = Vec::with_capacity(8+ remaining_accounts.len());
                             accounts.push(solana_program::instruction::AccountMeta::new(
             *self.relayer.key,
             true
@@ -346,6 +412,14 @@ impl<'a, 'b> InitTransactionCpi<'a, 'b> {
           ));
                                           accounts.push(solana_program::instruction::AccountMeta::new(
             *self.transaction.key,
+            false
+          ));
+                                          accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.epoch_sequence.key,
+            false
+          ));
+                                          accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.final_transaction.key,
             false
           ));
                                           accounts.push(solana_program::instruction::AccountMeta::new_readonly(
@@ -368,13 +442,15 @@ impl<'a, 'b> InitTransactionCpi<'a, 'b> {
       accounts,
       data,
     };
-    let mut account_infos = Vec::with_capacity(7 + remaining_accounts.len());
+    let mut account_infos = Vec::with_capacity(9 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
                   account_infos.push(self.relayer.clone());
                         account_infos.push(self.config.clone());
                         account_infos.push(self.relayer_info.clone());
                         account_infos.push(self.pool.clone());
                         account_infos.push(self.transaction.clone());
+                        account_infos.push(self.epoch_sequence.clone());
+                        account_infos.push(self.final_transaction.clone());
                         account_infos.push(self.system_program.clone());
               remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
 
@@ -395,7 +471,9 @@ impl<'a, 'b> InitTransactionCpi<'a, 'b> {
           ///   2. `[]` relayer_info
                 ///   3. `[writable]` pool
                 ///   4. `[writable]` transaction
-          ///   5. `[]` system_program
+                ///   5. `[writable]` epoch_sequence
+                ///   6. `[writable]` final_transaction
+          ///   7. `[]` system_program
 #[derive(Clone, Debug)]
 pub struct InitTransactionCpiBuilder<'a, 'b> {
   instruction: Box<InitTransactionCpiBuilderInstruction<'a, 'b>>,
@@ -410,8 +488,11 @@ impl<'a, 'b> InitTransactionCpiBuilder<'a, 'b> {
               relayer_info: None,
               pool: None,
               transaction: None,
+              epoch_sequence: None,
+              final_transaction: None,
               system_program: None,
                                             sequence: None,
+                                epoch: None,
                                 data: None,
                     __remaining_accounts: Vec::new(),
     });
@@ -447,6 +528,18 @@ impl<'a, 'b> InitTransactionCpiBuilder<'a, 'b> {
                         self.instruction.transaction = Some(transaction);
                     self
     }
+      /// Transaction account.
+#[inline(always)]
+    pub fn epoch_sequence(&mut self, epoch_sequence: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.epoch_sequence = Some(epoch_sequence);
+                    self
+    }
+      /// Transaction account.
+#[inline(always)]
+    pub fn final_transaction(&mut self, final_transaction: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.final_transaction = Some(final_transaction);
+                    self
+    }
       /// System program.
 #[inline(always)]
     pub fn system_program(&mut self, system_program: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
@@ -456,6 +549,11 @@ impl<'a, 'b> InitTransactionCpiBuilder<'a, 'b> {
                     #[inline(always)]
       pub fn sequence(&mut self, sequence: u64) -> &mut Self {
         self.instruction.sequence = Some(sequence);
+        self
+      }
+                #[inline(always)]
+      pub fn epoch(&mut self, epoch: u64) -> &mut Self {
+        self.instruction.epoch = Some(epoch);
         self
       }
                 #[inline(always)]
@@ -487,6 +585,7 @@ impl<'a, 'b> InitTransactionCpiBuilder<'a, 'b> {
   pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program::entrypoint::ProgramResult {
           let args = InitTransactionInstructionArgs {
                                                               sequence: self.instruction.sequence.clone().expect("sequence is not set"),
+                                                                  epoch: self.instruction.epoch.clone().expect("epoch is not set"),
                                                                   data: self.instruction.data.clone().expect("data is not set"),
                                     };
         let instruction = InitTransactionCpi {
@@ -501,6 +600,10 @@ impl<'a, 'b> InitTransactionCpiBuilder<'a, 'b> {
           pool: self.instruction.pool.expect("pool is not set"),
                   
           transaction: self.instruction.transaction.expect("transaction is not set"),
+                  
+          epoch_sequence: self.instruction.epoch_sequence.expect("epoch_sequence is not set"),
+                  
+          final_transaction: self.instruction.final_transaction.expect("final_transaction is not set"),
                   
           system_program: self.instruction.system_program.expect("system_program is not set"),
                           __args: args,
@@ -517,8 +620,11 @@ struct InitTransactionCpiBuilderInstruction<'a, 'b> {
                 relayer_info: Option<&'b solana_program::account_info::AccountInfo<'a>>,
                 pool: Option<&'b solana_program::account_info::AccountInfo<'a>>,
                 transaction: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+                epoch_sequence: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+                final_transaction: Option<&'b solana_program::account_info::AccountInfo<'a>>,
                 system_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
                         sequence: Option<u64>,
+                epoch: Option<u64>,
                 data: Option<Vec<u8>>,
         /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
   __remaining_accounts: Vec<(&'b solana_program::account_info::AccountInfo<'a>, bool, bool)>,
