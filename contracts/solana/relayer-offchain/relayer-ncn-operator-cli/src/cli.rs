@@ -22,5 +22,7 @@ pub struct Cli {
 #[derive(clap::Subcommand)]
 pub enum Commands {
     Run {
+        #[arg(short, long)]
+        ncn_address: Pubkey,
     },
 }

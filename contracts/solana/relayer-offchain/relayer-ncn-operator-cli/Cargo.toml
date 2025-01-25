@@ -31,6 +31,12 @@ solana-stake-program = { workspace = true }
 solana-vote = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
+relayer-ncn-client = { workspace = true }
+relayer-ncn-core = { workspace = true }
+relayer-ncn-program = { workspace = true }
+relayer-hub-sdk = { workspace = true }
+relayer-hub-client = { workspace = true }
+merkle-tree = { workspace = true }
 
 [dev-dependencies]
 solana-program-test = { workspace = true }

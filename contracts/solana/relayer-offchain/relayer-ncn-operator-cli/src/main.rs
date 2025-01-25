@@ -25,6 +25,7 @@ async fn main() -> Result<()> {
 
     match &cli.command {
         Commands::Run {
+            ncn_address,
         } => {
             info!("Running Relayer NCN Operator client...");
 
@@ -39,6 +40,7 @@ async fn main() -> Result<()> {
                     &rpc_client,
                     previous_epoch,
                     &keypair,
+                    ncn_address,
                     &cli,
                 )
                     .await
