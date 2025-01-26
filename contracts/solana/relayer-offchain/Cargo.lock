@@ -375,6 +375,7 @@ dependencies = [
  "anchor-derive-accounts 0.30.1",
  "anchor-derive-serde",
  "anchor-derive-space",
+ "anchor-lang-idl",
  "arrayref",
  "base64 0.21.7",
  "bincode",
@@ -394,6 +395,7 @@ dependencies = [
  "anchor-lang-idl-spec",
  "anyhow",
  "heck 0.3.3",
+ "regex",
  "serde",
  "serde_json",
  "sha2 0.10.8",
@@ -435,6 +437,7 @@ checksum = "f99daacb53b55cfd37ce14d6c9905929721137fd4c67bbab44a19802aecb622f"
 dependencies = [
  "anyhow",
  "bs58 0.5.1",
+ "cargo_toml 0.19.2",
  "heck 0.3.3",
  "proc-macro2",
  "quote",
@@ -1259,6 +1262,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "cargo_toml"
+version = "0.19.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a98356df42a2eb1bd8f1793ae4ee4de48e384dd974ce5eac8eee802edb7492be"
+dependencies = [
+ "serde",
+ "toml 0.8.19",
+]
+
+[[package]]
 name = "cc"
 version = "1.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1376,6 +1389,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap-markdown"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ebc67e6266e14f8b31541c2f204724fa2ac7ad5c17d6f5908fbb92a60f42cff"
+dependencies = [
+ "clap 4.5.23",
+]
+
+[[package]]
 name = "clap_builder"
 version = "4.5.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1413,40 +1435,6 @@ name = "clap_lex"
 version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f46ad14479a25103f283c0f10005961cf086d8dc42205bb44c46ac563475dca6"
-
-[[package]]
-name = "cli"
-version = "0.1.0"
-dependencies = [
- "anchor-lang 0.30.1",
- "anyhow",
- "base64 0.13.1",
- "clap 4.5.23",
- "ellipsis-client",
- "env_logger 0.10.2",
- "hex",
- "im",
- "itertools 0.11.0",
- "jito-bytemuck",
- "jito-restaking-program",
- "log",
- "serde",
- "serde_json",
- "solana-accounts-db 1.18.26 (git+https://github.com/jito-foundation/jito-solana.git?rev=0bbcbe476c0e728907ac01135115e661c16538e5)",
- "solana-client 1.18.26 (git+https://github.com/jito-foundation/jito-solana.git?rev=0bbcbe476c0e728907ac01135115e661c16538e5)",
- "solana-ledger",
- "solana-metrics 1.18.26 (git+https://github.com/jito-foundation/jito-solana.git?rev=0bbcbe476c0e728907ac01135115e661c16538e5)",
- "solana-program",
- "solana-program-test 1.18.26 (git+https://github.com/jito-foundation/jito-solana.git?rev=0bbcbe476c0e728907ac01135115e661c16538e5)",
- "solana-rpc-client",
- "solana-runtime 1.18.26 (git+https://github.com/jito-foundation/jito-solana.git?rev=0bbcbe476c0e728907ac01135115e661c16538e5)",
- "solana-sdk",
- "solana-stake-program 1.18.26 (git+https://github.com/jito-foundation/jito-solana.git?rev=0bbcbe476c0e728907ac01135115e661c16538e5)",
- "solana-vote 1.18.26 (git+https://github.com/jito-foundation/jito-solana.git?rev=0bbcbe476c0e728907ac01135115e661c16538e5)",
- "tempfile",
- "thiserror",
- "tokio",
-]
 
 [[package]]
 name = "colorchoice"
@@ -1864,6 +1852,12 @@ dependencies = [
  "quote",
  "syn 2.0.93",
 ]
+
+[[package]]
+name = "dotenv"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77c90badedccf4105eca100756a0b1289e191f6fcbdadd3cee1d2f614f97da8f"
 
 [[package]]
 name = "downcast"
@@ -2990,6 +2984,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "jito-restaking-client"
+version = "0.0.3"
+source = "git+https://github.com/jito-foundation/restaking.git?rev=eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d#eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d"
+dependencies = [
+ "anchor-lang 0.30.1",
+ "borsh 0.10.4",
+ "bytemuck",
+ "num-derive 0.4.2",
+ "num-traits",
+ "serde",
+ "serde_with 3.12.0",
+ "solana-program",
+ "solana-sdk",
+ "thiserror",
+]
+
+[[package]]
 name = "jito-restaking-core"
 version = "0.0.3"
 source = "git+https://github.com/jito-foundation/restaking.git?rev=eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d#eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d"
@@ -3036,6 +3047,23 @@ dependencies = [
  "borsh 0.10.4",
  "shank",
  "solana-program",
+ "thiserror",
+]
+
+[[package]]
+name = "jito-vault-client"
+version = "0.0.3"
+source = "git+https://github.com/jito-foundation/restaking.git?rev=eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d#eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d"
+dependencies = [
+ "anchor-lang 0.30.1",
+ "borsh 0.10.4",
+ "bytemuck",
+ "num-derive 0.4.2",
+ "num-traits",
+ "serde",
+ "serde_with 3.12.0",
+ "solana-program",
+ "solana-sdk",
  "thiserror",
 ]
 
@@ -4514,6 +4542,49 @@ dependencies = [
 ]
 
 [[package]]
+name = "relayer-ncn-cli"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "assert_matches",
+ "borsh 0.10.4",
+ "bytemuck",
+ "chrono",
+ "clap 4.5.23",
+ "clap-markdown",
+ "dotenv",
+ "env_logger 0.10.2",
+ "futures",
+ "jito-bytemuck",
+ "jito-jsm-core",
+ "jito-restaking-client",
+ "jito-restaking-core",
+ "jito-restaking-program",
+ "jito-restaking-sdk",
+ "jito-vault-client",
+ "jito-vault-core",
+ "jito-vault-program",
+ "jito-vault-sdk",
+ "log",
+ "relayer-hub-sdk",
+ "relayer-ncn-client",
+ "relayer-ncn-core",
+ "relayer-ncn-program",
+ "solana-account-decoder 1.18.26 (git+https://github.com/jito-foundation/jito-solana.git?rev=0bbcbe476c0e728907ac01135115e661c16538e5)",
+ "solana-client 1.18.26 (git+https://github.com/jito-foundation/jito-solana.git?rev=0bbcbe476c0e728907ac01135115e661c16538e5)",
+ "solana-metrics 1.18.26 (git+https://github.com/jito-foundation/jito-solana.git?rev=0bbcbe476c0e728907ac01135115e661c16538e5)",
+ "solana-program",
+ "solana-rpc-client",
+ "solana-sdk",
+ "solana-transaction-status",
+ "spl-associated-token-account",
+ "spl-stake-pool",
+ "spl-token",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "relayer-ncn-client"
 version = "0.0.1"
 dependencies = [
@@ -5162,7 +5233,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b2d15f5074691d1cd7987376ffbb85bd3fd3a5a5bdd68284e0c120968cdd554"
 dependencies = [
  "anyhow",
- "cargo_toml",
+ "cargo_toml 0.17.2",
  "heck 0.3.3",
  "serde",
  "serde_json",

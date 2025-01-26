@@ -6,7 +6,7 @@ use solana_program::stake_history::Epoch;
 use anchor_lang::prelude::*;
 use instructions::{initialize::*, registration::*, transaction_pool::*};
 
-declare_id!("4WPicCsUXGofFXT5HkpXa4tsiSPTeXP8XcxBbWytvEn9");
+declare_id!("25dmj8Y96VsSGMz4acYpfXD66vFSDNn8wB5wz1gmNZsH");
 
 #[program]
 pub mod relayer_hub {

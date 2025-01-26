@@ -4,14 +4,6 @@ use std::{
 };
 
 use jito_restaking_core::{config::Config, ncn_vault_ticket::NcnVaultTicket};
-// use relayer_hub_sdk::relayer_hub;
-// use jito_tip_router_core::{
-//     base_fee_group::BaseFeeGroup,
-//     base_reward_router::BaseRewardReceiver,
-//     constants::{JITOSOL_MINT, JTO_SOL_FEED},
-//     ncn_fee_group::NcnFeeGroup,
-//     ncn_reward_router::NcnRewardReceiver,
-// };
 use jito_vault_core::vault_ncn_ticket::VaultNcnTicket;
 use solana_program::{
     clock::Clock, native_token::sol_to_lamports, program_pack::Pack, pubkey::Pubkey,
@@ -31,9 +23,6 @@ use relayer_ncn_core::constants::JITOSOL_MINT;
 use super::{
     generated_switchboard_accounts::get_switchboard_accounts,
     restaking_client::NcnRoot,
-    // stake_pool_client::{PoolRoot, StakePoolClient},
-    // tip_distribution_client::TipDistributionClient,
-    // tip_router_client::TipRouterClient,
 };
 use crate::fixtures::{
     restaking_client::{OperatorRoot, RestakingProgramClient},

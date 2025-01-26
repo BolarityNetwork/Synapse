@@ -890,6 +890,10 @@
                 256
               ]
             }
+          },
+          {
+            "name": "votes",
+            "type": "u8"
           }
         ]
       }
@@ -1933,6 +1937,6 @@
   ],
   "metadata": {
     "origin": "shank",
-    "address": "J2rxY1z3Wgt4VYrN4EVh6FGnEZHnEyHqQcwvd2kfKnxh"
+    "address": "BQdy9Tdk4R3fr6dsJN3XcnrqtA97gwAHyEcmrPZscQ6k"
   }
 }

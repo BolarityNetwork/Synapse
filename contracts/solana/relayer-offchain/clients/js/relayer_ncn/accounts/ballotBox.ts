@@ -62,6 +62,7 @@ export type BallotBox = {
   winningBallot: Ballot;
   operatorVotes: Array<OperatorVote>;
   ballotTallies: Array<BallotTally>;
+  votes: number;
 };
 
 export type BallotBoxArgs = {
@@ -77,6 +78,7 @@ export type BallotBoxArgs = {
   winningBallot: BallotArgs;
   operatorVotes: Array<OperatorVoteArgs>;
   ballotTallies: Array<BallotTallyArgs>;
+  votes: number;
 };
 
 export function getBallotBoxEncoder(): Encoder<BallotBoxArgs> {
@@ -93,6 +95,7 @@ export function getBallotBoxEncoder(): Encoder<BallotBoxArgs> {
     ['winningBallot', getBallotEncoder()],
     ['operatorVotes', getArrayEncoder(getOperatorVoteEncoder(), { size: 256 })],
     ['ballotTallies', getArrayEncoder(getBallotTallyEncoder(), { size: 256 })],
+    ['votes', getU8Encoder()],
   ]);
 }
 
@@ -110,6 +113,7 @@ export function getBallotBoxDecoder(): Decoder<BallotBox> {
     ['winningBallot', getBallotDecoder()],
     ['operatorVotes', getArrayDecoder(getOperatorVoteDecoder(), { size: 256 })],
     ['ballotTallies', getArrayDecoder(getBallotTallyDecoder(), { size: 256 })],
+    ['votes', getU8Decoder()],
   ]);
 }
 

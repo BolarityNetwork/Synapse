@@ -54,22 +54,6 @@ use crate::{
 declare_id!(str_to_pubkey(env!("RELAYER_NCN_PROGRAM_ID")));
 
 #[cfg(not(feature = "no-entrypoint"))]
-use solana_security_txt::security_txt;
-
-#[cfg(not(feature = "no-entrypoint"))]
-security_txt! {
-    // Required fields
-    name: "Jito's MEV Tip Distribution NCN Program",
-    project_url: "https://jito.network/",
-    contacts: "email:team@jito.network",
-    policy: "https://github.com/jito-foundation/jito-tip-router",
-    // Optional Fields
-    preferred_languages: "en",
-    source_code: "https://github.com/jito-foundation/jito-tip-router"
-}
-
-
-#[cfg(not(feature = "no-entrypoint"))]
 solana_program::entrypoint!(process_instruction);
 pub fn process_instruction(
     program_id: &Pubkey,

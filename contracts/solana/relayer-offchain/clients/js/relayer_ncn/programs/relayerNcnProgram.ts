@@ -32,7 +32,7 @@ import {
 } from '../instructions';
 
 export const RELAYER_NCN_PROGRAM_PROGRAM_ADDRESS =
-  'J2rxY1z3Wgt4VYrN4EVh6FGnEZHnEyHqQcwvd2kfKnxh' as Address<'J2rxY1z3Wgt4VYrN4EVh6FGnEZHnEyHqQcwvd2kfKnxh'>;
+  'BQdy9Tdk4R3fr6dsJN3XcnrqtA97gwAHyEcmrPZscQ6k' as Address<'BQdy9Tdk4R3fr6dsJN3XcnrqtA97gwAHyEcmrPZscQ6k'>;
 
 export enum RelayerNcnProgramAccount {
   BallotBox,
@@ -121,7 +121,7 @@ export function identifyRelayerNcnProgramInstruction(
 }
 
 export type ParsedRelayerNcnProgramInstruction<
-  TProgram extends string = 'J2rxY1z3Wgt4VYrN4EVh6FGnEZHnEyHqQcwvd2kfKnxh',
+  TProgram extends string = 'BQdy9Tdk4R3fr6dsJN3XcnrqtA97gwAHyEcmrPZscQ6k',
 > =
   | ({
       instructionType: RelayerNcnProgramInstruction.InitializeConfig;

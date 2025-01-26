@@ -31,6 +31,7 @@ pub struct BallotBox {
     pub operator_votes: [OperatorVote; 256],
     #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
     pub ballot_tallies: [BallotTally; 256],
+    pub votes: u8,
 }
 
 impl BallotBox {

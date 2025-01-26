@@ -14,7 +14,7 @@ module.exports = async function (provider) {
   const idl = JSON.parse(
       require("fs").readFileSync(currentDirectory + "/target/idl/relayer_hub.json", "utf8")
   );
-  const programID=new PublicKey("4WPicCsUXGofFXT5HkpXa4tsiSPTeXP8XcxBbWytvEn9")
+  const programID=new PublicKey("25dmj8Y96VsSGMz4acYpfXD66vFSDNn8wB5wz1gmNZsH")
   const program = new anchor.Program(idl, programID);
   const genPDAAccount = async (seed:string)=> {
     return PublicKey.findProgramAddressSync(
@@ -29,11 +29,10 @@ module.exports = async function (provider) {
   const [relayerInfoPDA] = await genPDAAccount("relayer_info")
   const [poolPDA] = await genPDAAccount("pool")
   const [finalPoolPDA] = await genPDAAccount("final_pool")
-  // ======================initialize=========================
-  // const authority_keypair =  Keypair.generate();
-  // console.log(bs58.encode(authority_keypair.secretKey))
+  // // ======================initialize=========================
+  // const authority =  new PublicKey("Fya4DEVBJSj5VrCesmsVkcgWcrCrFo2w7V7cuhvAn7iW");
   // const ix = program.methods
-  //     .initialize(authority_keypair.publicKey)
+  //     .initialize(authority)
   //     .accounts({
   //       config:configPDA,
   //       relayer_info: relayerInfoPDA,
@@ -49,7 +48,7 @@ module.exports = async function (provider) {
   //     console.log(error);
   // }
   // // ======================register pool=========================
-
+  //
   //   const ix = program.methods
   //       .registerTxPool()
   //       .accounts({
@@ -70,8 +69,8 @@ module.exports = async function (provider) {
 
   // ======================register relayer=========================
   // const relayer_keypair =  Keypair.generate();
-  // console.log(bs58.encode(relayer_keypair.secretKey))
-  // console.log(relayer_keypair.publicKey.toBase58())
+  // console.log(bs58.encode(relayer_keypair.secretKey));
+  // console.log(relayer_keypair.publicKey.toBase58());
   // const relayer_keypair = Keypair.fromSecretKey(
   //     bs58.decode(''));
   //

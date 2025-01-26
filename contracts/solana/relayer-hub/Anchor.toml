@@ -9,13 +9,13 @@ members = [
     "programs/relayer-hub",
 ]
 [programs.mainnet]
-relayer_hub = "4WPicCsUXGofFXT5HkpXa4tsiSPTeXP8XcxBbWytvEn9"
+relayer_hub = "25dmj8Y96VsSGMz4acYpfXD66vFSDNn8wB5wz1gmNZsH"
 
 [programs.localnet]
-relayer_hub = "4WPicCsUXGofFXT5HkpXa4tsiSPTeXP8XcxBbWytvEn9"
+relayer_hub = "25dmj8Y96VsSGMz4acYpfXD66vFSDNn8wB5wz1gmNZsH"
 
 [programs.devnet]
-relayer_hub = "4WPicCsUXGofFXT5HkpXa4tsiSPTeXP8XcxBbWytvEn9"
+relayer_hub = "25dmj8Y96VsSGMz4acYpfXD66vFSDNn8wB5wz1gmNZsH"
 
 [registry]
 url = "https://api.apr.dev"
