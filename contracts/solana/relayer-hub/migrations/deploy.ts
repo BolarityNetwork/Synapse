@@ -30,7 +30,7 @@ module.exports = async function (provider) {
   const [poolPDA] = await genPDAAccount("pool")
   const [finalPoolPDA] = await genPDAAccount("final_pool")
   // // ======================initialize=========================
-  // const authority =  new PublicKey("Fya4DEVBJSj5VrCesmsVkcgWcrCrFo2w7V7cuhvAn7iW");
+  const authority =  new PublicKey("CPy7655ZLHhJqbdSajg6NZZC5mHxkx6CiHfda6Ebm89Q");
   // const ix = program.methods
   //     .initialize(authority)
   //     .accounts({
@@ -47,6 +47,22 @@ module.exports = async function (provider) {
   // catch (error: any) {
   //     console.log(error);
   // }
+  // ======================update config=========================
+  const ix = program.methods
+      .updateConfig(authority)
+      .accounts({
+        config:configPDA,
+        owner:provider.wallet.publicKey
+      })
+      .instruction();
+  const tx = new Transaction().add(await ix);
+  try {
+      let commitment: Commitment = 'confirmed';
+      await sendAndConfirmTransaction(provider.connection, tx, [provider.wallet.payer], {commitment});
+  }
+  catch (error: any) {
+      console.log(error);
+  }
   // // ======================register pool=========================
   //
   //   const ix = program.methods

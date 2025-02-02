@@ -22,7 +22,7 @@ import {
 	RELAYER_HUB_PID,
 	RPC,
 	RELAYER_SECRET,
-	RELAYER_PROGRAM,
+	RELAYER_SOLANA_PROGRAM,
 } from "./consts"
 import {
 	get_relayer_of_current_epoch,
@@ -33,7 +33,24 @@ import {Program, Provider} from "@coral-xyz/anchor";
 const anchor = require("@coral-xyz/anchor");
 import * as bs58 from  "bs58";
 
+function hexStringToUint8Array(hexString: string): Uint8Array {
+    if (hexString.startsWith("0x")) {
+        hexString = hexString.slice(2);
+    }
 
+    if (hexString.length % 2 !== 0) {
+        throw new Error("Invalid hex string length");
+    }
+
+    const byteArray = new Uint8Array(hexString.length / 2);
+
+    for (let i = 0; i < hexString.length; i += 2) {
+        const hexPair = hexString.slice(i, i + 2);
+        byteArray[i / 2] = parseInt(hexPair, 16);
+    }
+
+    return byteArray;
+}
 (async function main() {
   // initialize relayer engine app, pass relevant config options
 	const app = new StandardRelayerApp<StandardRelayerContext>(
@@ -63,14 +80,14 @@ import * as bs58 from  "bs58";
 	);
 	const program = new Program(idl as any, provider);
 	let currentRelayer = await get_relayer_of_current_epoch(connection, program);
-
+	console.log("================current:" + currentRelayer.toBase58());
 	if (currentRelayer.toBase58() == relayer.toBase58()) {
 		console.log("==============Now you======================");
 	}
 
 	app.multiple(
 		{
-			[CHAIN_ID_SOLANA]: [RELAYER_PROGRAM],
+			[CHAIN_ID_SOLANA]: [RELAYER_SOLANA_PROGRAM],
 			[CHAIN_ID_SEPOLIA]: [],
 		},
 		async (ctx, next) => {

@@ -6,6 +6,8 @@ import {
   POOL_SEED,
   CONFIG_SEED,
   TX_SEED,
+  EPOCH_SEQUENCE_SEED,
+  FINAL_TX_SEED,
 } from "./consts"
 import { BN } from 'bn.js';
 import {RelayerHub} from "../types/relayer_hub";
@@ -34,6 +36,29 @@ const genTxPDAAccount = async (program:Program<RelayerHub>, sequence:number)=> {
   return PublicKey.findProgramAddressSync(
       [
         Buffer.from(TX_SEED), buf,
+      ],
+      program.programId
+  );
+}
+
+const genEpochSequencePDAAccount = async (program:Program<RelayerHub>, epoch:number)=> {
+  const buf = Buffer.alloc(8);
+  buf.writeBigUInt64LE(BigInt(epoch), 0);
+  return PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(EPOCH_SEQUENCE_SEED), buf,
+      ],
+      program.programId
+  );
+}
+
+
+const genFinalTxPDAAccount = async (program:Program<RelayerHub>, epoch:number)=> {
+  const buf = Buffer.alloc(8);
+  buf.writeBigUInt64LE(BigInt(epoch), 0);
+  return PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(FINAL_TX_SEED), buf,
       ],
       program.programId
   );
@@ -74,23 +99,33 @@ export async function init_transaction(connection:Connection, program:Program<Re
 
   const [txPDA] = await genTxPDAAccount(program, sequence);
 
+  const epochInfo = await connection.getEpochInfo();
+  const epoch = epochInfo.epoch;
+
+  const [epochSequencePDA] = await genEpochSequencePDAAccount(program, epoch);
+
+  const [finalTxPDA] = await genFinalTxPDAAccount(program, epoch);
+
   const ix = program.methods
-      .initTransaction(new BN(sequence), data)
+      .initTransaction(new BN(sequence), new BN(epoch), data)
       .accountsPartial({
         relayer:relayer_keypair.publicKey,
         config: configPDA,
         relayerInfo: relayerInfoPDA,
         pool: poolPDA,
         transaction: txPDA,
+        epochSequence: epochSequencePDA,
+        finalTransaction: finalTxPDA,
       })
       .instruction();
     const tx = new Transaction().add(await ix);
     try {
       let commitment: Commitment = 'confirmed';
       await sendAndConfirmTransaction(connection, tx, [relayer_keypair], {commitment});
+      console.log("Excute successfully!");
     }
     catch (error: any) {
-      console.log(error);
+      console.log("Excute failed:" + error);
     }
     return sequence;
 }
@@ -116,6 +151,7 @@ export async function execute_transaction(connection:Connection, program:Program
     try {
       let commitment: Commitment = 'confirmed';
       await sendAndConfirmTransaction(connection, tx, [relayer_keypair], {commitment});
+      console.log("Excute successfully!");
     }
     catch (error: any) {
       console.log(error);

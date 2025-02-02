@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/relayer_hub.json`.
  */
 export type RelayerHub = {
-  "address": "4WPicCsUXGofFXT5HkpXa4tsiSPTeXP8XcxBbWytvEn9",
+  "address": "25dmj8Y96VsSGMz4acYpfXD66vFSDNn8wB5wz1gmNZsH",
   "metadata": {
     "name": "relayerHub",
     "version": "0.1.0",
@@ -122,9 +122,9 @@ export type RelayerHub = {
       ],
       "accounts": [
         {
-          "name": "relayer",
+          "name": "operator",
           "docs": [
-            "Relayer account."
+            "Operator account."
           ],
           "writable": true,
           "signer": true
@@ -145,33 +145,6 @@ export type RelayerHub = {
                   102,
                   105,
                   103
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "relayerInfo",
-          "docs": [
-            "Relayer configuration account."
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  108,
-                  97,
-                  121,
-                  101,
-                  114,
-                  95,
-                  105,
-                  110,
-                  102,
-                  111
                 ]
               }
             ]
@@ -319,6 +292,20 @@ export type RelayerHub = {
           "writable": true
         },
         {
+          "name": "epochSequence",
+          "docs": [
+            "Transaction account."
+          ],
+          "writable": true
+        },
+        {
+          "name": "finalTransaction",
+          "docs": [
+            "Transaction account."
+          ],
+          "writable": true
+        },
+        {
           "name": "systemProgram",
           "docs": [
             "System program."
@@ -329,6 +316,10 @@ export type RelayerHub = {
       "args": [
         {
           "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "epoch",
           "type": "u64"
         },
         {
@@ -666,9 +657,9 @@ export type RelayerHub = {
       ],
       "accounts": [
         {
-          "name": "relayer",
+          "name": "rollupAuthority",
           "docs": [
-            "Relayer account."
+            "ncn config account."
           ],
           "writable": true,
           "signer": true
@@ -695,6 +686,32 @@ export type RelayerHub = {
           }
         },
         {
+          "name": "pool",
+          "docs": [
+            "Transaction pool account.One transaction pool per chain."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  105,
+                  110,
+                  97,
+                  108,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "transaction",
           "docs": [
             "Transaction account."
@@ -710,10 +727,6 @@ export type RelayerHub = {
         }
       ],
       "args": [
-        {
-          "name": "sequence",
-          "type": "u64"
-        },
         {
           "name": "accept",
           "type": "bool"
@@ -736,6 +749,66 @@ export type RelayerHub = {
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "updateConfig",
+      "discriminator": [
+        29,
+        158,
+        252,
+        191,
+        10,
+        83,
+        219,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "docs": [
+            "Only owner."
+          ],
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "docs": [
+            "Program configuration account."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "docs": [
+            "System program."
+          ],
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "authority",
+          "type": "pubkey"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -750,6 +823,19 @@ export type RelayerHub = {
         250,
         204,
         130
+      ]
+    },
+    {
+      "name": "epochSequence",
+      "discriminator": [
+        6,
+        217,
+        126,
+        176,
+        186,
+        137,
+        25,
+        231
       ]
     },
     {
@@ -866,6 +952,11 @@ export type RelayerHub = {
       "code": 6006,
       "name": "messageFormatError",
       "msg": "Wrong message data format"
+    },
+    {
+      "code": 6007,
+      "name": "epochError",
+      "msg": "Wrong epoch"
     }
   ],
   "types": [
@@ -897,6 +988,26 @@ export type RelayerHub = {
               "Upload state root authorizer."
             ],
             "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "epochSequence",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "beginSequence",
+            "type": "u64"
+          },
+          {
+            "name": "currentSequence",
+            "type": "u64"
           }
         ]
       }
@@ -1045,15 +1156,6 @@ export type RelayerHub = {
             "type": "u64"
           },
           {
-            "name": "hash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
             "name": "timestamp",
             "type": "u32"
           },
@@ -1101,6 +1203,10 @@ export type RelayerHub = {
                 "name": "status"
               }
             }
+          },
+          {
+            "name": "hash",
+            "type": "bytes"
           }
         ]
       }

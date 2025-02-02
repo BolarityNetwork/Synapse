@@ -4,7 +4,8 @@ use crate::{
     getters::{
         get_account,
     get_all_operators_in_ncn,
-        // get_all_vaults_in_ncn, get_ballot_box,
+        // get_all_vaults_in_ncn,
+        get_ballot_box,
     //     get_base_reward_receiver_rewards, get_base_reward_router, get_epoch_snapshot,
     //     get_ncn_reward_receiver_rewards, get_ncn_reward_router, get_operator,
     //     get_operator_snapshot, get_stake_pool_accounts, get_tip_router_config,
@@ -28,6 +29,7 @@ use jito_restaking_core::{
 use jito_restaking_core::config::Config;
 use relayer_ncn_client::instructions::{AdminRegisterStMintBuilder, AdminSetWeightBuilder, InitializeBallotBoxBuilder, InitializeConfigBuilder, InitializeEpochSnapshotBuilder, InitializeOperatorSnapshotBuilder, InitializeVaultRegistryBuilder, InitializeWeightTableBuilder, ReallocBallotBoxBuilder, ReallocOperatorSnapshotBuilder, ReallocVaultRegistryBuilder, ReallocWeightTableBuilder, RegisterVaultBuilder, SnapshotVaultOperatorDelegationBuilder};
 use relayer_ncn_core::{
+    config::Config as NcnConfig,
     // account_payer::AccountPayer,
     ballot_box::BallotBox,
     // base_fee_group::BaseFeeGroup,
@@ -238,6 +240,7 @@ pub async fn admin_set_weight_with_st_mint(
         .weight_table(weight_table)
         // .epoch_state(epoch_state)
         .weight_table_admin(keypair.pubkey())
+        .restaking_program(jito_restaking_program::id())
         .st_mint(*st_mint)
         .weight(weight)
         .epoch(epoch)
@@ -458,7 +461,7 @@ pub async fn register_vault(handler: &CliHandler, vault: &Pubkey) -> Result<()> 
 
     let restaking_config_address =
         Config::find_program_address(&jito_restaking_program::id()).0;
-    // let (tip_router_config, _, _) =
+    // let (relayer_ncn_config_config, _, _) =
     //     RelayerNcnConfig::find_program_address(&handler.relayer_ncn_program_id, &ncn);
 
     let (vault_registry, _, _) =
@@ -571,7 +574,7 @@ pub async fn register_vault(handler: &CliHandler, vault: &Pubkey) -> Result<()> 
 
 pub async fn create_weight_table(handler: &CliHandler, epoch: u64) -> Result<()> {
     let ncn = *handler.ncn()?;
-
+    let keypair = handler.keypair()?;
     let (config, _, _) =
         RelayerNcnConfig::find_program_address(&handler.relayer_ncn_program_id, &ncn);
 
@@ -600,6 +603,8 @@ pub async fn create_weight_table(handler: &CliHandler, epoch: u64) -> Result<()>
             .ncn(ncn)
             // .epoch_state(epoch_state)
             .weight_table(weight_table)
+            .payer(keypair.pubkey())
+            .restaking_program(jito_restaking_program::id())
             // .account_payer(account_payer)
             .system_program(system_program::id())
             .epoch(epoch)
@@ -626,6 +631,7 @@ pub async fn create_weight_table(handler: &CliHandler, epoch: u64) -> Result<()>
         // .epoch_state(epoch_state)
         .vault_registry(vault_registry)
         .epoch(epoch)
+        .payer(keypair.pubkey())
         // .account_payer(account_payer)
         .system_program(system_program::id())
         .instruction();
@@ -704,7 +710,7 @@ pub async fn create_weight_table(handler: &CliHandler, epoch: u64) -> Result<()>
 
 pub async fn create_epoch_snapshot(handler: &CliHandler, epoch: u64) -> Result<()> {
     let ncn = *handler.ncn()?;
-
+    let keypair = handler.keypair()?;
     let (config, _, _) =
         RelayerNcnConfig::find_program_address(&handler.relayer_ncn_program_id, &ncn);
 
@@ -729,6 +735,8 @@ pub async fn create_epoch_snapshot(handler: &CliHandler, epoch: u64) -> Result<(
         // .epoch_state(epoch_state)
         .weight_table(weight_table)
         .epoch_snapshot(epoch_snapshot)
+        .restaking_program(jito_restaking_program::id())
+        .payer(keypair.pubkey())
         // .account_payer(account_payer)
         .system_program(system_program::id())
         .epoch(epoch)
@@ -752,7 +760,7 @@ pub async fn create_operator_snapshot(
     epoch: u64,
 ) -> Result<()> {
     let ncn = *handler.ncn()?;
-
+    let keypair = handler.keypair()?;
     let operator = *operator;
 
     let (config, _, _) =
@@ -793,6 +801,8 @@ pub async fn create_operator_snapshot(
             .ncn_operator_state(ncn_operator_state)
             .epoch_snapshot(epoch_snapshot)
             .operator_snapshot(operator_snapshot)
+            .payer(keypair.pubkey())
+            .restaking_program(jito_restaking_program::id())
             // .account_payer(account_payer)
             .system_program(system_program::id())
             .epoch(epoch)
@@ -814,10 +824,11 @@ pub async fn create_operator_snapshot(
 
     // Number of reallocations needed based on OperatorSnapshot::SIZE
     let num_reallocs = (OperatorSnapshot::SIZE as f64 / MAX_REALLOC_BYTES as f64).ceil() as u64 - 1;
-
+    let ncn_config = NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn).0;
     // Realloc operator snapshot
     let realloc_operator_snapshot_ix = ReallocOperatorSnapshotBuilder::new()
         // .config(config)
+        .ncn_config(ncn_config)
         .restaking_config(RestakingConfig::find_program_address(&handler.restaking_program_id).0)
         .ncn(ncn)
         .operator(operator)
@@ -825,6 +836,8 @@ pub async fn create_operator_snapshot(
         .ncn_operator_state(ncn_operator_state)
         .epoch_snapshot(epoch_snapshot)
         .operator_snapshot(operator_snapshot)
+        .payer(keypair.pubkey())
+        .restaking_program(jito_restaking_program::id())
         // .account_payer(account_payer)
         .system_program(system_program::id())
         .epoch(epoch)
@@ -907,6 +920,8 @@ pub async fn snapshot_vault_operator_delegation(
         .weight_table(weight_table)
         .epoch_snapshot(epoch_snapshot)
         .operator_snapshot(operator_snapshot)
+        .vault_program(jito_vault_program::id())
+        .restaking_program(jito_restaking_program::id())
         .epoch(epoch)
         .instruction();
 
@@ -929,7 +944,7 @@ pub async fn snapshot_vault_operator_delegation(
 
 pub async fn create_ballot_box(handler: &CliHandler, epoch: u64) -> Result<()> {
     let ncn = *handler.ncn()?;
-
+    let keypair = handler.keypair()?;
     let (config, _, _) =
         RelayerNcnConfig::find_program_address(&handler.relayer_ncn_program_id, &ncn);
 
@@ -956,6 +971,7 @@ pub async fn create_ballot_box(handler: &CliHandler, epoch: u64) -> Result<()> {
             .ballot_box(ballot_box)
             .ncn(ncn)
             .epoch(epoch)
+            .payer(keypair.pubkey())
             // .account_payer(account_payer)
             .system_program(system_program::id())
             .instruction();
@@ -980,6 +996,7 @@ pub async fn create_ballot_box(handler: &CliHandler, epoch: u64) -> Result<()> {
         .ballot_box(ballot_box)
         .ncn(ncn)
         .epoch(epoch)
+        .payer(keypair.pubkey())
         // .account_payer(account_payer)
         .system_program(system_program::id())
         .instruction();

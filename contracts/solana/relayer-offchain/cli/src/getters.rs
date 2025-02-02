@@ -153,22 +153,22 @@ pub async fn get_current_epoch(handler: &CliHandler) -> Result<u64> {
 //     let account = OperatorSnapshot::try_from_slice_unchecked(account.data.as_slice())?;
 //     Ok(*account)
 // }
-//
-// pub async fn get_ballot_box(handler: &CliHandler, epoch: u64) -> Result<BallotBox> {
-//     let (address, _, _) =
-//         BallotBox::find_program_address(&handler.tip_router_program_id, handler.ncn()?, epoch);
-//
-//     let account = get_account(handler, &address).await?;
-//
-//     if account.is_none() {
-//         return Err(anyhow::anyhow!("Account not found"));
-//     }
-//     let account = account.unwrap();
-//
-//     let account = BallotBox::try_from_slice_unchecked(account.data.as_slice())?;
-//     Ok(*account)
-// }
-//
+
+pub async fn get_ballot_box(handler: &CliHandler, epoch: u64) -> Result<BallotBox> {
+    let (address, _, _) =
+        BallotBox::find_program_address(&handler.relayer_ncn_program_id, handler.ncn()?, epoch);
+
+    let account = get_account(handler, &address).await?;
+
+    if account.is_none() {
+        return Err(anyhow::anyhow!("Account not found"));
+    }
+    let account = account.unwrap();
+
+    let account = BallotBox::try_from_slice_unchecked(account.data.as_slice())?;
+    Ok(*account)
+}
+
 // pub async fn get_base_reward_router(handler: &CliHandler, epoch: u64) -> Result<BaseRewardRouter> {
 //     let (address, _, _) = BaseRewardRouter::find_program_address(
 //         &handler.tip_router_program_id,
@@ -400,17 +400,17 @@ pub async fn get_restaking_config(handler: &CliHandler) -> Result<RestakingConfi
     Ok(*account)
 }
 
-// pub async fn get_ncn(handler: &CliHandler) -> Result<Ncn> {
-//     let account = get_account(handler, handler.ncn()?).await?;
-//
-//     if account.is_none() {
-//         return Err(anyhow::anyhow!("Account not found"));
-//     }
-//     let account = account.unwrap();
-//
-//     let account = Ncn::try_from_slice_unchecked(account.data.as_slice())?;
-//     Ok(*account)
-// }
+pub async fn get_ncn(handler: &CliHandler) -> Result<Ncn> {
+    let account = get_account(handler, handler.ncn()?).await?;
+
+    if account.is_none() {
+        return Err(anyhow::anyhow!("Account not found"));
+    }
+    let account = account.unwrap();
+
+    let account = Ncn::try_from_slice_unchecked(account.data.as_slice())?;
+    Ok(*account)
+}
 
 pub async fn get_vault(handler: &CliHandler, vault: &Pubkey) -> Result<Vault> {
     let account = get_account(handler, vault)

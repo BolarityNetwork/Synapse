@@ -22,6 +22,10 @@ pub mod relayer_hub {
         instructions::initialize::initialize(ctx, authority)
     }
 
+    pub fn update_config(ctx: Context<UpdateConfig>, authority: Pubkey) -> Result<()> {
+        instructions::initialize::update_config(ctx, authority)
+    }
+
     /// This instruction registers the relayer and must be used after initialization.
     ///
     /// # Arguments
@@ -67,10 +71,6 @@ pub mod relayer_hub {
     }
 
     pub fn rollup_transaction(ctx: Context<RollupTransaction>, accept: bool, state_root: [u8;32], vote: u8, epoch: u64) -> Result<()> {
-        let clock = Clock::get()?;
-        let get_epoch = clock.epoch;
-
-        require!( get_epoch == epoch, ErrorCode::EpochError);
         instructions::transaction_pool::rollup_transaction(ctx, accept, state_root, vote, epoch)
     }
 }

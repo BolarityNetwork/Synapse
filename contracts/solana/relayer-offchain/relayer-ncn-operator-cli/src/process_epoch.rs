@@ -14,7 +14,7 @@ use crate::{
     relayer_ncn::{cast_vote,get_all_can_finalize_tx,get_ncn_config, get_tx_status},
     Cli,
 };
-use crate::relayer_ncn::{do_finalize_transaction, get_tx};
+use crate::relayer_ncn::{do_finalize_transaction, do_rollup_transaction, get_final_tx, get_tx};
 use merkle_tree::merkle_tree::MerkleTree;
 
 pub async fn wait_for_next_epoch(rpc_client: &RpcClient) -> Result<()> {
@@ -51,66 +51,92 @@ pub async fn process_epoch(
     let start = Instant::now();
     let operator = Pubkey::from_str(&cli_args.operator_address).unwrap();
 
-    let mut sequences = vec![];
-    // Find transactions that are in the Executed or Failing state in a certain epoch.
-    let state_root = if let Ok((begin_sequence, current_sequence))= get_all_can_finalize_tx(client, previous_epoch).await {
-        for i in begin_sequence..=current_sequence {
-            let old_status = get_tx_status(client, i).await?;
-            if old_status == Status::Executed || old_status == Status::Failing {
-                sequences.push(i);
-            }
-        }
-        let byte_vecs: Vec<Vec<u8>> = sequences
-            .iter()
-            .map(|&num| {
-                num.to_le_bytes().to_vec()
-            })
-            .collect();
-        let mt = MerkleTree::new(&byte_vecs, false);
-        let state_root = mt.get_root().unwrap().to_bytes();
-        for sequence in sequences{
-            do_finalize_transaction(client, sequence, payer, true, state_root)
-                .await?;
-            let status = get_tx_status(client, sequence).await?;
-            assert_eq!(status, Status::Finality);
-            let root = get_tx(client, sequence).await?;
-            assert_eq!(root.state_root, state_root);
-        }
-        state_root
-    } else {
-        [0u8;32]
-    };
+    // let mut sequences = vec![];
+    // // Find transactions that are in the Executed or Failing state in a certain epoch.
+    // let state_root = if let Ok((begin_sequence, current_sequence))= get_all_can_finalize_tx(client, previous_epoch).await {
+    //     for i in begin_sequence..=current_sequence {
+    //         let old_status = get_tx_status(client, i).await?;
+    //         if old_status == Status::Executed || old_status == Status::Failing {
+    //             sequences.push(i);
+    //         }
+    //     }
+    //     let byte_vecs: Vec<Vec<u8>> = sequences
+    //         .iter()
+    //         .map(|&num| {
+    //             num.to_le_bytes().to_vec()
+    //         })
+    //         .collect();
+    //     let mt = MerkleTree::new(&byte_vecs, false);
+    //     let state_root = mt.get_root().unwrap().to_bytes();
+    //     for sequence in sequences{
+    //         do_finalize_transaction(client, sequence, payer, true, state_root)
+    //             .await?;
+    //         let status = get_tx_status(client, sequence).await?;
+    //         assert_eq!(status, Status::Finality);
+    //         let root = get_tx(client, sequence).await?;
+    //         assert_eq!(root.state_root, state_root);
+    //     }
+    //     state_root
+    // } else {
+    //     [0u8;32]
+    // };
 
-    // Cast vote using the generated merkle root
-    let tx_sig = match cast_vote(
-        client,
-        payer,
-        *ncn_address,
-        operator,
-        payer,
-        state_root,
-        previous_epoch,
-    )
-        .await
-    {
-        Ok(sig) => {
-            datapoint_info!(
-                "relayer-operator_cli-vote_cast_success",
-                ("epoch", previous_epoch, i64),
-                ("tx_sig", format!("{:?}", sig), String)
-            );
-            sig
-        }
-        Err(e) => {
-            datapoint_error!(
-                "relayer-operator_cli-vote_cast_error",
-                ("epoch", previous_epoch, i64),
-                ("error", format!("{:?}", e), String)
-            );
-            return Err(anyhow::anyhow!("Failed to cast vote: {}", e)); // Convert the error
-        }
-    };
-    info!("Successfully cast vote at tx {:?}", tx_sig);
+    // // Cast vote using the generated merkle root
+    // let tx_sig = match cast_vote(
+    //     client,
+    //     payer,
+    //     *ncn_address,
+    //     operator,
+    //     payer,
+    //     state_root,
+    //     previous_epoch,
+    // )
+    //     .await
+    // {
+    //     Ok(sig) => {
+    //         datapoint_info!(
+    //             "relayer-operator_cli-vote_cast_success",
+    //             ("epoch", previous_epoch, i64),
+    //             ("tx_sig", format!("{:?}", sig), String)
+    //         );
+    //         sig
+    //     }
+    //     Err(e) => {
+    //         datapoint_error!(
+    //             "relayer-operator_cli-vote_cast_error",
+    //             ("epoch", previous_epoch, i64),
+    //             ("error", format!("{:?}", e), String)
+    //         );
+    //         return Err(anyhow::anyhow!("Failed to cast vote: {}", e)); // Convert the error
+    //     }
+    // };
+    // info!("Successfully cast vote at tx {:?}", tx_sig);
+    // let tx_sig = match do_rollup_transaction(
+    //     client,
+    //     *ncn_address,
+    //     previous_epoch,
+    //     payer,
+    // ).await
+    // {
+    //     Ok(sig) => {
+    //         datapoint_info!(
+    //             "relayer-operator_cli-vote_cast_success",
+    //             ("epoch", previous_epoch, i64),
+    //             ("tx_sig", format!("{:?}", sig), String)
+    //         );
+    //         sig
+    //     }
+    //     Err(e) => {
+    //         datapoint_error!(
+    //             "relayer-operator_cli-rollup_transaction_error",
+    //             ("epoch", previous_epoch, i64),
+    //             ("error", format!("{:?}", e), String)
+    //         );
+    //         return Err(anyhow::anyhow!("Failed to rollup transaction: {}", e)); // Convert the error
+    //     }
+    // };
+    // info!("Successfully rollup transaction at tx {:?}", tx_sig);
+    get_final_tx(client, 828).await?;
 
     let elapsed_us = start.elapsed().as_micros();
     // Emit a datapoint for starting the epoch processing

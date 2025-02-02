@@ -322,6 +322,7 @@ pub fn rollup_transaction(ctx: Context<RollupTransaction>, accept: bool, state_r
         return Err(ErrorCode::NotInitialized.into());
     }
     let rollup_authority = &mut ctx.accounts.rollup_authority;
+    msg!("rollup_authority:{},authority:{}", *rollup_authority.key, config_state.authority);
     require!(*rollup_authority.key == config_state.authority, ErrorCode::AccountError);
 
     let pool = &mut ctx.accounts.pool;

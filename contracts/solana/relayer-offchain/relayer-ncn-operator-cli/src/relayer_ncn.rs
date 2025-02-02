@@ -1,7 +1,7 @@
 use anyhow::Result;
 use ellipsis_client::{ClientSubset, EllipsisClient, EllipsisClientResult};
 use jito_bytemuck::AccountDeserialize;
-use relayer_ncn_client::instructions::CastVoteBuilder;
+use relayer_ncn_client::instructions::{CastVoteBuilder, RollupTransactionBuilder};
 use relayer_ncn_core::{
     ballot_box::BallotBox,
     config::Config,
@@ -13,11 +13,12 @@ use solana_sdk::{
     signer::Signer,
     transaction::Transaction,
 };
-use relayer_hub_client::accounts::EpochSequence;
+use relayer_hub_client::accounts::{EpochSequence, FinalTransaction};
 use relayer_hub_client::programs::RELAYER_HUB_ID as relayer_hub_program_id;
 use relayer_hub_client::types::Status;
 use relayer_hub_client::accounts::Transaction as HubTransaction;
 use relayer_hub_client::instructions::FinalizeTransactionBuilder;
+use relayer_hub_sdk::relayer_hub;
 
 /// Fetch and deserialize
 pub async fn get_ncn_config(client: &EllipsisClient, ncn_pubkey: &Pubkey) -> Result<Config> {
@@ -58,6 +59,8 @@ pub async fn cast_vote(
         .epoch_snapshot(epoch_snapshot)
         .operator_snapshot(operator_snapshot)
         .operator(operator)
+        .operator_admin(payer.pubkey())
+        .restaking_program(jito_restaking_program::id())
         // .operator_voter(operator_voter.pubkey())
         .meta_merkle_root(state_root)
         .epoch(epoch)
@@ -65,7 +68,7 @@ pub async fn cast_vote(
 
     let tx = Transaction::new_with_payer(&[ix], Some(&payer.pubkey()));
     client
-        .process_transaction(tx, &[payer, operator_voter])
+        .process_transaction(tx, &[payer])
         .await
 }
 
@@ -173,4 +176,83 @@ pub async fn finalize_transaction(
     client
         .process_transaction(tx, &[payer])
         .await
+}
+
+pub async fn do_rollup_transaction(
+    client: &EllipsisClient,
+    ncn: Pubkey,
+    epoch: u64,
+    operator_admin: &Keypair,
+) -> EllipsisClientResult<Signature> {
+    let ncn_config = Config::find_program_address(&relayer_ncn_program::id(), &ncn).0;
+    let ballot_box =
+        BallotBox::find_program_address(&relayer_ncn_program::id(), &ncn, epoch).0;
+    let restaking_program_id = jito_restaking_program::id();
+    let (pool, _) =relayer_hub_sdk::derive_final_pool_account_address(&relayer_hub_program_id);
+
+    let (hub_config, _) =relayer_hub_sdk::derive_config_account_address(&relayer_hub_program_id);
+    let (transaction, _) =relayer_hub_sdk::derive_final_transaction_address(&relayer_hub_program_id, epoch);
+
+    rollup_transaction(
+        client,
+        ncn_config,
+        ncn,
+        ballot_box,
+        hub_config,
+        pool,
+        restaking_program_id,
+        epoch,
+        operator_admin,
+        transaction,
+    )
+        .await
+}
+
+pub async fn rollup_transaction(
+    client: &EllipsisClient,
+    ncn_config: Pubkey,
+    ncn: Pubkey,
+    ballot_box: Pubkey,
+    hub_config: Pubkey,
+    pool: Pubkey,
+    restaking_program_id: Pubkey,
+    epoch: u64,
+    operator_admin: &Keypair,
+    transaction: Pubkey,
+) -> EllipsisClientResult<Signature> {
+    let ix = RollupTransactionBuilder::new()
+        .config(ncn_config)
+        .ncn(ncn)
+        .ballot_box(ballot_box)
+        .hub_config(hub_config)
+        .pool(pool)
+        .relayer_hub_program(relayer_hub_program_id)
+        .restaking_program(restaking_program_id)
+        .transaction(transaction)
+        .epoch(epoch)
+        .instruction();
+
+    let tx = Transaction::new_with_payer(&[ix], Some(&operator_admin.pubkey()));
+    client
+        .process_transaction(tx, &[operator_admin])
+        .await
+}
+
+pub async fn get_final_tx(
+    client: &EllipsisClient,
+    epoch: u64,
+) -> EllipsisClientResult<FinalTransaction> {
+    let (tx_address, _) =
+        relayer_hub_sdk::derive_final_transaction_address(
+            &relayer_hub_program_id,
+            epoch,
+        );
+
+    let tx_account = client
+        .get_account(&tx_address)
+        .await?;
+    let mut tx_account_data = tx_account.data.as_slice();
+    let tx = FinalTransaction::from_bytes(&mut tx_account_data)?;
+
+    Ok(tx)
 }

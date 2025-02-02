@@ -3,13 +3,21 @@ use std::str::FromStr;
 use crate::{
     args::{Args, ProgramCommand},
     getters::{
-    //     get_account_payer, get_all_operators_in_ncn,
+    //     get_account_payer,
+    get_all_operators_in_ncn,
     get_all_tickets,
-    // get_all_vaults_in_ncn,
-    //     get_ballot_box, get_base_reward_receiver, get_base_reward_router, get_epoch_snapshot,
-    //     get_epoch_state, get_ncn, get_ncn_operator_state, get_ncn_reward_receiver,
-    //     get_ncn_reward_router, get_ncn_vault_ticket, get_stake_pool, get_tip_router_config,
-    //     get_total_epoch_rent_cost, get_total_rewards_to_be_distributed, get_vault_ncn_ticket,
+    get_all_vaults_in_ncn,
+        get_ballot_box,
+    // get_base_reward_receiver, get_base_reward_router, get_epoch_snapshot,
+    //     get_epoch_state,
+    get_ncn,
+    get_ncn_operator_state,
+    // get_ncn_reward_receiver,
+    //     get_ncn_reward_router,
+    get_ncn_vault_ticket,
+    // get_stake_pool, get_tip_router_config,
+    //     get_total_epoch_rent_cost, get_total_rewards_to_be_distributed,
+    get_vault_ncn_ticket,
         get_vault_operator_delegation,
     // get_vault_registry,
     },
@@ -25,6 +33,7 @@ use solana_sdk::{
     pubkey::Pubkey,
     signature::{read_keypair_file, Keypair},
 };
+use crate::getters::get_restaking_config;
 use crate::instructions::{admin_create_config, admin_register_st_mint, admin_set_weight, create_and_add_test_operator, create_and_add_test_vault, create_ballot_box, create_epoch_snapshot, create_operator_snapshot, create_test_ncn, create_vault_registry, create_weight_table, register_vault, snapshot_vault_operator_delegation};
 
 pub struct CliHandler {
@@ -298,31 +307,40 @@ impl CliHandler {
             //         NcnFeeGroup::try_from(ncn_fee_group).expect("error parsing fee group");
             //     distribute_base_ncn_rewards(self, &operator, ncn_fee_group, self.epoch).await
             // }
-            //
-            // // Getters
-            // ProgramCommand::GetNcn {} => {
-            //     let ncn = get_ncn(self).await?;
-            //     info!("NCN: {:?}", ncn);
-            //     Ok(())
-            // }
-            // ProgramCommand::GetNcnOperatorState { operator } => {
-            //     let operator = Pubkey::from_str(&operator).expect("error parsing operator");
-            //     let ncn_operator_state = get_ncn_operator_state(self, &operator).await?;
-            //     info!("NCN Operator State: {:?}", ncn_operator_state);
-            //     Ok(())
-            // }
-            // ProgramCommand::GetVaultNcnTicket { vault } => {
-            //     let vault = Pubkey::from_str(&vault).expect("error parsing vault");
-            //     let ncn_ticket = get_vault_ncn_ticket(self, &vault).await?;
-            //     info!("Vault NCN Ticket: {:?}", ncn_ticket);
-            //     Ok(())
-            // }
-            // ProgramCommand::GetNcnVaultTicket { vault } => {
-            //     let vault = Pubkey::from_str(&vault).expect("error parsing vault");
-            //     let ncn_ticket = get_ncn_vault_ticket(self, &vault).await?;
-            //     info!("NCN Vault Ticket: {:?}", ncn_ticket);
-            //     Ok(())
-            // }
+
+            // Getters
+            ProgramCommand::GetNcn {} => {
+                let ncn = get_ncn(self).await?;
+                info!("NCN: {:?}", ncn);
+                Ok(())
+            }
+            ProgramCommand::GetNcnOperatorState { operator } => {
+                let operator = Pubkey::from_str(&operator).expect("error parsing operator");
+                let ncn_operator_state = get_ncn_operator_state(self, &operator).await?;
+                info!("NCN Operator State: {:?}", ncn_operator_state);
+                let restaking_config = get_restaking_config(self).await?;
+                let client = self.rpc_client();
+                let slot = client.get_epoch_info().await?.absolute_slot;
+                let epoch_length = restaking_config.epoch_length();
+                let xxx = ncn_operator_state
+                    .ncn_opt_in_state
+                    .is_active(slot, epoch_length);
+                let yyy = ncn_operator_state.ncn_opt_in_state.state(slot, epoch_length);
+                info!("xxx: {:?},{:?},{:?},{:?},{:?}", xxx,slot,epoch_length, slot as f64/epoch_length as f64, yyy);
+                Ok(())
+            }
+            ProgramCommand::GetVaultNcnTicket { vault } => {
+                let vault = Pubkey::from_str(&vault).expect("error parsing vault");
+                let ncn_ticket = get_vault_ncn_ticket(self, &vault).await?;
+                info!("Vault NCN Ticket: {:?}", ncn_ticket);
+                Ok(())
+            }
+            ProgramCommand::GetNcnVaultTicket { vault } => {
+                let vault = Pubkey::from_str(&vault).expect("error parsing vault");
+                let ncn_ticket = get_ncn_vault_ticket(self, &vault).await?;
+                info!("NCN Vault Ticket: {:?}", ncn_ticket);
+                Ok(())
+            }
             ProgramCommand::GetVaultOperatorDelegation { vault, operator } => {
                 let vault = Pubkey::from_str(&vault).expect("error parsing vault");
                 let operator = Pubkey::from_str(&operator).expect("error parsing operator");
@@ -333,17 +351,17 @@ impl CliHandler {
                 info!("Vault Operator Delegation: {:?}", vault_operator_delegation);
                 Ok(())
             }
-            // ProgramCommand::GetAllOperatorsInNcn {} => {
-            //     let operators = get_all_operators_in_ncn(self).await?;
-            //
-            //     info!("Operators: {:?}", operators);
-            //     Ok(())
-            // }
-            // ProgramCommand::GetAllVaultsInNcn {} => {
-            //     let vaults = get_all_vaults_in_ncn(self).await?;
-            //     info!("Vaults: {:?}", vaults);
-            //     Ok(())
-            // }
+            ProgramCommand::GetAllOperatorsInNcn {} => {
+                let operators = get_all_operators_in_ncn(self).await?;
+
+                info!("Operators: {:?}", operators);
+                Ok(())
+            }
+            ProgramCommand::GetAllVaultsInNcn {} => {
+                let vaults = get_all_vaults_in_ncn(self).await?;
+                info!("Vaults: {:?}", vaults);
+                Ok(())
+            }
             ProgramCommand::GetAllTickets {} => {
                 let all_tickets = get_all_tickets(self).await?;
 
@@ -381,11 +399,11 @@ impl CliHandler {
             //     info!("Stake Pool: {:?}", stake_pool);
             //     Ok(())
             // }
-            // ProgramCommand::GetBallotBox {} => {
-            //     let ballot_box = get_ballot_box(self, self.epoch).await?;
-            //     info!("Ballot Box: {:?}", ballot_box);
-            //     Ok(())
-            // }
+            ProgramCommand::GetBallotBox {} => {
+                let ballot_box = get_ballot_box(self, self.epoch).await?;
+                info!("Ballot Box: {:?}", ballot_box);
+                Ok(())
+            }
             // ProgramCommand::GetBaseRewardRouter {} => {
             //     let total_rewards_to_be_distributed =
             //         get_total_rewards_to_be_distributed(self, self.epoch).await?;
