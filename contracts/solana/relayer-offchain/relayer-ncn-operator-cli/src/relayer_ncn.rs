@@ -253,6 +253,6 @@ pub async fn get_final_tx(
         .await?;
     let mut tx_account_data = tx_account.data.as_slice();
     let tx = FinalTransaction::from_bytes(&mut tx_account_data)?;
-
+    println!("==============tx:{:?}", tx);
     Ok(tx)
 }

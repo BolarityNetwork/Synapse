@@ -149,8 +149,40 @@ pub enum RelayerNcnError {
     RouterStillRouting,
     #[error("Invalid epochs before stall")]
     InvalidEpochsBeforeStall,
+    #[error("Invalid epochs before accounts can close")]
+    InvalidEpochsBeforeClose,
     #[error("Invalid slots after consensus")]
     InvalidSlotsAfterConsensus,
+    #[error("Vault needs to be updated")]
+    VaultNeedsUpdate,
+    #[error("Invalid Account Status")]
+    InvalidAccountStatus,
+    #[error("Account already initialized")]
+    AccountAlreadyInitialized,
+    #[error("Cannot vote with uninitialized account")]
+    BadBallot,
+    #[error("Cannot route until voting is over")]
+    VotingIsNotOver,
+    #[error("Operator is not in snapshot")]
+    OperatorIsNotInSnapshot,
+    #[error("Invalid account_to_close Discriminator")]
+    InvalidAccountToCloseDiscriminator,
+    #[error("Cannot close account")]
+    CannotCloseAccount,
+    #[error("Cannot close account - Already closed")]
+    CannotCloseAccountAlreadyClosed,
+    #[error("Cannot close account - Not enough epochs have passed since consensus reached")]
+    CannotCloseAccountNotEnoughEpochs,
+    #[error("Cannot close account - No receiver provided")]
+    CannotCloseAccountNoReceiverProvided,
+    #[error("Cannot close epoch state account - Epoch state needs all other accounts to be closed first")]
+    CannotCloseEpochStateAccount,
+    #[error("Invalid DAO wallet")]
+    InvalidDaoWallet,
+    #[error("Epoch is closing down")]
+    EpochIsClosingDown,
+    #[error("Marker exists")]
+    MarkerExists,
 }
 
 impl<T> DecodeError<T> for RelayerNcnError {

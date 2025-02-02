@@ -38,7 +38,7 @@ async fn main() -> Result<()> {
                 // Process the epoch
                 match process_epoch(
                     &rpc_client,
-                    previous_epoch,
+                    previous_epoch + 1,
                     &keypair,
                     ncn_address,
                     &cli,

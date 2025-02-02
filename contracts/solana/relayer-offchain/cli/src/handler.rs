@@ -21,7 +21,7 @@ use crate::{
         get_vault_operator_delegation,
     // get_vault_registry,
     },
-    // keeper::keeper_loop::startup_keeper,
+    keeper::keeper_loop::startup_keeper,
 };
 use anyhow::{anyhow, Result};
 // use jito_tip_router_core::{base_fee_group::BaseFeeGroup, ncn_fee_group::NcnFeeGroup};
@@ -125,13 +125,12 @@ impl CliHandler {
     #[allow(clippy::large_stack_frames)]
     pub async fn handle(&self, action: ProgramCommand) -> Result<()> {
         match action {
-            // // Keeper
-            // ProgramCommand::Keeper {
-            //     loop_timeout_ms,
-            //     error_timeout_ms,
-            //     test_vote,
-            // } => startup_keeper(self, loop_timeout_ms, error_timeout_ms, test_vote).await,
-            //
+            // Keeper
+            ProgramCommand::Keeper {
+                loop_timeout_ms,
+                error_timeout_ms,
+            } => startup_keeper(self, loop_timeout_ms, error_timeout_ms).await,
+
             // Admin
             ProgramCommand::AdminCreateConfig {
                 epochs_before_stall,

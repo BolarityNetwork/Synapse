@@ -118,6 +118,14 @@ impl VaultEntry {
         }
     }
 
+    pub const fn vault(&self) -> &Pubkey {
+        &self.vault
+    }
+
+    pub const fn st_mint(&self) -> &Pubkey {
+        &self.st_mint
+    }
+
     pub fn vault_index(&self) -> u64 {
         self.vault_index.into()
     }
@@ -331,6 +339,14 @@ impl VaultRegistry {
         self.vault_list.iter().filter(|m| !m.is_empty()).count() as u64
     }
 
+    pub fn get_valid_vault_entries(&self) -> Vec<VaultEntry> {
+        self.vault_list
+            .iter()
+            .filter(|m| !m.is_empty())
+            .copied()
+            .collect()
+    }
+
     pub fn get_valid_mint_entries(&self) -> Vec<StMintEntry> {
         self.st_mint_list
             .iter()
@@ -341,6 +357,10 @@ impl VaultRegistry {
 
     pub const fn get_mint_entries(&self) -> &[StMintEntry; MAX_ST_MINTS] {
         &self.st_mint_list
+    }
+
+    pub fn st_mint_count(&self) -> usize {
+        self.st_mint_list.iter().filter(|m| !m.is_empty()).count()
     }
 
     pub fn get_mint_entry(&self, st_mint: &Pubkey) -> Result<StMintEntry, ProgramError> {

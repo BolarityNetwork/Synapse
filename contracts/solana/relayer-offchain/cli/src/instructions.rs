@@ -3,14 +3,16 @@ use std::time::Duration;
 use crate::{
     getters::{
         get_account,
-    get_all_operators_in_ncn,
-        // get_all_vaults_in_ncn,
+        get_all_operators_in_ncn,
+        get_all_vaults_in_ncn,
         get_ballot_box,
-    //     get_base_reward_receiver_rewards, get_base_reward_router, get_epoch_snapshot,
+    //     get_base_reward_receiver_rewards, get_base_reward_router,
+        get_epoch_snapshot,
     //     get_ncn_reward_receiver_rewards, get_ncn_reward_router, get_operator,
-    //     get_operator_snapshot, get_stake_pool_accounts, get_tip_router_config,
+        get_operator_snapshot,
+        // get_stake_pool_accounts, get_tip_router_config,
         get_vault,
-    //     get_vault_registry, get_weight_table,
+        get_vault_registry, get_weight_table,
     },
     handler::CliHandler,
     log::boring_progress_bar,
@@ -1775,80 +1777,80 @@ pub async fn create_ballot_box(handler: &CliHandler, epoch: u64) -> Result<()> {
 //     Ok(())
 // }
 //
-// // --------------------- MIDDLEWARE ------------------------------
-//
-// pub async fn get_or_create_weight_table(handler: &CliHandler, epoch: u64) -> Result<WeightTable> {
-//     let ncn = *handler.ncn()?;
-//
-//     let (weight_table, _, _) =
-//         WeightTable::find_program_address(&handler.tip_router_program_id, &ncn, epoch);
-//
-//     if get_account(handler, &weight_table)
-//         .await?
-//         .map_or(true, |table| table.data.len() < WeightTable::SIZE)
-//     {
-//         create_weight_table(handler, epoch).await?;
-//     }
-//     get_weight_table(handler, epoch).await
-// }
-//
-// pub async fn get_or_create_epoch_snapshot(
-//     handler: &CliHandler,
-//     epoch: u64,
-// ) -> Result<EpochSnapshot> {
-//     let ncn = *handler.ncn()?;
-//     let (epoch_snapshot, _, _) =
-//         EpochSnapshot::find_program_address(&handler.tip_router_program_id, &ncn, epoch);
-//
-//     if get_account(handler, &epoch_snapshot)
-//         .await?
-//         .map_or(true, |snapshot| snapshot.data.len() < EpochSnapshot::SIZE)
-//     {
-//         create_epoch_snapshot(handler, epoch).await?;
-//     }
-//
-//     get_epoch_snapshot(handler, epoch).await
-// }
-//
-// pub async fn get_or_create_operator_snapshot(
-//     handler: &CliHandler,
-//     operator: &Pubkey,
-//     epoch: u64,
-// ) -> Result<OperatorSnapshot> {
-//     let ncn = *handler.ncn()?;
-//     let (operator_snapshot, _, _) = OperatorSnapshot::find_program_address(
-//         &handler.tip_router_program_id,
-//         operator,
-//         &ncn,
-//         epoch,
-//     );
-//
-//     if get_account(handler, &operator_snapshot)
-//         .await?
-//         .map_or(true, |snapshot| {
-//             snapshot.data.len() < OperatorSnapshot::SIZE
-//         })
-//     {
-//         create_operator_snapshot(handler, operator, epoch).await?;
-//     }
-//     get_operator_snapshot(handler, operator, epoch).await
-// }
-//
-// #[allow(clippy::large_stack_frames)]
-// pub async fn get_or_create_ballot_box(handler: &CliHandler, epoch: u64) -> Result<BallotBox> {
-//     let ncn = *handler.ncn()?;
-//     let (ballot_box, _, _) =
-//         BallotBox::find_program_address(&handler.tip_router_program_id, &ncn, epoch);
-//
-//     if get_account(handler, &ballot_box)
-//         .await?
-//         .map_or(true, |ballot_box| ballot_box.data.len() < BallotBox::SIZE)
-//     {
-//         create_ballot_box(handler, epoch).await?;
-//     }
-//     get_ballot_box(handler, epoch).await
-// }
-//
+// --------------------- MIDDLEWARE ------------------------------
+
+pub async fn get_or_create_weight_table(handler: &CliHandler, epoch: u64) -> Result<WeightTable> {
+    let ncn = *handler.ncn()?;
+
+    let (weight_table, _, _) =
+        WeightTable::find_program_address(&handler.relayer_ncn_program_id, &ncn, epoch);
+
+    if get_account(handler, &weight_table)
+        .await?
+        .map_or(true, |table| table.data.len() < WeightTable::SIZE)
+    {
+        create_weight_table(handler, epoch).await?;
+    }
+    get_weight_table(handler, epoch).await
+}
+
+pub async fn get_or_create_epoch_snapshot(
+    handler: &CliHandler,
+    epoch: u64,
+) -> Result<EpochSnapshot> {
+    let ncn = *handler.ncn()?;
+    let (epoch_snapshot, _, _) =
+        EpochSnapshot::find_program_address(&handler.relayer_ncn_program_id, &ncn, epoch);
+
+    if get_account(handler, &epoch_snapshot)
+        .await?
+        .map_or(true, |snapshot| snapshot.data.len() < EpochSnapshot::SIZE)
+    {
+        create_epoch_snapshot(handler, epoch).await?;
+    }
+
+    get_epoch_snapshot(handler, epoch).await
+}
+
+pub async fn get_or_create_operator_snapshot(
+    handler: &CliHandler,
+    operator: &Pubkey,
+    epoch: u64,
+) -> Result<OperatorSnapshot> {
+    let ncn = *handler.ncn()?;
+    let (operator_snapshot, _, _) = OperatorSnapshot::find_program_address(
+        &handler.relayer_ncn_program_id,
+        operator,
+        &ncn,
+        epoch,
+    );
+
+    if get_account(handler, &operator_snapshot)
+        .await?
+        .map_or(true, |snapshot| {
+            snapshot.data.len() < OperatorSnapshot::SIZE
+        })
+    {
+        create_operator_snapshot(handler, operator, epoch).await?;
+    }
+    get_operator_snapshot(handler, operator, epoch).await
+}
+
+#[allow(clippy::large_stack_frames)]
+pub async fn get_or_create_ballot_box(handler: &CliHandler, epoch: u64) -> Result<BallotBox> {
+    let ncn = *handler.ncn()?;
+    let (ballot_box, _, _) =
+        BallotBox::find_program_address(&handler.relayer_ncn_program_id, &ncn, epoch);
+
+    if get_account(handler, &ballot_box)
+        .await?
+        .map_or(true, |ballot_box| ballot_box.data.len() < BallotBox::SIZE)
+    {
+        create_ballot_box(handler, epoch).await?;
+    }
+    get_ballot_box(handler, epoch).await
+}
+
 // pub async fn get_or_create_base_reward_router(
 //     handler: &CliHandler,
 //     epoch: u64,
@@ -1890,125 +1892,130 @@ pub async fn create_ballot_box(handler: &CliHandler, epoch: u64) -> Result<()> {
 //     get_ncn_reward_router(handler, ncn_fee_group, operator, epoch).await
 // }
 //
-// // --------------------- CRANKERS ------------------------------
-//
-// pub async fn crank_register_vaults(handler: &CliHandler) -> Result<()> {
-//     let all_ncn_vaults = get_all_vaults_in_ncn(handler).await?;
-//     let vault_registry = get_vault_registry(handler).await?;
-//     let all_registered_vaults: Vec<Pubkey> = vault_registry
-//         .get_valid_vault_entries()
-//         .iter()
-//         .map(|entry| *entry.vault())
-//         .collect();
-//
-//     let vaults_to_register: Vec<Pubkey> = all_ncn_vaults
-//         .iter()
-//         .filter(|vault| !all_registered_vaults.contains(vault))
-//         .copied()
-//         .collect();
-//
-//     //TODO check if ST mint is registered first
-//
-//     for vault in vaults_to_register.iter() {
-//         let result = register_vault(handler, vault).await;
-//
-//         if let Err(err) = result {
-//             log::error!(
-//                 "Failed to register vault: {:?} with error: {:?}",
-//                 vault,
-//                 err
-//             );
-//         }
-//     }
-//
-//     Ok(())
-// }
-//
-// pub async fn crank_set_weight(handler: &CliHandler, epoch: u64) -> Result<()> {
-//     let weight_table = get_or_create_weight_table(handler, epoch).await?;
-//
-//     let st_mints = weight_table
-//         .table()
-//         .iter()
-//         .filter(|entry| !entry.is_empty() && !entry.is_set())
-//         .map(|entry| *entry.st_mint())
-//         .collect::<Vec<Pubkey>>();
-//
-//     for st_mint in st_mints {
-//         let result = set_weight_with_st_mint(handler, &st_mint, epoch).await;
-//
-//         if let Err(err) = result {
-//             log::error!(
-//                 "Failed to set weight for st_mint: {:?} in epoch: {:?} with error: {:?}",
-//                 st_mint,
-//                 epoch,
-//                 err
-//             );
-//         }
-//     }
-//
-//     Ok(())
-// }
-//
-// pub async fn crank_snapshot(handler: &CliHandler, epoch: u64) -> Result<()> {
-//     let vault_registry = get_vault_registry(handler).await?;
-//
-//     let operators = get_all_operators_in_ncn(handler).await?;
-//     let all_vaults: Vec<Pubkey> = vault_registry
-//         .get_valid_vault_entries()
-//         .iter()
-//         .map(|entry| *entry.vault())
-//         .collect();
-//
-//     let epoch_snapshot = get_or_create_epoch_snapshot(handler, epoch).await?;
-//     if epoch_snapshot.finalized() {
-//         log::info!(
-//             "Epoch snapshot already finalized for epoch: {:?}. Skipping snapshotting.",
-//             epoch
-//         );
-//         return Ok(());
-//     }
-//
-//     for operator in operators.iter() {
-//         // Create Vault Operator Delegation
-//         let result = get_or_create_operator_snapshot(handler, operator, epoch).await;
-//
-//         if result.is_err() {
-//             log::error!(
-//                 "Failed to get or create operator snapshot for operator: {:?} in epoch: {:?} with error: {:?}",
-//                 operator,
-//                 epoch,
-//                 result.err().unwrap()
-//             );
-//             continue;
-//         };
-//
-//         let operator_snapshot = result?;
-//
-//         let vaults_to_run: Vec<Pubkey> = all_vaults
-//             .iter()
-//             .filter(|vault| !operator_snapshot.contains_vault(vault))
-//             .cloned()
-//             .collect();
-//
-//         for vault in vaults_to_run.iter() {
-//             let result = snapshot_vault_operator_delegation(handler, vault, operator, epoch).await;
-//
-//             if let Err(err) = result {
-//                 log::error!(
-//                     "Failed to snapshot vault operator delegation for vault: {:?} and operator: {:?} in epoch: {:?} with error: {:?}",
-//                     vault,
-//                     operator,
-//                     epoch,
-//                     err
-//                 );
-//             }
-//         }
-//     }
-//
-//     Ok(())
-// }
-//
+// --------------------- CRANKERS ------------------------------
+
+pub async fn crank_register_vaults(handler: &CliHandler) -> Result<()> {
+    let all_ncn_vaults = get_all_vaults_in_ncn(handler).await?;
+    let vault_registry = get_vault_registry(handler).await?;
+    let all_registered_vaults: Vec<Pubkey> = vault_registry
+        .get_valid_vault_entries()
+        .iter()
+        .map(|entry| *entry.vault())
+        .collect();
+
+    let vaults_to_register: Vec<Pubkey> = all_ncn_vaults
+        .iter()
+        .filter(|vault| !all_registered_vaults.contains(vault))
+        .copied()
+        .collect();
+
+    //TODO check if ST mint is registered first
+
+    for vault in vaults_to_register.iter() {
+        let result = register_vault(handler, vault).await;
+
+        if let Err(err) = result {
+            log::error!(
+                "Failed to register vault: {:?} with error: {:?}",
+                vault,
+                err
+            );
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn crank_set_weight(handler: &CliHandler, epoch: u64) -> Result<()> {
+    let weight_table = get_or_create_weight_table(handler, epoch).await?;
+
+    // TODO:
+    let all_ncn_vaults = get_all_vaults_in_ncn(handler).await?;
+    let vault = all_ncn_vaults[0];
+    println!("==========vault:{}, epoch:{}", vault, epoch);
+    admin_set_weight(handler, &vault, epoch, 100).await.expect("TODO: panic message");
+    // let st_mints = weight_table
+    //     .table()
+    //     .iter()
+    //     .filter(|entry| !entry.is_empty() && !entry.is_set())
+    //     .map(|entry| *entry.st_mint())
+    //     .collect::<Vec<Pubkey>>();
+    //
+    // for st_mint in st_mints {
+    //     let result = set_weight_with_st_mint(handler, &st_mint, epoch).await;
+    //
+    //     if let Err(err) = result {
+    //         log::error!(
+    //             "Failed to set weight for st_mint: {:?} in epoch: {:?} with error: {:?}",
+    //             st_mint,
+    //             epoch,
+    //             err
+    //         );
+    //     }
+    // }
+
+    Ok(())
+}
+
+pub async fn crank_snapshot(handler: &CliHandler, epoch: u64) -> Result<()> {
+    let vault_registry = get_vault_registry(handler).await?;
+
+    let operators = get_all_operators_in_ncn(handler).await?;
+    let all_vaults: Vec<Pubkey> = vault_registry
+        .get_valid_vault_entries()
+        .iter()
+        .map(|entry| *entry.vault())
+        .collect();
+
+    let epoch_snapshot = get_or_create_epoch_snapshot(handler, epoch).await?;
+    if epoch_snapshot.finalized() {
+        log::info!(
+            "Epoch snapshot already finalized for epoch: {:?}. Skipping snapshotting.",
+            epoch
+        );
+        return Ok(());
+    }
+
+    for operator in operators.iter() {
+        // Create Vault Operator Delegation
+        let result = get_or_create_operator_snapshot(handler, operator, epoch).await;
+
+        if result.is_err() {
+            log::error!(
+                "Failed to get or create operator snapshot for operator: {:?} in epoch: {:?} with error: {:?}",
+                operator,
+                epoch,
+                result.err().unwrap()
+            );
+            continue;
+        };
+
+        let operator_snapshot = result?;
+
+        let vaults_to_run: Vec<Pubkey> = all_vaults
+            .iter()
+            .filter(|vault| !operator_snapshot.contains_vault(vault))
+            .cloned()
+            .collect();
+
+        for vault in vaults_to_run.iter() {
+            let result = snapshot_vault_operator_delegation(handler, vault, operator, epoch).await;
+
+            if let Err(err) = result {
+                log::error!(
+                    "Failed to snapshot vault operator delegation for vault: {:?} and operator: {:?} in epoch: {:?} with error: {:?}",
+                    vault,
+                    operator,
+                    epoch,
+                    err
+                );
+            }
+        }
+    }
+
+    Ok(())
+}
+
 // #[allow(clippy::large_stack_frames)]
 // pub async fn crank_vote(handler: &CliHandler, epoch: u64, test_vote: bool) -> Result<()> {
 //     // VOTE
