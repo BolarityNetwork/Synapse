@@ -23,6 +23,7 @@ import {
 	RPC,
 	RELAYER_SECRET,
 	RELAYER_SOLANA_PROGRAM,
+	RELAYER_SEPOLIA_PROGRAM,
 } from "./consts"
 import {
 	get_relayer_of_current_epoch,
@@ -32,6 +33,8 @@ import {
 import {Program, Provider} from "@coral-xyz/anchor";
 const anchor = require("@coral-xyz/anchor");
 import * as bs58 from  "bs58";
+import { processSepoliaToSolana } from "./controller";
+
 
 function hexStringToUint8Array(hexString: string): Uint8Array {
     if (hexString.startsWith("0x")) {
@@ -51,6 +54,7 @@ function hexStringToUint8Array(hexString: string): Uint8Array {
 
     return byteArray;
 }
+
 (async function main() {
   // initialize relayer engine app, pass relevant config options
 	const app = new StandardRelayerApp<StandardRelayerContext>(
@@ -79,35 +83,41 @@ function hexStringToUint8Array(hexString: string): Uint8Array {
 		require("fs").readFileSync(currentDirectory + "/idl/relayer_hub.json", "utf8")
 	);
 	const program = new Program(idl as any, provider);
-	let currentRelayer = await get_relayer_of_current_epoch(connection, program);
-	console.log("================current:" + currentRelayer.toBase58());
-	if (currentRelayer.toBase58() == relayer.toBase58()) {
-		console.log("==============Now you======================");
-	}
+	const relayerSolanaIdl = JSON.parse(
+		require("fs").readFileSync(currentDirectory + "/idl/solana.json", "utf8")
+	);
+	const relayerSolanaProgram = new Program(relayerSolanaIdl as any, provider);
 
 	app.multiple(
 		{
-			[CHAIN_ID_SOLANA]: [RELAYER_SOLANA_PROGRAM],
-			[CHAIN_ID_SEPOLIA]: [],
+			// [CHAIN_ID_SOLANA]: [RELAYER_SOLANA_PROGRAM],
+			[CHAIN_ID_SEPOLIA]: [RELAYER_SEPOLIA_PROGRAM],
 		},
 		async (ctx, next) => {
 			// Get vaa and check whether it has been executed. If not, continue processing.
 			const vaa = ctx.vaa;
 			const hash = ctx.sourceTxHash;
-			vaa.emitterChain
+			const now: Date = new Date();
 			console.log(
-			  `===============Got a VAA with sequence: ${vaa.sequence} from with txhash: ${vaa.emitterChain}=========================`,
+			  `=====${now}==========Got a VAA with sequence: ${vaa.sequence} from with txhash: ${hash}=========================`,
 			);
 			console.log(
 			  `===============Got a VAA: ${Buffer.from(ctx.vaaBytes).toString('hex')}=========================`,
 			);
-			// if (vaa.emitterChain == 10002) {
-			// }
-			// record relay transaction
-			let sequence = await init_transaction(connection, program, Buffer.from(ctx.vaaBytes), relayerKeypair);
-			// TODO: do relay
-			let success = true;
-			await execute_transaction(connection, program, sequence, success, relayerKeypair);
+			let currentRelayer = await get_relayer_of_current_epoch(connection, program);
+			console.log("================current:" + currentRelayer.toBase58());
+			if (currentRelayer.toBase58() == relayer.toBase58()) {
+				console.log("==============Now you======================");
+				if (vaa.emitterChain == CHAIN_ID_SEPOLIA) {
+
+					await processSepoliaToSolana(connection, relayerSolanaProgram, relayerKeypair, vaa, ctx);
+				}
+				// record relay transaction
+				let sequence = await init_transaction(connection, program, Buffer.from(ctx.vaaBytes), relayerKeypair);
+				// TODO: do relay
+				let success = true;
+				await execute_transaction(connection, program, sequence, success, relayerKeypair);
+			}
 			next();
 		},
 	);
