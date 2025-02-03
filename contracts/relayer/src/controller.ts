@@ -2,7 +2,8 @@ import { Commitment, Connection, Keypair, PublicKey, sendAndConfirmTransaction, 
 import {
     CONTRACTS,
     postVaaSolana,
-    ChainId
+    ChainId,
+    CHAIN_ID_SEPOLIA
 } from "@certusone/wormhole-sdk";
 import {
     deriveAddress,
@@ -19,9 +20,10 @@ import * as tokenBridgeRelayer from "./sdk/";
 import {
     TOKEN_BRIDGE_PID,
     TOKEN_BRIDGE_RELAYER_PID,
-    CROSS_SECRET, SOL_MINT,
+    CROSS_SECRET, SOL_MINT, RELAYER_SEPOLIA_SECRET, RELAYER_SEPOLIA_PROGRAM,
 } from "./consts";
 import { sendAndConfirmIx } from "./utils";
+import { ethers } from "ethers";
 
 function sha256(input: string): Buffer {
     const hash = createHash('sha256');
@@ -61,6 +63,7 @@ const RawDataSchema = {
 };
 
 export async function processSepoliaToSolana(connection:Connection, program:Program, adminKeypair:Keypair, vaa:ParsedVaaWithBytes, ctx:StandardRelayerContext) {
+    let executed = false;
     const NETWORK = "TESTNET";
     const WORMHOLE_CONTRACTS = CONTRACTS[NETWORK];
     const CORE_BRIDGE_PID = new PublicKey(WORMHOLE_CONTRACTS.solana.core);
@@ -124,7 +127,7 @@ export async function processSepoliaToSolana(connection:Connection, program:Prog
             amount: Number(valueLE),
             toNativeTokenAmount: 0,
             recipientAddress: buf32,
-            recipientChain: 10002, // sepolie
+            recipientChain: CHAIN_ID_SEPOLIA, // sepolie
             batchId: 0,
             wrapNative: true,
         };
@@ -147,6 +150,7 @@ export async function processSepoliaToSolana(connection:Connection, program:Prog
         const tx = await sendAndConfirmIx(connection, transferIx, crossKeypair, 250000);
         if (tx === undefined) {
             console.log("Transaction failed:", tx);
+            return executed;
         } else {
             console.log("Transaction successful:", tx);
         }
@@ -190,9 +194,35 @@ export async function processSepoliaToSolana(connection:Connection, program:Prog
         let commitment: Commitment = 'confirmed';
         await sendAndConfirmTransaction(connection, tx3, [adminKeypair], {commitment});
         console.log('Transaction successful');
+        executed = true;
     }
     catch (error: any) {
         console.error('Transaction failed:', error);
         console.log(error);
     }
+    return executed;
+}
+
+
+export async function processSolanaToSepolia(
+    signer: ethers.Signer,
+    contractAbi: { [x: string]: ethers.ContractInterface },
+    ctx: StandardRelayerContext,
+) {
+    let executed = false;
+    const contract = new ethers.Contract(
+        RELAYER_SEPOLIA_PROGRAM,
+        contractAbi["abi"],
+        signer.provider,
+    );
+    try {
+        const contractWithWallet = contract.connect(signer);
+        const tx = await contractWithWallet.receiveMessage(ctx.vaaBytes);
+        await tx.wait();
+        console.log("Transaction successful");
+        executed = true;
+    } catch (error) {
+        console.error("Transaction failed:", error);
+    }
+    return executed;
 }

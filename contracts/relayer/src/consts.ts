@@ -1,8 +1,10 @@
 export const RELAYER_HUB_PID = process.env.RELAYER_HUB_PID!;
 
-export const RELAYER_SECRET = process.env.RELAYER_SECRET!;
+export const RELAYER_SOLANA_SECRET = process.env.RELAYER_SOLANA_SECRET!;
+export const RELAYER_SEPOLIA_SECRET = process.env.RELAYER_SEPOLIA_SECRET!;
 
-export const RPC = process.env.RPC!;
+export const SOLANA_RPC = process.env.SOLANA_RPC!;
+export const SEPOLIA_RPC = process.env.SEPOLIA_RPC!;
 
 export const RELAYER_SOLANA_PROGRAM = process.env.RELAYER_SOLANA_PROGRAM!;
 export const RELAYER_SEPOLIA_PROGRAM = process.env.RELAYER_SEPOLIA_PROGRAM!;
