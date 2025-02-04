@@ -5,6 +5,7 @@ use crate::handler::CliHandler;
 use anyhow::Result;
 use borsh::BorshDeserialize;
 use jito_bytemuck::AccountDeserialize;
+use jito_bytemuck::types::PodU64;
 use jito_restaking_core::{
     config::Config as RestakingConfig, ncn::Ncn, ncn_operator_state::NcnOperatorState,
     ncn_vault_ticket::NcnVaultTicket, operator::Operator,
@@ -24,6 +25,7 @@ use relayer_ncn_core::{
     // ncn_reward_router::{NcnRewardReceiver, NcnRewardRouter},
     vault_registry::VaultRegistry,
     weight_table::WeightTable,
+    final_transaction::FinalTransaction,
 };
 use jito_vault_core::{
     vault::Vault, vault_ncn_ticket::VaultNcnTicket,
@@ -392,16 +394,32 @@ pub async fn get_ballot_box(handler: &CliHandler, epoch: u64) -> Result<BallotBo
 //     let account = EpochMarker::try_from_slice_unchecked(account.data.as_slice())?;
 //     Ok(*account)
 // }
-//
-// pub async fn get_is_epoch_completed(handler: &CliHandler, epoch: u64) -> Result<bool> {
-//     let (address, _, _) =
-//         EpochMarker::find_program_address(&handler.tip_router_program_id, handler.ncn()?, epoch);
-//
-//     let account = get_account(handler, &address).await?;
-//
-//     Ok(account.is_some())
-// }
-//
+
+pub async fn get_is_epoch_completed(handler: &CliHandler, epoch: u64) -> Result<bool> {
+    // let (address, _, _) =
+    //     EpochMarker::find_program_address(&handler.tip_router_program_id, handler.ncn()?, epoch);
+    //
+    // let account = get_account(handler, &address).await?;
+    //
+    // Ok(account.is_some())
+    let (address, _, _) =
+        FinalTransaction::find_program_address(&handler.relayer_hub_program_id, epoch);
+
+    let account = get_account(handler, &address).await?;
+
+    if account.is_none() {
+        // return Err(anyhow::anyhow!("Account not found"));
+        return Ok(false)
+    }
+    let account = account.unwrap();
+
+    let account = FinalTransaction::try_from_slice_unchecked(account.data.as_slice())?;
+
+    let completed = account.epoch == PodU64::from(epoch);
+
+    Ok(completed)
+}
+
 // ---------------------- RESTAKING ----------------------
 
 pub async fn get_restaking_config(handler: &CliHandler) -> Result<RestakingConfig> {

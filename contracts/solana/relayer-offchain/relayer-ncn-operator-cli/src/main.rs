@@ -38,7 +38,7 @@ async fn main() -> Result<()> {
                 // Process the epoch
                 match process_epoch(
                     &rpc_client,
-                    previous_epoch + 1,
+                    previous_epoch,
                     &keypair,
                     ncn_address,
                     &cli,
@@ -51,7 +51,7 @@ async fn main() -> Result<()> {
                         // Continue to next epoch even if this one failed
                     }
                 }
-
+                info!("Wait for next epoch:{}", previous_epoch + 1);
                 // Wait for epoch change
                 wait_for_next_epoch(&rpc_client).await?;
             }

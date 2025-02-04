@@ -6,7 +6,8 @@ use crate::{
         crank_register_vaults,
         crank_set_weight,
         crank_snapshot,
-        // crank_vote, create_epoch_state,
+        crank_vote,
+        // create_epoch_state,
     },
     keeper::{
         keeper_metrics::{emit_epoch_metrics, emit_error, emit_ncn_metrics},
@@ -194,30 +195,30 @@ pub async fn run_keeper(
             }
         }
 
-        // {
-        //     info!("3. Create or Complete State - {}", current_epoch);
-        //
-        //     // If complete, reset loop
-        //     if state.is_epoch_completed {
-        //         continue;
-        //     }
-        //
-        //     // Else, if no epoch state, create it
-        //     if state.epoch_state.is_none() {
-        //         let result = create_epoch_state(handler, state.epoch).await;
-        //
-        //         check_and_timeout_error(
-        //             "Create Epoch State".to_string(),
-        //             &result,
-        //             error_timeout_ms,
-        //             state.epoch,
-        //         )
-        //             .await;
-        //
-        //         // Go back either way
-        //         continue;
-        //     }
-        // }
+        {
+            info!("3. Create or Complete State - {}", current_epoch);
+
+            // If complete, reset loop
+            if state.is_epoch_completed {
+                continue;
+            }
+
+            // // Else, if no epoch state, create it
+            // if state.epoch_state.is_none() {
+            //     let result = create_epoch_state(handler, state.epoch).await;
+            //
+            //     check_and_timeout_error(
+            //         "Create Epoch State".to_string(),
+            //         &result,
+            //         error_timeout_ms,
+            //         state.epoch,
+            //     )
+            //         .await;
+            //
+            //     // Go back either way
+            //     continue;
+            // }
+        }
 
         {
             info!("B. Emit Epoch Metrics ( Before Crank )");
@@ -238,6 +239,7 @@ pub async fn run_keeper(
             info!("5. Crank State [{:?}] - {}", current_state, current_epoch);
             crank_set_weight(handler, state.epoch).await.expect("TODO: panic message");
             crank_snapshot(handler, state.epoch).await.expect("TODO: panic message");
+            crank_vote(handler, state.epoch).await.expect("TODO: panic message");
             let result = Ok(());
             // let result = match current_state {
             //     State::SetWeight => crank_set_weight(handler, state.epoch).await,

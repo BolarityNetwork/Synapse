@@ -2016,26 +2016,22 @@ pub async fn crank_snapshot(handler: &CliHandler, epoch: u64) -> Result<()> {
     Ok(())
 }
 
-// #[allow(clippy::large_stack_frames)]
-// pub async fn crank_vote(handler: &CliHandler, epoch: u64, test_vote: bool) -> Result<()> {
-//     // VOTE
-//
-//     let ballot_box = get_or_create_ballot_box(handler, epoch).await?;
-//     if ballot_box.is_consensus_reached() {
-//         log::info!(
-//             "Consensus already reached for epoch: {:?}. Skipping voting.",
-//             epoch
-//         );
-//         return Ok(());
-//     }
-//
-//     if test_vote {
-//         crank_test_vote(handler, epoch).await?;
-//     }
-//
-//     Ok(())
-// }
-//
+#[allow(clippy::large_stack_frames)]
+pub async fn crank_vote(handler: &CliHandler, epoch: u64) -> Result<()> {
+    // VOTE
+
+    let ballot_box = get_or_create_ballot_box(handler, epoch).await?;
+    if ballot_box.is_consensus_reached() {
+        log::info!(
+            "Consensus already reached for epoch: {:?}. Skipping voting.",
+            epoch
+        );
+        return Ok(());
+    }
+
+    Ok(())
+}
+
 // #[allow(clippy::large_stack_frames)]
 // pub async fn crank_test_vote(handler: &CliHandler, epoch: u64) -> Result<()> {
 //     let voter = handler.keypair()?.pubkey();

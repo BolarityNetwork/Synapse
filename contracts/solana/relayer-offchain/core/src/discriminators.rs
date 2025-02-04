@@ -8,7 +8,7 @@ pub enum Discriminators {
     EpochSnapshot = 0x04,
     OperatorSnapshot = 0x05,
     BallotBox = 0x06,
-    FinalTransaction = 0x07,
+    FinalTransaction = 89,
     // State Tracking
     EpochState = 0x50,
     EpochMarker = 0x51,

@@ -1,7 +1,7 @@
 use crate::{
     getters::{
         get_account, get_all_operators_in_ncn, get_all_vaults_in_ncn,
-        // get_is_epoch_completed,
+        get_is_epoch_completed,
         // get_tip_router_config, get_total_rewards_to_be_distributed,
     },
     handler::CliHandler,
@@ -130,18 +130,17 @@ impl KeeperState {
         //         .push(ncn_reward_receivers_address);
         // }
 
-        self.update_epoch_state(handler).await?;
-
         // To ensure that the state is fetched for the correct epoch
         self.epoch = epoch;
+
+        self.update_epoch_state(handler).await?;
+
 
         Ok(())
     }
 
     pub async fn update_epoch_state(&mut self, handler: &CliHandler) -> Result<()> {
-        // let is_epoch_completed = get_is_epoch_completed(handler, self.epoch).await?;
-        // TODO:
-        let is_epoch_completed = true;
+        let is_epoch_completed = get_is_epoch_completed(handler, self.epoch).await?;
         if is_epoch_completed {
             self.is_epoch_completed = true;
             return Ok(());

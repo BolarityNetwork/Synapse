@@ -256,3 +256,18 @@ pub async fn get_final_tx(
     println!("==============tx:{:?}", tx);
     Ok(tx)
 }
+
+pub async fn is_reach_consensus(
+    client: &EllipsisClient,
+    ncn: Pubkey,
+    epoch: u64,
+) -> EllipsisClientResult<bool> {
+    let (address, _, _) =
+        BallotBox::find_program_address(&relayer_ncn_program::id(), &ncn, epoch);
+
+    let bx_account = client
+        .get_account(&address)
+        .await?;
+    let account = BallotBox::try_from_slice_unchecked(bx_account.data.as_slice())?;
+    Ok(account.is_consensus_reached())
+}
