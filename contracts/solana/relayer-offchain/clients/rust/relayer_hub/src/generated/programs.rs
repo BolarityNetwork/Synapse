@@ -9,5 +9,5 @@ use solana_program::{pubkey, pubkey::Pubkey};
 
 
   /// `relayer_hub` program ID.
-  pub const RELAYER_HUB_ID: Pubkey = pubkey!("25dmj8Y96VsSGMz4acYpfXD66vFSDNn8wB5wz1gmNZsH");
+  pub const RELAYER_HUB_ID: Pubkey = pubkey!("39djqgS6KR6SWb3T39bTj8QMX3iuMMLP41PVjk89ieJh");
 

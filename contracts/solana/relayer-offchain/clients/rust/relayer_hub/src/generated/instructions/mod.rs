@@ -12,6 +12,7 @@
   pub(crate) mod r#register_relayer;
   pub(crate) mod r#register_tx_pool;
   pub(crate) mod r#rollup_transaction;
+  pub(crate) mod r#update_config;
 
   pub use self::r#execute_transaction::*;
   pub use self::r#finalize_transaction::*;
@@ -20,4 +21,5 @@
   pub use self::r#register_relayer::*;
   pub use self::r#register_tx_pool::*;
   pub use self::r#rollup_transaction::*;
+  pub use self::r#update_config::*;
 

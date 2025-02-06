@@ -7,8 +7,10 @@
 pub(crate) mod r#ballot;
 pub(crate) mod r#ballot_tally;
 pub(crate) mod r#config_admin_role;
+pub(crate) mod r#epoch_account_status;
 pub(crate) mod r#ncn_fee_group_weight;
 pub(crate) mod r#operator_vote;
+pub(crate) mod r#progress;
 pub(crate) mod r#st_mint_entry;
 pub(crate) mod r#stake_weights;
 pub(crate) mod r#vault_entry;
@@ -16,7 +18,7 @@ pub(crate) mod r#vault_operator_stake_weight;
 pub(crate) mod r#weight_entry;
 
 pub use self::{
-    r#ballot::*, r#ballot_tally::*, r#config_admin_role::*, r#ncn_fee_group_weight::*,
-    r#operator_vote::*, r#st_mint_entry::*, r#stake_weights::*, r#vault_entry::*,
-    r#vault_operator_stake_weight::*, r#weight_entry::*,
+    r#ballot::*, r#ballot_tally::*, r#config_admin_role::*, r#epoch_account_status::*,
+    r#ncn_fee_group_weight::*, r#operator_vote::*, r#progress::*, r#st_mint_entry::*,
+    r#stake_weights::*, r#vault_entry::*, r#vault_operator_stake_weight::*, r#weight_entry::*,
 };

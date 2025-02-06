@@ -32,13 +32,14 @@ import {
 } from '../instructions';
 
 export const RELAYER_NCN_PROGRAM_PROGRAM_ADDRESS =
-  'BQdy9Tdk4R3fr6dsJN3XcnrqtA97gwAHyEcmrPZscQ6k' as Address<'BQdy9Tdk4R3fr6dsJN3XcnrqtA97gwAHyEcmrPZscQ6k'>;
+  '4Y4KoE1Tc77EfTg2V6qpCCfeeJa3eu61VxpQ2ih8ebxh' as Address<'4Y4KoE1Tc77EfTg2V6qpCCfeeJa3eu61VxpQ2ih8ebxh'>;
 
 export enum RelayerNcnProgramAccount {
   BallotBox,
   Config,
   EpochSnapshot,
   OperatorSnapshot,
+  EpochState,
   FinalTransaction,
   VaultRegistry,
   WeightTable,
@@ -121,7 +122,7 @@ export function identifyRelayerNcnProgramInstruction(
 }
 
 export type ParsedRelayerNcnProgramInstruction<
-  TProgram extends string = 'BQdy9Tdk4R3fr6dsJN3XcnrqtA97gwAHyEcmrPZscQ6k',
+  TProgram extends string = '4Y4KoE1Tc77EfTg2V6qpCCfeeJa3eu61VxpQ2ih8ebxh',
 > =
   | ({
       instructionType: RelayerNcnProgramInstruction.InitializeConfig;

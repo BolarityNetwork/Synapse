@@ -7,4 +7,4 @@
 use solana_program::{pubkey, pubkey::Pubkey};
 
 /// `relayer_ncn_program` program ID.
-pub const RELAYER_NCN_PROGRAM_ID: Pubkey = pubkey!("BQdy9Tdk4R3fr6dsJN3XcnrqtA97gwAHyEcmrPZscQ6k");
+pub const RELAYER_NCN_PROGRAM_ID: Pubkey = pubkey!("4Y4KoE1Tc77EfTg2V6qpCCfeeJa3eu61VxpQ2ih8ebxh");

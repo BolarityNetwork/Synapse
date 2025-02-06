@@ -8,7 +8,6 @@ pub mod relayer_ncn_client;
 pub mod relayer_hub_client;
 mod restaking_client;
 mod vault_client;
-mod generated_switchboard_accounts;
 
 pub type TestResult<T> = Result<T, TestError>;
 

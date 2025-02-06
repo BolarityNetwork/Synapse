@@ -21,7 +21,6 @@ use solana_sdk::{
 use spl_stake_pool::find_withdraw_authority_program_address;
 use relayer_ncn_core::constants::JITOSOL_MINT;
 use super::{
-    generated_switchboard_accounts::get_switchboard_accounts,
     restaking_client::NcnRoot,
 };
 use crate::fixtures::{

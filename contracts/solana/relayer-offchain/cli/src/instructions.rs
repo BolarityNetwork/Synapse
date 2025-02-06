@@ -72,6 +72,7 @@ use solana_sdk::{
 };
 use spl_associated_token_account::get_associated_token_address;
 use tokio::time::sleep;
+use crate::getters::get_operator;
 
 // --------------------- ADMIN ------------------------------
 #[allow(clippy::too_many_arguments)]
@@ -2406,7 +2407,8 @@ pub async fn create_test_ncn(handler: &CliHandler) -> Result<()> {
     let keypair = handler.keypair()?;
     let base = Keypair::new();
     let (ncn, _, _) = Ncn::find_program_address(&handler.restaking_program_id, &base.pubkey());
-
+    let ncn_config_address =
+        NcnConfig::find_program_address(&relayer_ncn_program::id(), &ncn).0;
     let (config, _, _) = RestakingConfig::find_program_address(&handler.restaking_program_id);
 
     let mut ix_builder = InitializeNcnBuilder::new();
@@ -2422,7 +2424,7 @@ pub async fn create_test_ncn(handler: &CliHandler) -> Result<()> {
         &[ix_builder.instruction()],
         &[&base],
         "Created Test Ncn",
-        &[format!("NCN: {:?}", ncn)],
+        &[format!("NCN: {:?},ncn-config:{:?}", ncn, ncn_config_address)],
     )
         .await?;
 
@@ -2433,12 +2435,17 @@ pub async fn create_and_add_test_operator(
     handler: &CliHandler,
     operator_fee_bps: u16,
 ) -> Result<()> {
-    let keypair = handler.keypair()?;
+    let ncn_admin = handler.keypair()?;
+    let keypair = Keypair::new();
+    // let keypair = Keypair::from_base58_string("");
+
+    info!("operator admin keypair:{},{}", keypair.to_base58_string(),&keypair.pubkey());
 
     let ncn = *handler.ncn()?;
 
     let base = Keypair::new();
-    log::info!("operator base keypair:{},{}", base.to_base58_string(),&base.pubkey());
+    info!("operator base keypair:{},{}", base.to_base58_string(),&base.pubkey());
+
     let (operator, _, _) =
         Operator::find_program_address(&handler.restaking_program_id, &base.pubkey());
 
@@ -2458,8 +2465,8 @@ pub async fn create_and_add_test_operator(
 
     let initialize_ncn_operator_state_ix = InitializeNcnOperatorStateBuilder::new()
         .config(config)
-        .payer(keypair.pubkey())
-        .admin(keypair.pubkey())
+        .payer(ncn_admin.pubkey())
+        .admin(ncn_admin.pubkey())
         .operator(operator)
         .ncn(ncn)
         .ncn_operator_state(ncn_operator_state)
@@ -2467,7 +2474,7 @@ pub async fn create_and_add_test_operator(
 
     let ncn_warmup_operator_ix = NcnWarmupOperatorBuilder::new()
         .config(config)
-        .admin(keypair.pubkey())
+        .admin(ncn_admin.pubkey())
         .ncn(ncn)
         .operator(operator)
         .ncn_operator_state(ncn_operator_state)
@@ -2484,7 +2491,7 @@ pub async fn create_and_add_test_operator(
     send_and_log_transaction(
         handler,
         &[initalize_operator_ix, initialize_ncn_operator_state_ix],
-        &[&base],
+        &[&keypair, &base],
         "Created Test Operator",
         &[
             format!("NCN: {:?}", ncn),
@@ -2498,7 +2505,7 @@ pub async fn create_and_add_test_operator(
     send_and_log_transaction(
         handler,
         &[ncn_warmup_operator_ix, operator_warmup_ncn_ix],
-        &[],
+        &[&keypair],
         "Warmed up Operator",
         &[
             format!("NCN: {:?}", ncn),
@@ -2724,6 +2731,8 @@ pub async fn create_and_add_test_vault(
         .await?;
 
     for operator in all_operators {
+        let op = get_operator(&handler, &operator).await?;
+        let op_keypair = Keypair::from_base58_string("");
         let (operator_vault_ticket, _, _) = OperatorVaultTicket::find_program_address(
             &handler.restaking_program_id,
             &operator,
@@ -2738,7 +2747,7 @@ pub async fn create_and_add_test_vault(
 
         let initialize_operator_vault_ticket_ix = InitializeOperatorVaultTicketBuilder::new()
             .config(restaking_config)
-            .admin(keypair.pubkey())
+            .admin(op.admin)
             .operator(operator)
             .vault(vault)
             .operator_vault_ticket(operator_vault_ticket)
@@ -2749,7 +2758,7 @@ pub async fn create_and_add_test_vault(
         send_and_log_transaction(
             handler,
             &[initialize_operator_vault_ticket_ix],
-            &[],
+            &[&op_keypair],
             "Connected Vault and Operator",
             &[
                 format!("NCN: {:?}", ncn),
@@ -2764,7 +2773,7 @@ pub async fn create_and_add_test_vault(
         // do_initialize_vault_operator_delegation
         let warmup_operator_vault_ticket_ix = WarmupOperatorVaultTicketBuilder::new()
             .config(restaking_config)
-            .admin(keypair.pubkey())
+            .admin(op.admin)
             .operator(operator)
             .vault(vault)
             .operator_vault_ticket(operator_vault_ticket)
@@ -2797,7 +2806,7 @@ pub async fn create_and_add_test_vault(
                 initialize_vault_operator_delegation_ix,
                 delegate_to_operator_ix,
             ],
-            &[],
+            &[&op_keypair],
             "Delegated to Operator",
             &[
                 format!("NCN: {:?}", ncn),

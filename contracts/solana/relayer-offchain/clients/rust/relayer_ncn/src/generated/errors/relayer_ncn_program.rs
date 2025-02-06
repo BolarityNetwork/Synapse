@@ -225,9 +225,57 @@ pub enum RelayerNcnProgramError {
     /// 8766 - Invalid epochs before stall
     #[error("Invalid epochs before stall")]
     InvalidEpochsBeforeStall = 0x223E,
-    /// 8767 - Invalid slots after consensus
+    /// 8767 - Invalid epochs before accounts can close
+    #[error("Invalid epochs before accounts can close")]
+    InvalidEpochsBeforeClose = 0x223F,
+    /// 8768 - Invalid slots after consensus
     #[error("Invalid slots after consensus")]
-    InvalidSlotsAfterConsensus = 0x223F,
+    InvalidSlotsAfterConsensus = 0x2240,
+    /// 8769 - Vault needs to be updated
+    #[error("Vault needs to be updated")]
+    VaultNeedsUpdate = 0x2241,
+    /// 8770 - Invalid Account Status
+    #[error("Invalid Account Status")]
+    InvalidAccountStatus = 0x2242,
+    /// 8771 - Account already initialized
+    #[error("Account already initialized")]
+    AccountAlreadyInitialized = 0x2243,
+    /// 8772 - Cannot vote with uninitialized account
+    #[error("Cannot vote with uninitialized account")]
+    BadBallot = 0x2244,
+    /// 8773 - Cannot route until voting is over
+    #[error("Cannot route until voting is over")]
+    VotingIsNotOver = 0x2245,
+    /// 8774 - Operator is not in snapshot
+    #[error("Operator is not in snapshot")]
+    OperatorIsNotInSnapshot = 0x2246,
+    /// 8775 - Invalid account_to_close Discriminator
+    #[error("Invalid account_to_close Discriminator")]
+    InvalidAccountToCloseDiscriminator = 0x2247,
+    /// 8776 - Cannot close account
+    #[error("Cannot close account")]
+    CannotCloseAccount = 0x2248,
+    /// 8777 - Cannot close account - Already closed
+    #[error("Cannot close account - Already closed")]
+    CannotCloseAccountAlreadyClosed = 0x2249,
+    /// 8778 - Cannot close account - Not enough epochs have passed since consensus reached
+    #[error("Cannot close account - Not enough epochs have passed since consensus reached")]
+    CannotCloseAccountNotEnoughEpochs = 0x224A,
+    /// 8779 - Cannot close account - No receiver provided
+    #[error("Cannot close account - No receiver provided")]
+    CannotCloseAccountNoReceiverProvided = 0x224B,
+    /// 8780 - Cannot close epoch state account - Epoch state needs all other accounts to be closed first
+    #[error("Cannot close epoch state account - Epoch state needs all other accounts to be closed first")]
+    CannotCloseEpochStateAccount = 0x224C,
+    /// 8781 - Invalid DAO wallet
+    #[error("Invalid DAO wallet")]
+    InvalidDaoWallet = 0x224D,
+    /// 8782 - Epoch is closing down
+    #[error("Epoch is closing down")]
+    EpochIsClosingDown = 0x224E,
+    /// 8783 - Marker exists
+    #[error("Marker exists")]
+    MarkerExists = 0x224F,
 }
 
 impl solana_program::program_error::PrintProgramError for RelayerNcnProgramError {

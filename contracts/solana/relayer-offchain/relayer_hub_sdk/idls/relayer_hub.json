@@ -1,5 +1,5 @@
 {
-  "address": "25dmj8Y96VsSGMz4acYpfXD66vFSDNn8wB5wz1gmNZsH",
+  "address": "39djqgS6KR6SWb3T39bTj8QMX3iuMMLP41PVjk89ieJh",
   "metadata": {
     "name": "relayer_hub",
     "version": "0.1.0",
@@ -111,6 +111,67 @@
         {
           "name": "epoch",
           "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "update_config",
+      "discriminator": [
+        29,
+        158,
+        252,
+        191,
+        10,
+        83,
+        219,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "docs": [
+            "Only owner."
+          ],
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "docs": [
+            "Program configuration account."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "docs": [
+            "System program."
+          ],
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "authority",
+          "type": "pubkey"
         }
       ]
     }

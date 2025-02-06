@@ -14,7 +14,7 @@ module.exports = async function (provider) {
   const idl = JSON.parse(
       require("fs").readFileSync(currentDirectory + "/target/idl/relayer_hub.json", "utf8")
   );
-  const programID=new PublicKey("25dmj8Y96VsSGMz4acYpfXD66vFSDNn8wB5wz1gmNZsH")
+  const programID=new PublicKey("39djqgS6KR6SWb3T39bTj8QMX3iuMMLP41PVjk89ieJh")
   const program = new anchor.Program(idl, programID);
   const genPDAAccount = async (seed:string)=> {
     return PublicKey.findProgramAddressSync(
@@ -30,7 +30,7 @@ module.exports = async function (provider) {
   const [poolPDA] = await genPDAAccount("pool")
   const [finalPoolPDA] = await genPDAAccount("final_pool")
   // // ======================initialize=========================
-  const authority =  new PublicKey("CPy7655ZLHhJqbdSajg6NZZC5mHxkx6CiHfda6Ebm89Q");
+  // const authority =  new PublicKey("DuSHFhELY5M5Tth6wcefHvciMnuKnSGeLQmYPdpzurMg");
   // const ix = program.methods
   //     .initialize(authority)
   //     .accounts({
@@ -47,22 +47,22 @@ module.exports = async function (provider) {
   // catch (error: any) {
   //     console.log(error);
   // }
-  // ======================update config=========================
-  const ix = program.methods
-      .updateConfig(authority)
-      .accounts({
-        config:configPDA,
-        owner:provider.wallet.publicKey
-      })
-      .instruction();
-  const tx = new Transaction().add(await ix);
-  try {
-      let commitment: Commitment = 'confirmed';
-      await sendAndConfirmTransaction(provider.connection, tx, [provider.wallet.payer], {commitment});
-  }
-  catch (error: any) {
-      console.log(error);
-  }
+  // // ======================update config=========================
+  // const ix = program.methods
+  //     .updateConfig(authority)
+  //     .accounts({
+  //       config:configPDA,
+  //       owner:provider.wallet.publicKey
+  //     })
+  //     .instruction();
+  // const tx = new Transaction().add(await ix);
+  // try {
+  //     let commitment: Commitment = 'confirmed';
+  //     await sendAndConfirmTransaction(provider.connection, tx, [provider.wallet.payer], {commitment});
+  // }
+  // catch (error: any) {
+  //     console.log(error);
+  // }
   // // ======================register pool=========================
   //
   //   const ix = program.methods

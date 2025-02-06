@@ -1115,6 +1115,143 @@
       }
     },
     {
+      "name": "EpochState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "ncn",
+            "type": "publicKey"
+          },
+          {
+            "name": "epoch",
+            "type": {
+              "defined": "PodU64"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "slotCreated",
+            "type": {
+              "defined": "PodU64"
+            }
+          },
+          {
+            "name": "wasTieBreakerSet",
+            "type": {
+              "defined": "PodBool"
+            }
+          },
+          {
+            "name": "slotConsensusReached",
+            "type": {
+              "defined": "PodU64"
+            }
+          },
+          {
+            "name": "operatorCount",
+            "type": {
+              "defined": "PodU64"
+            }
+          },
+          {
+            "name": "vaultCount",
+            "type": {
+              "defined": "PodU64"
+            }
+          },
+          {
+            "name": "accountStatus",
+            "type": {
+              "defined": "EpochAccountStatus"
+            }
+          },
+          {
+            "name": "setWeightProgress",
+            "type": {
+              "defined": "Progress"
+            }
+          },
+          {
+            "name": "epochSnapshotProgress",
+            "type": {
+              "defined": "Progress"
+            }
+          },
+          {
+            "name": "operatorSnapshotProgress",
+            "type": {
+              "array": [
+                {
+                  "defined": "Progress"
+                },
+                256
+              ]
+            }
+          },
+          {
+            "name": "votingProgress",
+            "type": {
+              "defined": "Progress"
+            }
+          },
+          {
+            "name": "validationProgress",
+            "type": {
+              "defined": "Progress"
+            }
+          },
+          {
+            "name": "uploadProgress",
+            "type": {
+              "defined": "Progress"
+            }
+          },
+          {
+            "name": "totalDistributionProgress",
+            "type": {
+              "defined": "Progress"
+            }
+          },
+          {
+            "name": "baseDistributionProgress",
+            "type": {
+              "defined": "Progress"
+            }
+          },
+          {
+            "name": "ncnDistributionProgress",
+            "type": {
+              "array": [
+                {
+                  "defined": "Progress"
+                },
+                2048
+              ]
+            }
+          },
+          {
+            "name": "isClosing",
+            "type": {
+              "defined": "PodBool"
+            }
+          },
+          {
+            "name": "reserved",
+            "type": {
+              "array": [
+                "u8",
+                1023
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "FinalTransaction",
       "type": {
         "kind": "struct",
@@ -1397,6 +1534,72 @@
               "array": [
                 "u8",
                 32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "EpochAccountStatus",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "epochState",
+            "type": "u8"
+          },
+          {
+            "name": "weightTable",
+            "type": "u8"
+          },
+          {
+            "name": "epochSnapshot",
+            "type": "u8"
+          },
+          {
+            "name": "operatorSnapshot",
+            "type": {
+              "array": [
+                "u8",
+                256
+              ]
+            }
+          },
+          {
+            "name": "ballotBox",
+            "type": "u8"
+          },
+          {
+            "name": "baseRewardRouter",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Progress",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tally",
+            "type": {
+              "defined": "PodU64"
+            }
+          },
+          {
+            "name": "total",
+            "type": {
+              "defined": "PodU64"
+            }
+          },
+          {
+            "name": "reserved",
+            "type": {
+              "array": [
+                "u8",
+                8
               ]
             }
           }
@@ -1931,12 +2134,92 @@
     },
     {
       "code": 8767,
+      "name": "InvalidEpochsBeforeClose",
+      "msg": "Invalid epochs before accounts can close"
+    },
+    {
+      "code": 8768,
       "name": "InvalidSlotsAfterConsensus",
       "msg": "Invalid slots after consensus"
+    },
+    {
+      "code": 8769,
+      "name": "VaultNeedsUpdate",
+      "msg": "Vault needs to be updated"
+    },
+    {
+      "code": 8770,
+      "name": "InvalidAccountStatus",
+      "msg": "Invalid Account Status"
+    },
+    {
+      "code": 8771,
+      "name": "AccountAlreadyInitialized",
+      "msg": "Account already initialized"
+    },
+    {
+      "code": 8772,
+      "name": "BadBallot",
+      "msg": "Cannot vote with uninitialized account"
+    },
+    {
+      "code": 8773,
+      "name": "VotingIsNotOver",
+      "msg": "Cannot route until voting is over"
+    },
+    {
+      "code": 8774,
+      "name": "OperatorIsNotInSnapshot",
+      "msg": "Operator is not in snapshot"
+    },
+    {
+      "code": 8775,
+      "name": "InvalidAccountToCloseDiscriminator",
+      "msg": "Invalid account_to_close Discriminator"
+    },
+    {
+      "code": 8776,
+      "name": "CannotCloseAccount",
+      "msg": "Cannot close account"
+    },
+    {
+      "code": 8777,
+      "name": "CannotCloseAccountAlreadyClosed",
+      "msg": "Cannot close account - Already closed"
+    },
+    {
+      "code": 8778,
+      "name": "CannotCloseAccountNotEnoughEpochs",
+      "msg": "Cannot close account - Not enough epochs have passed since consensus reached"
+    },
+    {
+      "code": 8779,
+      "name": "CannotCloseAccountNoReceiverProvided",
+      "msg": "Cannot close account - No receiver provided"
+    },
+    {
+      "code": 8780,
+      "name": "CannotCloseEpochStateAccount",
+      "msg": "Cannot close epoch state account - Epoch state needs all other accounts to be closed first"
+    },
+    {
+      "code": 8781,
+      "name": "InvalidDaoWallet",
+      "msg": "Invalid DAO wallet"
+    },
+    {
+      "code": 8782,
+      "name": "EpochIsClosingDown",
+      "msg": "Epoch is closing down"
+    },
+    {
+      "code": 8783,
+      "name": "MarkerExists",
+      "msg": "Marker exists"
     }
   ],
   "metadata": {
     "origin": "shank",
-    "address": "BQdy9Tdk4R3fr6dsJN3XcnrqtA97gwAHyEcmrPZscQ6k"
+    "address": "4Y4KoE1Tc77EfTg2V6qpCCfeeJa3eu61VxpQ2ih8ebxh"
   }
 }

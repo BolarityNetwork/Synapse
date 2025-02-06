@@ -9,20 +9,20 @@ members = [
     "programs/relayer-hub",
 ]
 [programs.mainnet]
-relayer_hub = "25dmj8Y96VsSGMz4acYpfXD66vFSDNn8wB5wz1gmNZsH"
+relayer_hub = "39djqgS6KR6SWb3T39bTj8QMX3iuMMLP41PVjk89ieJh"
 
 [programs.localnet]
-relayer_hub = "25dmj8Y96VsSGMz4acYpfXD66vFSDNn8wB5wz1gmNZsH"
+relayer_hub = "39djqgS6KR6SWb3T39bTj8QMX3iuMMLP41PVjk89ieJh"
 
 [programs.devnet]
-relayer_hub = "25dmj8Y96VsSGMz4acYpfXD66vFSDNn8wB5wz1gmNZsH"
+relayer_hub = "39djqgS6KR6SWb3T39bTj8QMX3iuMMLP41PVjk89ieJh"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "devnet"
-wallet = "~/.config/solana/id.json"
+wallet = "./target/deploy/owner.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
