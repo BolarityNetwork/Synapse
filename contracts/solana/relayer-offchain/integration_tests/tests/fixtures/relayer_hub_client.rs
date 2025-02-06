@@ -303,6 +303,7 @@ impl RelayerHubClient {
         sequence: u64,
         payer: &Keypair,
         success: bool,
+        hash: [u8;64],
     ) -> TestResult<()> {
         let (relayer_info, _) =relayer_hub_sdk::derive_relayer_info_account_address(&relayer_hub_program);
         let system_program = solana_program::system_program::id();
@@ -316,6 +317,7 @@ impl RelayerHubClient {
             sequence,
             payer,
             success,
+            hash,
         )
             .await
     }
@@ -329,6 +331,7 @@ impl RelayerHubClient {
         sequence: u64,
         payer: &Keypair,
         success: bool,
+        hash: [u8;64],
     ) -> TestResult<()> {
         let ix = ExecuteTransactionBuilder::new()
             .config(hub_config)
@@ -338,6 +341,7 @@ impl RelayerHubClient {
             .system_program(system_program)
             .sequence(sequence)
             .success(success)
+            .hash(hash)
             .instruction();
 
         let blockhash = self.banks_client.get_latest_blockhash().await?;

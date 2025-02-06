@@ -81,13 +81,13 @@ impl ExecuteTransaction {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
  pub struct ExecuteTransactionInstructionData {
             discriminator: [u8; 8],
-                  }
+                        }
 
 impl ExecuteTransactionInstructionData {
   pub fn new() -> Self {
     Self {
                         discriminator: [231, 173, 49, 91, 235, 24, 68, 19],
-                                              }
+                                                            }
   }
 }
 
@@ -102,6 +102,7 @@ impl Default for ExecuteTransactionInstructionData {
  pub struct ExecuteTransactionInstructionArgs {
                   pub sequence: u64,
                 pub success: bool,
+                pub hash: [u8; 64],
       }
 
 
@@ -123,6 +124,7 @@ pub struct ExecuteTransactionBuilder {
                 system_program: Option<solana_program::pubkey::Pubkey>,
                         sequence: Option<u64>,
                 success: Option<bool>,
+                hash: Option<[u8; 64]>,
         __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
@@ -171,6 +173,11 @@ impl ExecuteTransactionBuilder {
         self.success = Some(success);
         self
       }
+                #[inline(always)]
+      pub fn hash(&mut self, hash: [u8; 64]) -> &mut Self {
+        self.hash = Some(hash);
+        self
+      }
         /// Add an additional account to the instruction.
   #[inline(always)]
   pub fn add_remaining_account(&mut self, account: solana_program::instruction::AccountMeta) -> &mut Self {
@@ -195,6 +202,7 @@ impl ExecuteTransactionBuilder {
           let args = ExecuteTransactionInstructionArgs {
                                                               sequence: self.sequence.clone().expect("sequence is not set"),
                                                                   success: self.success.clone().expect("success is not set"),
+                                                                  hash: self.hash.clone().expect("hash is not set"),
                                     };
     
     accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
@@ -377,6 +385,7 @@ impl<'a, 'b> ExecuteTransactionCpiBuilder<'a, 'b> {
               system_program: None,
                                             sequence: None,
                                 success: None,
+                                hash: None,
                     __remaining_accounts: Vec::new(),
     });
     Self { instruction }
@@ -421,6 +430,11 @@ impl<'a, 'b> ExecuteTransactionCpiBuilder<'a, 'b> {
         self.instruction.success = Some(success);
         self
       }
+                #[inline(always)]
+      pub fn hash(&mut self, hash: [u8; 64]) -> &mut Self {
+        self.instruction.hash = Some(hash);
+        self
+      }
         /// Add an additional account to the instruction.
   #[inline(always)]
   pub fn add_remaining_account(&mut self, account: &'b solana_program::account_info::AccountInfo<'a>, is_writable: bool, is_signer: bool) -> &mut Self {
@@ -446,6 +460,7 @@ impl<'a, 'b> ExecuteTransactionCpiBuilder<'a, 'b> {
           let args = ExecuteTransactionInstructionArgs {
                                                               sequence: self.instruction.sequence.clone().expect("sequence is not set"),
                                                                   success: self.instruction.success.clone().expect("success is not set"),
+                                                                  hash: self.instruction.hash.clone().expect("hash is not set"),
                                     };
         let instruction = ExecuteTransactionCpi {
         __program: self.instruction.__program,
@@ -475,6 +490,7 @@ struct ExecuteTransactionCpiBuilderInstruction<'a, 'b> {
                 system_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
                         sequence: Option<u64>,
                 success: Option<bool>,
+                hash: Option<[u8; 64]>,
         /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
   __remaining_accounts: Vec<(&'b solana_program::account_info::AccountInfo<'a>, bool, bool)>,
 }

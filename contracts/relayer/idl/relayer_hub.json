@@ -1,5 +1,5 @@
 {
-  "address": "25dmj8Y96VsSGMz4acYpfXD66vFSDNn8wB5wz1gmNZsH",
+  "address": "39djqgS6KR6SWb3T39bTj8QMX3iuMMLP41PVjk89ieJh",
   "metadata": {
     "name": "relayer_hub",
     "version": "0.1.0",
@@ -99,6 +99,15 @@
         {
           "name": "success",
           "type": "bool"
+        },
+        {
+          "name": "hash",
+          "type": {
+            "array": [
+              "u8",
+              64
+            ]
+          }
         }
       ]
     },
@@ -773,6 +782,7 @@
           "docs": [
             "Program configuration account."
           ],
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -1200,7 +1210,12 @@
           },
           {
             "name": "hash",
-            "type": "bytes"
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
           }
         ]
       }

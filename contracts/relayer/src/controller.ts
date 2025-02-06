@@ -62,7 +62,7 @@ const RawDataSchema = {
     }
 };
 
-export async function processSepoliaToSolana(connection:Connection, program:Program, adminKeypair:Keypair, vaa:ParsedVaaWithBytes, ctx:StandardRelayerContext) {
+export async function processSepoliaToSolana(connection:Connection, program:Program, adminKeypair:Keypair, vaa:ParsedVaaWithBytes, ctx:StandardRelayerContext):Promise<[boolean, string]>  {
     let executed = false;
     const NETWORK = "TESTNET";
     const WORMHOLE_CONTRACTS = CONTRACTS[NETWORK];
@@ -150,7 +150,7 @@ export async function processSepoliaToSolana(connection:Connection, program:Prog
         const tx = await sendAndConfirmIx(connection, transferIx, crossKeypair, 250000);
         if (tx === undefined) {
             console.log("Transaction failed:", tx);
-            return executed;
+            return [executed, ""];
         } else {
             console.log("Transaction successful:", tx);
         }
@@ -190,17 +190,18 @@ export async function processSepoliaToSolana(connection:Connection, program:Prog
         .instruction();
 
     const tx3 = new Transaction().add(await ix);
+    let signature ="";
     try {
         let commitment: Commitment = 'confirmed';
-        await sendAndConfirmTransaction(connection, tx3, [adminKeypair], {commitment});
-        console.log('Transaction successful');
+        signature = await sendAndConfirmTransaction(connection, tx3, [adminKeypair], {commitment});
+        console.log('Transaction successful, txid:' + signature);
         executed = true;
     }
     catch (error: any) {
         console.error('Transaction failed:', error);
         console.log(error);
     }
-    return executed;
+    return [executed, signature];
 }
 
 
@@ -208,21 +209,23 @@ export async function processSolanaToSepolia(
     signer: ethers.Signer,
     contractAbi: { [x: string]: ethers.ContractInterface },
     ctx: StandardRelayerContext,
-) {
+):Promise<[boolean, string]> {
     let executed = false;
     const contract = new ethers.Contract(
         RELAYER_SEPOLIA_PROGRAM,
         contractAbi["abi"],
         signer.provider,
     );
+    let hash = "";
     try {
         const contractWithWallet = contract.connect(signer);
         const tx = await contractWithWallet.receiveMessage(ctx.vaaBytes);
+        hash = tx.hash;
         await tx.wait();
         console.log("Transaction successful");
         executed = true;
     } catch (error) {
         console.error("Transaction failed:", error);
     }
-    return executed;
+    return [executed, hash];
 }

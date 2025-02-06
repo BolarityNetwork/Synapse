@@ -85,6 +85,7 @@ function hexStringToUint8Array(hexString: string): Uint8Array {
 	const contractAbi = JSON.parse(
 		require("fs").readFileSync(currentDirectory + "/idl/UniProxy.json", "utf8")
 	);
+
 	app.multiple(
 		{
 			[CHAIN_ID_SOLANA]: [RELAYER_SOLANA_PROGRAM],
@@ -93,7 +94,7 @@ function hexStringToUint8Array(hexString: string): Uint8Array {
 		async (ctx, next) => {
 			// Get vaa and check whether it has been executed. If not, continue processing.
 			const vaa = ctx.vaa;
-			const hash = ctx.sourceTxHash;
+			let hash = ctx.sourceTxHash;
 			const now: Date = new Date();
 			console.log(
 			  `=====${now}==========Got a VAA with sequence: ${vaa.sequence} from with txhash: ${hash}=========================`,
@@ -108,12 +109,18 @@ function hexStringToUint8Array(hexString: string): Uint8Array {
 				// record relay transaction
 				let sequence = await init_transaction(connection, program, Buffer.from(ctx.vaaBytes), relayerSolanaKeypair);
 				let success = false;
+				let hash_buffer;
 				if (vaa.emitterChain == CHAIN_ID_SEPOLIA) {
-					success = await processSepoliaToSolana(connection, relayerSolanaProgram, relayerSolanaKeypair, vaa, ctx);
+					let signature;
+					[success, signature] = await processSepoliaToSolana(connection, relayerSolanaProgram, relayerSolanaKeypair, vaa, ctx);
+					if (signature!= "") {
+						hash_buffer = bs58.decode(signature);
+					}
 				} else if (vaa.emitterChain == CHAIN_ID_SOLANA) {
-					success = await processSolanaToSepolia(signer, contractAbi, ctx);
+					[success, hash] = await processSolanaToSepolia(signer, contractAbi, ctx);
+					hash_buffer = Buffer.from(hexStringToUint8Array(hash));
 				}
-				await execute_transaction(connection, program, sequence, success, relayerSolanaKeypair);
+				await execute_transaction(connection, program, sequence, success, relayerSolanaKeypair, hash_buffer);
 			}
 			next();
 		},

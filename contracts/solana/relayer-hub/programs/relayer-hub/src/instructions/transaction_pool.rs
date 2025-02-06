@@ -183,7 +183,7 @@ pub struct ExecTransaction<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn execute_transaction(ctx: Context<ExecTransaction>, _sequence: u64, success: bool) -> Result<()> {
+pub fn execute_transaction(ctx: Context<ExecTransaction>, _sequence: u64, success: bool, hash: [u8;64]) -> Result<()> {
     let config_state = &mut ctx.accounts.config;
     // To initialize first.
     if !config_state.initialized {
@@ -202,6 +202,7 @@ pub fn execute_transaction(ctx: Context<ExecTransaction>, _sequence: u64, succes
 
 
     let transaction = &mut ctx.accounts.transaction;
+    transaction.hash = hash;
     let old_status = transaction.status.clone();
 
     if let Status::Pending = old_status{

@@ -86,7 +86,7 @@ mod push_transaction{
         // ==================Relayer Monitors Transaction States in Parallel===========
         for i in 0..total {
             relayer_hub_client
-                .do_execute_transaction(i, current_relayer, true)
+                .do_execute_transaction(i, current_relayer, true, [i as u8;64])
                 .await?;
             let status = relayer_hub_client.get_tx_status(i).await?;
             assert_eq!(status, Status::Executed);
@@ -94,18 +94,20 @@ mod push_transaction{
         // ==================Operator Validates Transactions and Prepares State Roots( offchain)==============
         let current_operator = &test_ncn.operators[(epoch % OPERATOR_COUNT as u64)as usize].operator_admin;
         let mut sequences = vec![];
+        let mut hashs = vec![];
         // Find transactions that are in the Executed or Failing state in a certain epoch.
         let state_root = if let Ok((begin_sequence, current_sequence))= relayer_hub_client.get_all_can_finalize_tx(epoch).await {
             for i in begin_sequence..=current_sequence {
-                let old_status = relayer_hub_client.get_tx_status(i).await?;
-                if old_status == Status::Executed || old_status == Status::Failing {
+                let tx = relayer_hub_client.get_tx(i).await?;
+                if tx.status == Status::Executed || tx.status == Status::Failing {
                     sequences.push(i);
+                    hashs.push(tx.hash);
                 }
             }
-            let byte_vecs: Vec<Vec<u8>> = sequences
+            let byte_vecs: Vec<Vec<u8>> = hashs
                 .iter()
                 .map(|&num| {
-                    num.to_le_bytes().to_vec()
+                    num.to_vec()
                 })
                 .collect();
             let mt = MerkleTree::new(&byte_vecs, false);

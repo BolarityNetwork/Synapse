@@ -29,6 +29,9 @@ module.exports = async function (provider) {
   const [relayerInfoPDA] = await genPDAAccount("relayer_info")
   const [poolPDA] = await genPDAAccount("pool")
   const [finalPoolPDA] = await genPDAAccount("final_pool")
+  console.log(bs58.decode("3oAaQcodzyb72rKWxjo12degCZeepDMR2p42pgcUqeKRCyBV4TJDopGVWYbTX22EifYVqZVqsaFeJenx76H6FcQZ").toString('hex'))
+  const signatureBytes = Buffer.from("3oAaQcodzyb72rKWxjo12degCZeepDMR2p42pgcUqeKRCyBV4TJDopGVWYbTX22EifYVqZVqsaFeJenx76H6FcQZ", 'hex');
+  console.log(signatureBytes)
   // // ======================initialize=========================
   // const authority =  new PublicKey("DuSHFhELY5M5Tth6wcefHvciMnuKnSGeLQmYPdpzurMg");
   // const ix = program.methods

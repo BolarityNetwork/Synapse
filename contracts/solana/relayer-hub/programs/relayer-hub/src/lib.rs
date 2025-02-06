@@ -62,8 +62,8 @@ pub mod relayer_hub {
         instructions::transaction_pool::init_transaction(ctx, sequence, epoch, data)
     }
 
-    pub fn execute_transaction(ctx: Context<ExecTransaction>, sequence: u64, success: bool) -> Result<()> {
-        instructions::transaction_pool::execute_transaction(ctx, sequence, success)
+    pub fn execute_transaction(ctx: Context<ExecTransaction>, sequence: u64, success: bool, hash: [u8;64]) -> Result<()> {
+        instructions::transaction_pool::execute_transaction(ctx, sequence, success, hash)
     }
 
     pub fn finalize_transaction(ctx: Context<FinalizeTransaction>, sequence: u64, finalize: bool, state_root: [u8;32]) -> Result<()> {

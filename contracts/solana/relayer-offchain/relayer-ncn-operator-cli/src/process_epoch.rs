@@ -59,17 +59,19 @@ pub async fn process_epoch(
     let mut sequences = vec![];
     // Find transactions that are in the Executed or Failing state in a certain epoch.
     let mut state_root = [0u8;32];
+    let mut hashs = vec![];
     if let Ok((begin_sequence, current_sequence))= get_all_can_finalize_tx(client, previous_epoch).await {
         for i in begin_sequence..=current_sequence {
-            let old_status = get_tx_status(client, i).await?;
-            if old_status == Status::Executed || old_status == Status::Failing {
+            let tx = get_tx(client, i).await?;
+            if tx.status == Status::Executed || tx.status == Status::Failing {
                 sequences.push(i);
+                hashs.push(tx.hash);
             }
         }
-        let byte_vecs: Vec<Vec<u8>> = sequences
+        let byte_vecs: Vec<Vec<u8>> = hashs
             .iter()
             .map(|&num| {
-                num.to_le_bytes().to_vec()
+                num.to_vec()
             })
             .collect();
         if byte_vecs.len() > 0 {

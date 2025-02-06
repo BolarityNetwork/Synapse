@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/relayer_hub.json`.
  */
 export type RelayerHub = {
-  "address": "25dmj8Y96VsSGMz4acYpfXD66vFSDNn8wB5wz1gmNZsH",
+  "address": "39djqgS6KR6SWb3T39bTj8QMX3iuMMLP41PVjk89ieJh",
   "metadata": {
     "name": "relayerHub",
     "version": "0.1.0",
@@ -105,6 +105,15 @@ export type RelayerHub = {
         {
           "name": "success",
           "type": "bool"
+        },
+        {
+          "name": "hash",
+          "type": {
+            "array": [
+              "u8",
+              64
+            ]
+          }
         }
       ]
     },
@@ -779,6 +788,7 @@ export type RelayerHub = {
           "docs": [
             "Program configuration account."
           ],
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -1206,7 +1216,12 @@ export type RelayerHub = {
           },
           {
             "name": "hash",
-            "type": "bytes"
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
           }
         ]
       }

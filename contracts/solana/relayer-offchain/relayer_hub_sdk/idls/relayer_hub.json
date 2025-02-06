@@ -571,7 +571,12 @@
           },
           {
             "name": "hash",
-            "type": "bytes"
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
           }
         ]
       }

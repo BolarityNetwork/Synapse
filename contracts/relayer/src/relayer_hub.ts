@@ -121,8 +121,8 @@ export async function init_transaction(connection:Connection, program:Program<Re
     const tx = new Transaction().add(await ix);
     try {
       let commitment: Commitment = 'confirmed';
-      await sendAndConfirmTransaction(connection, tx, [relayer_keypair], {commitment});
-      console.log("Excute successfully!");
+      let signature = await sendAndConfirmTransaction(connection, tx, [relayer_keypair], {commitment});
+      console.log("Excute successfully! tx:" + signature);
     }
     catch (error: any) {
       console.log("Excute failed:" + error);
@@ -130,7 +130,7 @@ export async function init_transaction(connection:Connection, program:Program<Re
     return sequence;
 }
 
-export async function execute_transaction(connection:Connection, program:Program<RelayerHub>, sequence:number, success:boolean, relayer_keypair:Keypair) {
+export async function execute_transaction(connection:Connection, program:Program<RelayerHub>, sequence:number, success:boolean, relayer_keypair:Keypair, hash:Buffer) {
 
   const [configPDA] = await genPDAAccount(program, CONFIG_SEED);
 
@@ -139,7 +139,7 @@ export async function execute_transaction(connection:Connection, program:Program
   const [txPDA] = await genTxPDAAccount(program, sequence);
 
   const ix = program.methods
-      .executeTransaction(new BN(sequence), success)
+      .executeTransaction(new BN(sequence), success, Array.from(hash))
       .accountsPartial({
         relayer:relayer_keypair.publicKey,
         config: configPDA,
@@ -150,8 +150,8 @@ export async function execute_transaction(connection:Connection, program:Program
     const tx = new Transaction().add(await ix);
     try {
       let commitment: Commitment = 'confirmed';
-      await sendAndConfirmTransaction(connection, tx, [relayer_keypair], {commitment});
-      console.log("Excute successfully!");
+      let signature = await sendAndConfirmTransaction(connection, tx, [relayer_keypair], {commitment});
+      console.log("Excute successfully! tx:" + signature);
     }
     catch (error: any) {
       console.log(error);

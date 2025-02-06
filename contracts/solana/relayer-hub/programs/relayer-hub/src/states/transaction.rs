@@ -27,7 +27,7 @@ pub struct Transaction {
     pub epoch: u64,
     /// 254 failing 255 failed 0 pending 1 executed 2 finality
     pub status: Status,
-    pub hash: Vec<u8>,
+    pub hash: [u8;64],
     // /// Transaction data.
     // pub data:Vec<u8>,
 }
@@ -35,7 +35,7 @@ pub struct Transaction {
 impl Transaction {
     pub const SEED_PREFIX: &'static [u8; 2] = b"tx";
     // TODO:change space
-    pub const MAX_SIZE: usize = 8  + 4 + 2 + 2 + 32 + 32 + 8 + 1 + 100;
+    pub const MAX_SIZE: usize = 8  + 4 + 2 + 2 + 32 + 32 + 8 + 1 + 64;
 }
 
 #[account]
