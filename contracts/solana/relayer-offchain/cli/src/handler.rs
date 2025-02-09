@@ -19,7 +19,7 @@ use crate::{
     //     get_total_epoch_rent_cost, get_total_rewards_to_be_distributed,
     get_vault_ncn_ticket,
         get_vault_operator_delegation,
-    // get_vault_registry,
+    get_vault_registry,
     },
     keeper::keeper_loop::startup_keeper,
 };
@@ -50,7 +50,6 @@ pub struct CliHandler {
     rpc_client: RpcClient,
     pub retries: u64,
     pub priority_fee_micro_lamports: u64,
-    pub vault: Option<Pubkey>,
 }
 
 impl CliHandler {
@@ -82,11 +81,6 @@ impl CliHandler {
 
         let rpc_client = RpcClient::new_with_commitment(rpc_url.clone(), commitment);
 
-        let vault = args
-            .vault
-            .clone()
-            .map(|id| Pubkey::from_str(&id))
-            .transpose()?;
         let mut handler = Self {
             rpc_url,
             commitment,
@@ -101,7 +95,6 @@ impl CliHandler {
             rpc_client,
             retries: args.transaction_retries,
             priority_fee_micro_lamports: args.priority_fee_micro_lamports,
-            vault,
         };
 
         handler.epoch = {
@@ -382,11 +375,11 @@ impl CliHandler {
             //     info!("Tip Router Config: {:?}", config);
             //     Ok(())
             // }
-            // ProgramCommand::GetVaultRegistry {} => {
-            //     let vault_registry = get_vault_registry(self).await?;
-            //     info!("Vault Registry: {:?}", vault_registry);
-            //     Ok(())
-            // }
+            ProgramCommand::GetVaultRegistry {} => {
+                let vault_registry = get_vault_registry(self).await?;
+                info!("Vault Registry: {:?}", vault_registry);
+                Ok(())
+            }
             // ProgramCommand::GetEpochState {} => {
             //     let epoch_state = get_epoch_state(self, self.epoch).await?;
             //     let current_slot = self.rpc_client.get_slot().await?;

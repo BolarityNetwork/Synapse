@@ -1931,9 +1931,8 @@ pub async fn crank_set_weight(handler: &CliHandler, epoch: u64) -> Result<()> {
     let weight_table = get_or_create_weight_table(handler, epoch).await?;
 
     // TODO:
-    // let all_ncn_vaults = get_all_vaults_in_ncn(handler).await?;
-    // let vault = all_ncn_vaults[0];
-    let vault = handler.vault.unwrap();
+    let all_ncn_vaults = get_all_vaults_in_ncn(handler).await?;
+    let vault = all_ncn_vaults[0];
     println!("==========vault:{}, epoch:{}", vault, epoch);
     admin_set_weight(handler, &vault, epoch, 100).await.expect("TODO: panic message");
     // let st_mints = weight_table
@@ -1994,14 +1993,13 @@ pub async fn crank_snapshot(handler: &CliHandler, epoch: u64) -> Result<()> {
 
         let operator_snapshot = result?;
 
-        // let vaults_to_run: Vec<Pubkey> = all_vaults
-        //     .iter()
-        //     .filter(|vault| !operator_snapshot.contains_vault(vault))
-        //     .cloned()
-        //     .collect();
+        let vaults_to_run: Vec<Pubkey> = all_vaults
+            .iter()
+            .filter(|vault| !operator_snapshot.contains_vault(vault))
+            .cloned()
+            .collect();
 
-        // for vault in vaults_to_run.iter() {
-        let vault = handler.vault.unwrap();
+        for vault in vaults_to_run.iter() {
             let result = snapshot_vault_operator_delegation(handler, &vault, operator, epoch).await;
 
             if let Err(err) = result {
@@ -2013,7 +2011,7 @@ pub async fn crank_snapshot(handler: &CliHandler, epoch: u64) -> Result<()> {
                     err
                 );
             }
-        // }
+        }
     }
 
     Ok(())
@@ -2734,7 +2732,6 @@ pub async fn create_and_add_test_vault(
 
     for operator in all_operators {
         let op = get_operator(&handler, &operator).await?;
-        let op_keypair = Keypair::from_base58_string("");
         let (operator_vault_ticket, _, _) = OperatorVaultTicket::find_program_address(
             &handler.restaking_program_id,
             &operator,

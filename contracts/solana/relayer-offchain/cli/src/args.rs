@@ -109,9 +109,6 @@ pub struct Args {
 
     #[arg(long, global = true, hide = true)]
     pub markdown_help: bool,
-
-    #[arg(long, global = true, env = "vault", help = "Vault Account Address")]
-    pub vault: Option<String>,
 }
 
 #[derive(Subcommand)]
