@@ -50,6 +50,7 @@ pub struct CliHandler {
     rpc_client: RpcClient,
     pub retries: u64,
     pub priority_fee_micro_lamports: u64,
+    pub vault: Option<Pubkey>,
 }
 
 impl CliHandler {
@@ -81,6 +82,11 @@ impl CliHandler {
 
         let rpc_client = RpcClient::new_with_commitment(rpc_url.clone(), commitment);
 
+        let vault = args
+            .vault
+            .clone()
+            .map(|id| Pubkey::from_str(&id))
+            .transpose()?;
         let mut handler = Self {
             rpc_url,
             commitment,
@@ -95,6 +101,7 @@ impl CliHandler {
             rpc_client,
             retries: args.transaction_retries,
             priority_fee_micro_lamports: args.priority_fee_micro_lamports,
+            vault,
         };
 
         handler.epoch = {

@@ -114,21 +114,21 @@ pub async fn run_keeper(
                 .await;
         }
 
-        {
-            info!("-1. Register Vaults");
-            let result = crank_register_vaults(handler).await;
-
-            if check_and_timeout_error(
-                "Register Vaults".to_string(),
-                &result,
-                error_timeout_ms,
-                state.epoch,
-            )
-                .await
-            {
-                continue;
-            }
-        }
+        // {
+        //     info!("-1. Register Vaults");
+        //     let result = crank_register_vaults(handler).await;
+        //
+        //     if check_and_timeout_error(
+        //         "Register Vaults".to_string(),
+        //         &result,
+        //         error_timeout_ms,
+        //         state.epoch,
+        //     )
+        //         .await
+        //     {
+        //         continue;
+        //     }
+        // }
 
         {
             info!("0. Progress Epoch");
