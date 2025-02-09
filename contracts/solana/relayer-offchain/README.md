@@ -1,6 +1,28 @@
-# Relayer NCN
+# Bolarity Relayer NCN
+
+#### This is Bolarity's relayer project, [ncn](https://ncn-cookbook.vercel.app/introduction/ncn-overview.html). The goal is to achieve decentralization of relayers and establish incentives.
+
+
 
 ## Devnet Testing Setup
+
+The test environment consists of the following components:
+
+1. **Relayer Solana Program**: This program is deployed on the Solana network and is responsible for receiving and sending cross-chain messages, as well as creating and activating abstract accounts.
+
+2. **Relayer Ethereum Contract**: This contract is deployed on the Ethereum network and serves the same purpose as the Solana program, facilitating the reception and transmission of cross-chain messages and the creation and activation of abstract accounts.
+
+3. **Relayer Hub Program**: Deployed on the Solana network, this program is used to register relayers and record the execution of relayer messages.
+
+4. **Relayer NCN Program**: This program, also deployed on the Solana network, integrates Jito's restaking mechanism and implements NCN functions.
+
+5. **Keeper Client**: This client is responsible for taking snapshots of relayer records for each epoch and establishing prerequisites for operator voting.
+
+6. **Operator Client**: This client is used to vote on relayer record messages for each epoch, determining the final state of message execution.
+
+7. **Relayer Client**: This is the relayer program for cross-chain messages, which implements two key functions: handling cross-chain messages and recording the execution of these messages to the Relayer Hub Program.
+
+   The following describes how to set up a test environment on a test network.
 
 ### 1. Deploy Solana Program and Ethereum Contract
 
@@ -11,6 +33,8 @@ After the compilation is complete, the `relayer_solana-keypair.json` file will b
 ```bash
 cd relayer_solana
 anchor build
+// test
+anchor test
 anchor deploy
 ```
 
@@ -35,14 +59,14 @@ anchor build
 anchor deploy
 ```
 
-Update the Relayer Hub SDK:
+Update the Relayer Hub SDK(This will generate the rust version of the SDK in the relayer-offchain folder):
 
 ```
 yarn
 ts-node clients/generate-client.ts
 ```
 
-Copy the IDL and .so files to relayer-offchain, and delete any unnecessary instructions.
+Copy the IDL and .so files to relayer-offchain, and delete any unnecessary instructions(Only keep the rollup_transaction instructions,otherwise it will not compile, anchor 0.30.1 is described [here](https://www.anchor-lang.com/docs/updates/release-notes/0-30-1)).
 
 #### 1.5 Deploy Relayer NCN Program
 
