@@ -1,6 +1,10 @@
 [workspace]
 members = [
-    "programs/*"
+    "programs/relayer_solana",
+    "programs/proxy",
+    "programs/test",
+    "programs/stake",
+    #    "programs/token_bridge_relayer",
 ]
 resolver = "2"
 

@@ -30,7 +30,7 @@ declare_id!("CLErExd7gNADvu5rDFmkFD1uAt7zksJ3TDfXsJqJ4QTs");
 /// * [ForeignEmitter]
 /// * [Received]
 /// * [WormholeEmitter]
-pub mod hackathon {
+pub mod relayer_solana {
     use anchor_lang::__private::bytemuck::bytes_of;
     use super::*;
     use anchor_lang::solana_program;
@@ -320,6 +320,98 @@ pub mod hackathon {
             msg!("{:?}", account_list);
         let transfer_buf:[u8;8] = [0x27, 0xf5 ,0x76, 0xca, 0xfb, 0xb2, 0x63, 0xed];
         let active_buf:[u8;8]=[0x96 , 0x87 , 0x96 , 0x11 , 0x65 , 0x0f , 0x80 , 0xa8];
+        let cross_tsf_buf:[u8;8] = [99, 114, 111, 115, 115, 116, 115, 102];
+        let transfer_ins = transfer_buf.to_vec();
+        let active_ins = active_buf.to_vec();
+        let mut accounts:Vec<AccountMeta>=vec![];
+        let mut acc_infos = vec![];
+        let mut i  = 0;
+        for account in ctx.remaining_accounts {
+            let is_signer = account_list.accounts[i].is_signer;
+            let writeable = account_list.accounts[i].writeable;
+            if writeable {
+                accounts.push(AccountMeta::new(account.key(), is_signer));
+            } else {
+                accounts.push(AccountMeta::new_readonly(account.key(), is_signer));
+            }
+            acc_infos.push(account.to_account_info());
+            i+=1;
+            if i == account_list.acc_count as usize{
+                break
+            }
+        }
+
+        let ins: Vec<u8> = account_list.paras.iter().take(8).cloned().collect();
+        if ins == transfer_ins || ins == cross_tsf_buf {
+            // transer
+            let bytes:[u8;8] = account_list.paras[8..16].try_into().expect("Slice length must be 8");
+            let amount = u64::from_le_bytes(bytes);
+            let from_pubkey = acc_infos[0].to_account_info();
+            let to_pubkey = acc_infos[1].to_account_info();
+            **from_pubkey.try_borrow_mut_lamports()? -= amount;
+            **to_pubkey.try_borrow_mut_lamports()? += amount;
+        } else if ins == active_ins {
+            let (pda, bump) = Pubkey::find_program_address(&[seeds,&chain.to_le_bytes(), address.as_slice()], ctx.program_id);
+
+            let lamports = (Rent::get()?).minimum_balance(std::mem::size_of::<PDAAccount>());
+
+            let create_account_ix = system_instruction::create_account(
+                &ctx.accounts.payer.key,
+                &pda,
+                lamports,
+                std::mem::size_of::<PDAAccount>() as u64,
+                ctx.program_id,
+            );
+
+            invoke_signed(
+                &create_account_ix,
+                &[
+                    ctx.accounts.payer.to_account_info(),
+                    ctx.accounts.system_program.to_account_info(),
+                    acc_infos[0].to_account_info(),
+                ],
+                signer_seeds,
+            )?;
+        } else{
+            let instruction: Instruction = Instruction {
+                program_id: ctx.accounts.program_account.key(),
+                accounts,
+                data:account_list.paras.clone(),
+            };
+
+            invoke_signed(&instruction, &acc_infos, signer_seeds)?;
+        }
+        // Done
+        Ok(())
+    }
+
+    pub fn active(
+        ctx: Context<Active>,
+        chain: u16,
+        address: [u8; 32],
+    ) -> Result<()> {
+        // pda cannot share the same Wormhole Chain ID as the
+        // Solana Wormhole program's. And cannot register a zero address.
+        require!(
+            chain > 0 && chain != wormhole::CHAIN_ID_SOLANA && !address.iter().all(|&x| x == 0),
+            HelloWorldError::InvalidForeignEmitter,
+        );
+        // // Save the emitter info into the pda account.
+        // let pda = &mut ctx.accounts.pda;
+        // pda.chain = chain;
+        // pda.address = address;
+        // Done.
+        Ok(())
+    }
+
+    pub fn receive_message2<'a, 'b, 'c, 'info>(ctx: Context<'a, 'b, 'c, 'info, ReceiveMessage2<'info>>, data:Vec<u8>, bump:u8, chain: u16, address:[u8;32]) -> Result<()> {
+
+        let seeds = b"pda";
+        let signer_seeds: &[&[&[u8]]] = &[&[seeds,&chain.to_le_bytes(), address.as_slice(), &[bump]]];
+        let account_list = RawData::deserialize(&mut &*data)?;
+        msg!("{:?}", account_list);
+        let transfer_buf:[u8;8] = [0x27, 0xf5 ,0x76, 0xca, 0xfb, 0xb2, 0x63, 0xed];
+        let active_buf:[u8;8]=[0x96 , 0x87 , 0x96 , 0x11 , 0x65 , 0x0f , 0x80 , 0xa8];
         let transfer_ins = transfer_buf.to_vec();
         let active_ins = active_buf.to_vec();
         let mut accounts:Vec<AccountMeta>=vec![];
@@ -347,6 +439,8 @@ pub mod hackathon {
             let amount = u64::from_le_bytes(bytes);
             let from_pubkey = acc_infos[0].to_account_info();
             let to_pubkey = acc_infos[1].to_account_info();
+            msg!("from_pubkey:{:?}", from_pubkey);
+            msg!("to_pubkey:{:?}", to_pubkey);
             // **from_pubkey.try_borrow_mut_lamports()? -= amount;
             // **to_pubkey.try_borrow_mut_lamports()? += amount;
             let transfer_instruction = system_instruction::transfer(
@@ -385,107 +479,40 @@ pub mod hackathon {
                 signer_seeds,
             )?;
         } else{
-            let instruction: Instruction = Instruction {
-                program_id: ctx.accounts.program_account.key(),
-                accounts,
-                data:account_list.paras.clone(),
-            };
 
-            invoke_signed(&instruction, &acc_infos, signer_seeds)?;
-        }
-        // Done
-        Ok(())
-    }
-    // for test
-    pub fn active(
-        ctx: Context<Active>,
-        chain: u16,
-        address: [u8; 32],
-    ) -> Result<()> {
-        // pda cannot share the same Wormhole Chain ID as the
-        // Solana Wormhole program's. And cannot register a zero address.
-        require!(
-            chain > 0 && chain != wormhole::CHAIN_ID_SOLANA && !address.iter().all(|&x| x == 0),
-            HelloWorldError::InvalidForeignEmitter,
-        );
-        // // Save the emitter info into the pda account.
-        // let pda = &mut ctx.accounts.pda;
-        // pda.chain = chain;
-        // pda.address = address;
-        // Done.
-        Ok(())
-    }
-    // for test
-    pub fn receive_message2<'a, 'b, 'c, 'info>(ctx: Context<'a, 'b, 'c, 'info, ReceiveMessage2<'info>>, data:Vec<u8>, bump:u8, chain: u16, address:[u8;32]) -> Result<()> {
-        let seeds = b"pda";
-        let signer_seeds: &[&[&[u8]]] = &[&[seeds,&chain.to_le_bytes(), address.as_slice(), &[bump]]];
-        let account_list = RawData::deserialize(&mut &*data)?;
-        msg!("{:?}", account_list);
-        let transfer_buf:[u8;8] = [0x27, 0xf5 ,0x76, 0xca, 0xfb, 0xb2, 0x63, 0xed];
-        let active_buf:[u8;8]=[0x96 , 0x87 , 0x96 , 0x11 , 0x65 , 0x0f , 0x80 , 0xa8];
-        let transfer_ins = transfer_buf.to_vec();
-        let active_ins = active_buf.to_vec();
-        let mut accounts:Vec<AccountMeta>=vec![];
-        let mut acc_infos = vec![];
-        let mut i  = 0;
-        for account in ctx.remaining_accounts {
-            let is_signer = account_list.accounts[i].is_signer;
-            let writeable = account_list.accounts[i].writeable;
-            if writeable {
-                accounts.push(AccountMeta::new(account.key(), is_signer));
-            } else {
-                accounts.push(AccountMeta::new_readonly(account.key(), is_signer));
-            }
-            acc_infos.push(account.to_account_info());
-            i+=1;
-            if i == account_list.acc_count as usize{
-                break
-            }
-        }
-
-        let ins: Vec<u8> = account_list.paras.iter().take(8).cloned().collect();
-        if ins == transfer_ins {
-            // transer
-            let bytes:[u8;8] = account_list.paras[8..].try_into().expect("Slice length must be 8");
-            let amount = u64::from_le_bytes(bytes);
-            let from_pubkey = acc_infos[0].to_account_info();
-            let to_pubkey = acc_infos[1].to_account_info();
-            let transfer_instruction = system_instruction::transfer(
-                &from_pubkey.key(),
-                &to_pubkey.key(),
-                amount,
-            );
-            invoke_signed(
-                &transfer_instruction,
-                &[
-                    from_pubkey.to_account_info(),
-                    to_pubkey.to_account_info(),
-                ],
-                signer_seeds
-            )?;
-        } else if ins == active_ins {
-            let (pda, bump) = Pubkey::find_program_address(&[seeds,&chain.to_le_bytes(), address.as_slice()], ctx.program_id);
-
-            let lamports = (Rent::get()?).minimum_balance(0);
-
-            let create_account_ix = system_instruction::create_account(
-                &ctx.accounts.payer.key,
-                &pda,
-                lamports,
-                0,
-                ctx.accounts.system_program.key,
-            );
-
-            invoke_signed(
-                &create_account_ix,
-                &[
-                    ctx.accounts.payer.to_account_info(),
-                    ctx.accounts.system_program.to_account_info(),
-                    acc_infos[0].to_account_info(),
-                ],
-                signer_seeds,
-            )?;
-        } else{
+            // let other_pda = Pubkey::create_program_address(&[seeds, acc_infos[0].key.as_ref(), &[other_bump]], ctx.accounts.program_account.key).unwrap();
+            // let other_signer_seeds: &[&[&[u8]]] = &[&[seeds, acc_infos[0].key.as_ref(), &[other_bump]]];
+            // let lamports = (Rent::get()?).minimum_balance(std::mem::size_of::<PDAAccount>()) + 1000000000;
+            //
+            // let create_account_ix = system_instruction::create_account(
+            //     // &acc_infos[0].key,
+            //     ctx.accounts.payer.key,
+            //     &other_pda,
+            //     lamports,
+            //     std::mem::size_of::<PDAAccount>() as u64,
+            //     ctx.accounts.program_account.key,
+            // );
+            // let last_account = ctx.remaining_accounts.last().expect("xxxxxx");
+            // msg!("{:?}", other_pda);
+            // msg!("{:?}", last_account);
+            // msg!("{:?}", other_bump);
+            // invoke_signed(
+            //     &create_account_ix,
+            //     &[
+            //         // acc_infos[0].clone(),
+            //         ctx.accounts.payer.to_account_info(),
+            //         ctx.accounts.system_program.to_account_info(),
+            //         last_account.to_account_info(),
+            //     ],
+            //     // &[&[&[seeds,&chain.to_le_bytes(), address.as_slice(), &[bump]]], &[&[seeds, acc_infos[0].key.as_ref(), &[other_bump]]]]
+            //     //  &[&[seeds,&chain.to_le_bytes(), address.as_slice(), &[bump]], &[seeds, acc_infos[0].key.as_ref(), &[other_bump]]],
+            //     // &[&[seeds,&chain.to_le_bytes(), address.as_slice(), &[bump]]],
+            //     &[&[seeds, acc_infos[0].key.as_ref(), &[other_bump]]],
+            // )?;
+            // let program_meta=&ctx.accounts.system_program.to_account_metas(None)[0];
+            // accounts.push(program_meta.clone());
+            // acc_infos.push(ctx.accounts.system_program.to_account_info());
+            // msg!("{:?}", program_meta);
             let instruction: Instruction = Instruction {
                 program_id: ctx.accounts.program_account.key(),
                 accounts,

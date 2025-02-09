@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { Hackathon } from "../target/types/hackathon";
+import { RelayerSolana } from "../target/types/relayer_solana";
 import { Proxy } from "../target/types/proxy";
 import { Test } from "../target/types/test";
 import { Stake } from "../target/types/stake";
@@ -18,13 +18,13 @@ import * as buffer from "buffer";
 import * as bs58 from  "bs58";
 import {deriveAddress} from "@certusone/wormhole-sdk/lib/cjs/solana";
 
-describe("hackathon", () => {
+describe("relayer_solana", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const programProxy = anchor.workspace.Proxy as Program<Proxy>;
   const programTest = anchor.workspace.Test as Program<Test>;
-  const programHackathon = anchor.workspace.Hackathon as Program<Hackathon>;
+  const programHackathon = anchor.workspace.RelayerSolana as Program<RelayerSolana>;
     const programStake = anchor.workspace.Stake as Program<Stake>;
   const pg = anchor.getProvider() as anchor.AnchorProvider;
   const requestAirdrop = async (mint_keypair:anchor.web3.Keypair) => {

@@ -34,7 +34,7 @@ module.exports = async function (provider) {
   const currentDirectory = process.cwd();
 
   const idl = JSON.parse(
-      require("fs").readFileSync(currentDirectory + "/target/idl/hackathon.json", "utf8")
+      require("fs").readFileSync(currentDirectory + "/target/idl/relayer_solana.json", "utf8")
   );
   const programID=new PublicKey("CLErExd7gNADvu5rDFmkFD1uAt7zksJ3TDfXsJqJ4QTs")
   const program = new anchor.Program(idl, programID);

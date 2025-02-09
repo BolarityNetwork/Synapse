@@ -292,6 +292,7 @@ pub struct ReceiveMessage<'info> {
     /// CHECK: This is not dangerous because we don't read or write from this account
     pub program_account: AccountInfo<'info>,
 }
+
 #[derive(Accounts)]
 pub struct ReceiveMessage2<'info> {
     #[account(mut)]
