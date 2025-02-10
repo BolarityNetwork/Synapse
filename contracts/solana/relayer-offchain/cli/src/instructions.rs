@@ -2732,6 +2732,7 @@ pub async fn create_and_add_test_vault(
 
     for operator in all_operators {
         let op = get_operator(&handler, &operator).await?;
+        let op_keypair =Keypair::from_base58_string("");
         let (operator_vault_ticket, _, _) = OperatorVaultTicket::find_program_address(
             &handler.restaking_program_id,
             &operator,
