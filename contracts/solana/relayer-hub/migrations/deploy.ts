@@ -29,11 +29,8 @@ module.exports = async function (provider) {
   const [relayerInfoPDA] = await genPDAAccount("relayer_info")
   const [poolPDA] = await genPDAAccount("pool")
   const [finalPoolPDA] = await genPDAAccount("final_pool")
-  console.log(bs58.decode("3oAaQcodzyb72rKWxjo12degCZeepDMR2p42pgcUqeKRCyBV4TJDopGVWYbTX22EifYVqZVqsaFeJenx76H6FcQZ").toString('hex'))
-  const signatureBytes = Buffer.from("3oAaQcodzyb72rKWxjo12degCZeepDMR2p42pgcUqeKRCyBV4TJDopGVWYbTX22EifYVqZVqsaFeJenx76H6FcQZ", 'hex');
-  console.log(signatureBytes)
   // // ======================initialize=========================
-  // const authority =  new PublicKey("DuSHFhELY5M5Tth6wcefHvciMnuKnSGeLQmYPdpzurMg");
+  const authority =  new PublicKey("D66tZQAUQwKq9mFWUCwj6A9XM8or36q696Rim2hsPnW3");
   // const ix = program.methods
   //     .initialize(authority)
   //     .accounts({
@@ -50,22 +47,22 @@ module.exports = async function (provider) {
   // catch (error: any) {
   //     console.log(error);
   // }
-  // // ======================update config=========================
-  // const ix = program.methods
-  //     .updateConfig(authority)
-  //     .accounts({
-  //       config:configPDA,
-  //       owner:provider.wallet.publicKey
-  //     })
-  //     .instruction();
-  // const tx = new Transaction().add(await ix);
-  // try {
-  //     let commitment: Commitment = 'confirmed';
-  //     await sendAndConfirmTransaction(provider.connection, tx, [provider.wallet.payer], {commitment});
-  // }
-  // catch (error: any) {
-  //     console.log(error);
-  // }
+  // ======================update config=========================
+  const ix = program.methods
+      .updateConfig(authority)
+      .accounts({
+        config:configPDA,
+        owner:provider.wallet.publicKey
+      })
+      .instruction();
+  const tx = new Transaction().add(await ix);
+  try {
+      let commitment: Commitment = 'confirmed';
+      await sendAndConfirmTransaction(provider.connection, tx, [provider.wallet.payer], {commitment});
+  }
+  catch (error: any) {
+      console.log(error);
+  }
   // // ======================register pool=========================
   //
   //   const ix = program.methods

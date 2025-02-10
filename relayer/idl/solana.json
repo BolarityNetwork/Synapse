@@ -1,5 +1,5 @@
 {
-  "address": "CLErExd7gNADvu5rDFmkFD1uAt7zksJ3TDfXsJqJ4QTs",
+  "address": "C29LRgV8mDqYXuDbpaaG5LH4TVbPSRkrHebfTBrk9og7",
   "metadata": {
     "name": "hackathon",
     "version": "0.1.0",
@@ -428,6 +428,62 @@
       ]
     },
     {
+      "name": "receive_message2",
+      "discriminator": [
+        165,
+        11,
+        64,
+        102,
+        16,
+        2,
+        7,
+        179
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "docs": [
+            "Payer will initialize an account that tracks his own message IDs."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "docs": [
+            "System program."
+          ],
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "program_account"
+        }
+      ],
+      "args": [
+        {
+          "name": "data",
+          "type": "bytes"
+        },
+        {
+          "name": "bump",
+          "type": "u8"
+        },
+        {
+          "name": "chain",
+          "type": "u16"
+        },
+        {
+          "name": "address",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "register_emitter",
       "docs": [
         "This instruction registers a new foreign emitter (from another network)",
@@ -695,19 +751,6 @@
       ]
     },
     {
-      "name": "PDAAccount",
-      "discriminator": [
-        45,
-        144,
-        246,
-        42,
-        88,
-        234,
-        93,
-        2
-      ]
-    },
-    {
       "name": "Received",
       "discriminator": [
         227,
@@ -847,27 +890,6 @@
             "docs": [
               "Emitter address. Cannot be zero address."
             ],
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "PDAAccount",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "chain",
-            "type": "u16"
-          },
-          {
-            "name": "address",
             "type": {
               "array": [
                 "u8",
