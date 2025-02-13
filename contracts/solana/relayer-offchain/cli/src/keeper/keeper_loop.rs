@@ -101,34 +101,34 @@ pub async fn run_keeper(
         .expect("Could not get epoch");
 
     loop {
-        {
-            info!("A. Emit NCN Metrics");
-            let result = emit_ncn_metrics(handler).await;
-
-            check_and_timeout_error(
-                "Emit NCN Metrics".to_string(),
-                &result,
-                error_timeout_ms,
-                state.epoch,
-            )
-                .await;
-        }
-
-        {
-            info!("-1. Register Vaults");
-            let result = crank_register_vaults(handler).await;
-
-            if check_and_timeout_error(
-                "Register Vaults".to_string(),
-                &result,
-                error_timeout_ms,
-                state.epoch,
-            )
-                .await
-            {
-                continue;
-            }
-        }
+        // {
+        //     info!("A. Emit NCN Metrics");
+        //     let result = emit_ncn_metrics(handler).await;
+        //
+        //     check_and_timeout_error(
+        //         "Emit NCN Metrics".to_string(),
+        //         &result,
+        //         error_timeout_ms,
+        //         state.epoch,
+        //     )
+        //         .await;
+        // }
+        //
+        // {
+        //     info!("-1. Register Vaults");
+        //     let result = crank_register_vaults(handler).await;
+        //
+        //     if check_and_timeout_error(
+        //         "Register Vaults".to_string(),
+        //         &result,
+        //         error_timeout_ms,
+        //         state.epoch,
+        //     )
+        //         .await
+        //     {
+        //         continue;
+        //     }
+        // }
 
         {
             info!("0. Progress Epoch");
@@ -220,18 +220,18 @@ pub async fn run_keeper(
             // }
         }
 
-        {
-            info!("B. Emit Epoch Metrics ( Before Crank )");
-            let result = emit_epoch_metrics(handler, state.epoch).await;
-
-            check_and_timeout_error(
-                "Emit NCN Metrics ( Before Crank )".to_string(),
-                &result,
-                error_timeout_ms,
-                state.epoch,
-            )
-                .await;
-        }
+        // {
+        //     info!("B. Emit Epoch Metrics ( Before Crank )");
+        //     let result = emit_epoch_metrics(handler, state.epoch).await;
+        //
+        //     check_and_timeout_error(
+        //         "Emit NCN Metrics ( Before Crank )".to_string(),
+        //         &result,
+        //         error_timeout_ms,
+        //         state.epoch,
+        //     )
+        //         .await;
+        // }
 
         {
             state.current_state = Some(State::SetWeight);
@@ -269,18 +269,18 @@ pub async fn run_keeper(
             }
         }
 
-        {
-            info!("B. Emit Epoch Metrics ( After Crank )");
-            let result = emit_epoch_metrics(handler, state.epoch).await;
-
-            check_and_timeout_error(
-                "Emit NCN Metrics ( After Crank )".to_string(),
-                &result,
-                error_timeout_ms,
-                state.epoch,
-            )
-                .await;
-        }
+        // {
+        //     info!("B. Emit Epoch Metrics ( After Crank )");
+        //     let result = emit_epoch_metrics(handler, state.epoch).await;
+        //
+        //     check_and_timeout_error(
+        //         "Emit NCN Metrics ( After Crank )".to_string(),
+        //         &result,
+        //         error_timeout_ms,
+        //         state.epoch,
+        //     )
+        //         .await;
+        // }
 
     //     {
     //         info!("5. Detect Stall - {}", current_epoch);

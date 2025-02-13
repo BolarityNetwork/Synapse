@@ -47,50 +47,50 @@ pub struct KeeperState {
 
 impl KeeperState {
     pub async fn fetch(&mut self, handler: &CliHandler, epoch: u64) -> Result<()> {
-        // Fetch all vaults and operators
-        let ncn = *handler.ncn()?;
-        self.ncn = ncn;
-
-        let vaults = get_all_vaults_in_ncn(handler).await?;
-        self.vaults = vaults;
-
-        let operators = get_all_operators_in_ncn(handler).await?;
-        self.operators = operators;
-
-        let (tip_router_config_address, _, _) =
-            RelayerNcnConfig::find_program_address(&handler.relayer_ncn_program_id, &ncn);
-        self.relayer_ncn_config_address = tip_router_config_address;
-
-        let (vault_registry_address, _, _) =
-            VaultRegistry::find_program_address(&handler.relayer_ncn_program_id, &ncn);
-        self.vault_registry_address = vault_registry_address;
-
-        // let (epoch_state_address, _, _) =
-        //     EpochState::find_program_address(&handler.relayer_ncn_program_id, &ncn, epoch);
-        // self.epoch_state_address = epoch_state_address;
-
-        let (weight_table_address, _, _) =
-            WeightTable::find_program_address(&handler.relayer_ncn_program_id, &ncn, epoch);
-        self.weight_table_address = weight_table_address;
-
-        let (epoch_snapshot_address, _, _) =
-            EpochSnapshot::find_program_address(&handler.relayer_ncn_program_id, &ncn, epoch);
-        self.epoch_snapshot_address = epoch_snapshot_address;
-
-        for operator in self.operators.iter() {
-            let (operator_snapshot_address, _, _) = OperatorSnapshot::find_program_address(
-                &handler.relayer_ncn_program_id,
-                operator,
-                &ncn,
-                epoch,
-            );
-            self.operator_snapshots_address
-                .push(operator_snapshot_address);
-        }
-
-        let (ballot_box_address, _, _) =
-            BallotBox::find_program_address(&handler.relayer_ncn_program_id, &ncn, epoch);
-        self.ballot_box_address = ballot_box_address;
+        // // Fetch all vaults and operators
+        // let ncn = *handler.ncn()?;
+        // self.ncn = ncn;
+        //
+        // let vaults = get_all_vaults_in_ncn(handler).await?;
+        // self.vaults = vaults;
+        //
+        // let operators = get_all_operators_in_ncn(handler).await?;
+        // self.operators = operators;
+        //
+        // let (tip_router_config_address, _, _) =
+        //     RelayerNcnConfig::find_program_address(&handler.relayer_ncn_program_id, &ncn);
+        // self.relayer_ncn_config_address = tip_router_config_address;
+        //
+        // let (vault_registry_address, _, _) =
+        //     VaultRegistry::find_program_address(&handler.relayer_ncn_program_id, &ncn);
+        // self.vault_registry_address = vault_registry_address;
+        //
+        // // let (epoch_state_address, _, _) =
+        // //     EpochState::find_program_address(&handler.relayer_ncn_program_id, &ncn, epoch);
+        // // self.epoch_state_address = epoch_state_address;
+        //
+        // let (weight_table_address, _, _) =
+        //     WeightTable::find_program_address(&handler.relayer_ncn_program_id, &ncn, epoch);
+        // self.weight_table_address = weight_table_address;
+        //
+        // let (epoch_snapshot_address, _, _) =
+        //     EpochSnapshot::find_program_address(&handler.relayer_ncn_program_id, &ncn, epoch);
+        // self.epoch_snapshot_address = epoch_snapshot_address;
+        //
+        // for operator in self.operators.iter() {
+        //     let (operator_snapshot_address, _, _) = OperatorSnapshot::find_program_address(
+        //         &handler.relayer_ncn_program_id,
+        //         operator,
+        //         &ncn,
+        //         epoch,
+        //     );
+        //     self.operator_snapshots_address
+        //         .push(operator_snapshot_address);
+        // }
+        //
+        // let (ballot_box_address, _, _) =
+        //     BallotBox::find_program_address(&handler.relayer_ncn_program_id, &ncn, epoch);
+        // self.ballot_box_address = ballot_box_address;
 
         // let (base_reward_router_address, _, _) =
         //     BaseRewardRouter::find_program_address(&handler.relayer_ncn_program_id, &ncn, epoch);

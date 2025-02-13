@@ -1791,6 +1791,11 @@ pub async fn get_or_create_weight_table(handler: &CliHandler, epoch: u64) -> Res
         .map_or(true, |table| table.data.len() < WeightTable::SIZE)
     {
         create_weight_table(handler, epoch).await?;
+        // TODO:
+        let all_ncn_vaults = get_all_vaults_in_ncn(handler).await?;
+        let vault = all_ncn_vaults[0];
+        println!("==========vault:{}, epoch:{}", vault, epoch);
+        admin_set_weight(handler, &vault, epoch, 100).await.expect("TODO: panic message");
     }
     get_weight_table(handler, epoch).await
 }
@@ -1929,12 +1934,6 @@ pub async fn crank_register_vaults(handler: &CliHandler) -> Result<()> {
 
 pub async fn crank_set_weight(handler: &CliHandler, epoch: u64) -> Result<()> {
     let weight_table = get_or_create_weight_table(handler, epoch).await?;
-
-    // TODO:
-    let all_ncn_vaults = get_all_vaults_in_ncn(handler).await?;
-    let vault = all_ncn_vaults[0];
-    println!("==========vault:{}, epoch:{}", vault, epoch);
-    admin_set_weight(handler, &vault, epoch, 100).await.expect("TODO: panic message");
     // let st_mints = weight_table
     //     .table()
     //     .iter()
