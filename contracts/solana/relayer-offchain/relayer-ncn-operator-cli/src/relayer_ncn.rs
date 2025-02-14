@@ -271,3 +271,27 @@ pub async fn is_reach_consensus(
     let account = BallotBox::try_from_slice_unchecked(bx_account.data.as_slice())?;
     Ok(account.is_consensus_reached())
 }
+
+pub async fn is_voted(
+    client: &EllipsisClient,
+    ncn: Pubkey,
+    epoch: u64,
+    operator: Pubkey,
+) -> EllipsisClientResult<bool> {
+    let (address, _, _) =
+        BallotBox::find_program_address(&relayer_ncn_program::id(), &ncn, epoch);
+
+    let bx_account = client
+        .get_account(&address)
+        .await?;
+    let account = BallotBox::try_from_slice_unchecked(bx_account.data.as_slice())?;
+    let operator_votes = account.operator_votes();
+    let mut flag = false;
+    for operator_vote in operator_votes{
+        if *operator_vote.operator() == operator{
+            flag = true;
+            break;
+        }
+    }
+    Ok(flag)
+}

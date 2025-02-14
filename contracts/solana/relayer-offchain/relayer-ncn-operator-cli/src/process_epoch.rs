@@ -14,7 +14,7 @@ use crate::{
     relayer_ncn::{cast_vote,get_all_can_finalize_tx,get_ncn_config, get_tx_status},
     Cli,
 };
-use crate::relayer_ncn::{do_finalize_transaction, do_rollup_transaction, get_final_tx, get_tx, is_reach_consensus};
+use crate::relayer_ncn::{do_finalize_transaction, do_rollup_transaction, get_final_tx, get_tx, is_reach_consensus, is_voted};
 use merkle_tree::merkle_tree::MerkleTree;
 
 pub async fn wait_for_next_epoch(rpc_client: &RpcClient) -> Result<()> {
@@ -50,12 +50,18 @@ pub async fn process_epoch(
     info!("Processing epoch {:?}", previous_epoch);
     let start = Instant::now();
     let operator = Pubkey::from_str(&cli_args.operator_address).unwrap();
-    let final_tx = get_final_tx(client, previous_epoch).await?;
-    // already reach consensus
-    if final_tx.epoch == previous_epoch {
-        info!("already reach consensus at epoch:{}", previous_epoch);
+    // Determine whether you have voted in this epoch.
+    let is_voted = is_voted(client, *ncn_address, previous_epoch, operator).await?;
+    if is_voted {
+        info!("You have already voted at epoch:{}", previous_epoch);
         return Ok(());
     }
+    // let final_tx = get_final_tx(client, previous_epoch).await?;
+    // // already reach consensus
+    // if final_tx.epoch == previous_epoch {
+    //     info!("already reach consensus at epoch:{}", previous_epoch);
+    //     return Ok(());
+    // }
     let mut sequences = vec![];
     // Find transactions that are in the Executed or Failing state in a certain epoch.
     let mut state_root = [0u8;32];
@@ -63,10 +69,10 @@ pub async fn process_epoch(
     if let Ok((begin_sequence, current_sequence))= get_all_can_finalize_tx(client, previous_epoch).await {
         for i in begin_sequence..=current_sequence {
             let tx = get_tx(client, i).await?;
-            if tx.status == Status::Executed || tx.status == Status::Failing {
+            // if tx.status == Status::Executed || tx.status == Status::Failing {
                 sequences.push(i);
                 hashs.push(tx.hash);
-            }
+            // }
         }
         let byte_vecs: Vec<Vec<u8>> = hashs
             .iter()
@@ -80,10 +86,10 @@ pub async fn process_epoch(
             for sequence in sequences{
                 do_finalize_transaction(client, sequence, payer, true, state_root)
                     .await?;
-                let status = get_tx_status(client, sequence).await?;
-                assert_eq!(status, Status::Finality);
-                let root = get_tx(client, sequence).await?;
-                assert_eq!(root.state_root, state_root);
+                // let status = get_tx_status(client, sequence).await?;
+                // assert_eq!(status, Status::Finality);
+                // let root = get_tx(client, sequence).await?;
+                // assert_eq!(root.state_root, state_root);
             }
             state_root = root;
         }
