@@ -1,0 +1,603 @@
+{
+  "address": "39djqgS6KR6SWb3T39bTj8QMX3iuMMLP41PVjk89ieJh",
+  "metadata": {
+    "name": "relayer_hub",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "rollup_transaction",
+      "discriminator": [
+        76,
+        200,
+        142,
+        150,
+        37,
+        230,
+        160,
+        83
+      ],
+      "accounts": [
+        {
+          "name": "rollup_authority",
+          "docs": [
+            "ncn config account."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "docs": [
+            "Program configuration account."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "docs": [
+            "Transaction pool account.One transaction pool per chain."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  105,
+                  110,
+                  97,
+                  108,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "transaction",
+          "docs": [
+            "Transaction account."
+          ],
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "docs": [
+            "System program."
+          ],
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "accept",
+          "type": "bool"
+        },
+        {
+          "name": "state_root",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "vote",
+          "type": "u8"
+        },
+        {
+          "name": "epoch",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "update_config",
+      "discriminator": [
+        29,
+        158,
+        252,
+        191,
+        10,
+        83,
+        219,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "docs": [
+            "Only owner."
+          ],
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "docs": [
+            "Program configuration account."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "docs": [
+            "System program."
+          ],
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "authority",
+          "type": "pubkey"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Config",
+      "discriminator": [
+        155,
+        12,
+        170,
+        224,
+        30,
+        250,
+        204,
+        130
+      ]
+    },
+    {
+      "name": "EpochSequence",
+      "discriminator": [
+        6,
+        217,
+        126,
+        176,
+        186,
+        137,
+        25,
+        231
+      ]
+    },
+    {
+      "name": "FinalTransaction",
+      "discriminator": [
+        89,
+        4,
+        197,
+        225,
+        76,
+        48,
+        1,
+        148
+      ]
+    },
+    {
+      "name": "FinalTransactionPool",
+      "discriminator": [
+        66,
+        211,
+        206,
+        53,
+        169,
+        17,
+        190,
+        207
+      ]
+    },
+    {
+      "name": "Relayer",
+      "discriminator": [
+        168,
+        116,
+        52,
+        174,
+        161,
+        196,
+        71,
+        218
+      ]
+    },
+    {
+      "name": "RelayerInfo",
+      "discriminator": [
+        175,
+        3,
+        83,
+        81,
+        177,
+        76,
+        212,
+        183
+      ]
+    },
+    {
+      "name": "Transaction",
+      "discriminator": [
+        11,
+        24,
+        174,
+        129,
+        203,
+        117,
+        242,
+        23
+      ]
+    },
+    {
+      "name": "TransactionPool",
+      "discriminator": [
+        54,
+        231,
+        41,
+        4,
+        126,
+        197,
+        25,
+        142
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "NotInitialized",
+      "msg": "Not initialized."
+    },
+    {
+      "code": 6001,
+      "name": "Initialized",
+      "msg": "Already initialized."
+    },
+    {
+      "code": 6002,
+      "name": "AccountError",
+      "msg": "Wrong account."
+    },
+    {
+      "code": 6003,
+      "name": "OwnerOnly",
+      "msg": "OwnerOnly"
+    },
+    {
+      "code": 6004,
+      "name": "NotYourEpoch",
+      "msg": "Not in your epoch"
+    },
+    {
+      "code": 6005,
+      "name": "UndefinedMessageFormat",
+      "msg": "Undefined message data format"
+    },
+    {
+      "code": 6006,
+      "name": "MessageFormatError",
+      "msg": "Wrong message data format"
+    },
+    {
+      "code": 6007,
+      "name": "EpochError",
+      "msg": "Wrong epoch"
+    }
+  ],
+  "types": [
+    {
+      "name": "Config",
+      "docs": [
+        "Global Configuration Account."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "docs": [
+              "Program's owner."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "initialized",
+            "docs": [
+              "Initialization flag, used to mark whether the global configuration has been initialized."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "authority",
+            "docs": [
+              "Upload state root authorizer."
+            ],
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EpochSequence",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "begin_sequence",
+            "type": "u64"
+          },
+          {
+            "name": "current_sequence",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FinalTransaction",
+      "docs": [
+        "Transaction account."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sequence",
+            "docs": [
+              "The sequence number of the transaction."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "state_root",
+            "docs": [
+              "Root of transaction's state."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "epoch",
+            "docs": [
+              "Epoch for which this account was created."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "accepted",
+            "type": "bool"
+          },
+          {
+            "name": "votes",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FinalTransactionPool",
+      "docs": [
+        "Transaction pool account."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "total",
+            "docs": [
+              "The total number of transactions."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Relayer",
+      "docs": [
+        "Relayer account."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "docs": [
+              "Relayer's owner."
+            ],
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RelayerInfo",
+      "docs": [
+        "Relayer configuration account."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "number",
+            "docs": [
+              "The total number of relayers."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "relayer_list",
+            "type": {
+              "vec": "pubkey"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Status",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Failing"
+          },
+          {
+            "name": "Failed"
+          },
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "Executed"
+          },
+          {
+            "name": "Finality"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Transaction",
+      "docs": [
+        "Transaction account."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sequence",
+            "docs": [
+              "The sequence number of the transaction."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "u32"
+          },
+          {
+            "name": "from_chain",
+            "type": "u16"
+          },
+          {
+            "name": "to_chain",
+            "type": "u16"
+          },
+          {
+            "name": "relayer",
+            "docs": [
+              "The sender of the transaction."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "state_root",
+            "docs": [
+              "Root of transaction's state."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "epoch",
+            "docs": [
+              "Epoch for which this account was created."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "status",
+            "docs": [
+              "254 failing 255 failed 0 pending 1 executed 2 finality"
+            ],
+            "type": {
+              "defined": {
+                "name": "Status"
+              }
+            }
+          },
+          {
+            "name": "hash",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "TransactionPool",
+      "docs": [
+        "Transaction pool account."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "total",
+            "docs": [
+              "The total number of transactions."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ]
+}

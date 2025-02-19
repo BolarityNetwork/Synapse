@@ -1,0 +1,117 @@
+[workspace]
+members = [
+    "cli",
+    "clients/rust/relayer_ncn",
+    "clients/rust/relayer_hub",
+    "core",
+    "integration_tests",
+    "program",
+    "shank_cli",
+    "relayer-ncn-operator-cli",
+    "relayer_hub_sdk",
+]
+
+resolver = "2"
+
+[profile.release]
+overflow-checks = true
+lto = "fat"
+codegen-units = 1
+
+[profile.release.build-override]
+opt-level = 3
+incremental = false
+codegen-units = 1
+
+[workspace.package]
+version = "0.0.1"
+authors = ["BolarityNetwork"]
+repository = "github.com/BolarityNetwork/Synapse"
+homepage = "https://BolarityNetwork.network/"
+license = "Apache License 2.0"
+edition = "2021"
+readme = "README.md"
+
+[workspace.dependencies]
+anchor-lang = { version = "0.30.1" }
+anyhow = "1.0.86"
+assert_matches = "1.5.0"
+borsh = { version = "0.10.3" }
+bytemuck = { version = "1.16.3", features = ["min_const_generics"] }
+cfg-if = "1.0.0"
+chrono = "0.4.38"
+clap = { version = "4.5.16", features = ["derive", "env", "cargo"] }
+clap-markdown = { version = "0.1.4" }
+const_str_to_pubkey = "0.1.1"
+dotenv = "0.15.0"
+envfile = "0.2.1"
+env_logger = "0.10.2"
+fast-math = "0.1"
+futures = "0.3.21"
+getrandom = { version = "0.1.16", features = ["custom"] }
+hex = "0.4.3"
+home = "=0.5.9" # Custom for compatibility with rust 1.75
+log = "0.4.22"
+matches = "0.1.10"
+num-derive = "0.4.2"
+num-traits = "0.2.19"
+proc-macro2 = "1.0.86"
+quote = "1.0.36"
+rand = "0.8.5"
+serde = { version = "^1.0", features = ["derive"] }
+serde_json = "1.0.102"
+serde_with = "3.9.0"
+serde-big-array = "0.5.1"
+shank = "0.4.2"
+shank_idl = "0.4.2"
+spl-math = { version = "0.2.0", features = ["no-entrypoint"] }
+solana-account-decoder = { package = "solana-account-decoder", git = "https://github.com/jito-foundation/jito-solana.git", rev = "0bbcbe476c0e728907ac01135115e661c16538e5" }
+solana-metrics = { package = "solana-metrics", git = "https://github.com/jito-foundation/jito-solana.git", rev = "0bbcbe476c0e728907ac01135115e661c16538e5" }
+solana-accounts-db = { package = "solana-accounts-db", git = "https://github.com/jito-foundation/jito-solana.git", rev = "0bbcbe476c0e728907ac01135115e661c16538e5" }
+solana-client = { package = "solana-client", git = "https://github.com/jito-foundation/jito-solana.git", rev = "0bbcbe476c0e728907ac01135115e661c16538e5" }
+solana-ledger = { package = "solana-ledger", git = "https://github.com/jito-foundation/jito-solana.git", rev = "0bbcbe476c0e728907ac01135115e661c16538e5" }
+solana-program = { package = "solana-program", git = "https://github.com/jito-foundation/jito-solana.git", rev = "0bbcbe476c0e728907ac01135115e661c16538e5" }
+solana-transaction-status = { package = "solana-transaction-status", git = "https://github.com/jito-foundation/jito-solana.git", rev = "0bbcbe476c0e728907ac01135115e661c16538e5" }
+solana-program-test = { package = "solana-program-test", git = "https://github.com/jito-foundation/jito-solana.git", rev = "0bbcbe476c0e728907ac01135115e661c16538e5" }
+solana-rpc-client = { package = "solana-rpc-client", git = "https://github.com/jito-foundation/jito-solana.git", rev = "0bbcbe476c0e728907ac01135115e661c16538e5" }
+solana-runtime = { package = "solana-runtime", git = "https://github.com/jito-foundation/jito-solana.git", rev = "0bbcbe476c0e728907ac01135115e661c16538e5" }
+solana-sdk = { package = "solana-sdk", git = "https://github.com/jito-foundation/jito-solana.git", rev = "0bbcbe476c0e728907ac01135115e661c16538e5" }
+solana-stake-program = { package = "solana-stake-program", git = "https://github.com/jito-foundation/jito-solana.git", rev = "0bbcbe476c0e728907ac01135115e661c16538e5" }
+solana-vote = { package = "solana-vote", git = "https://github.com/jito-foundation/jito-solana.git", rev = "0bbcbe476c0e728907ac01135115e661c16538e5" }
+solana-security-txt = "1.1.1"
+spl-associated-token-account = { version = "2.3.0", features = ["no-entrypoint"] }
+spl-stake-pool = { version = "1.0.0", features = ["no-entrypoint"] }
+spl-token = { version = "4.0.0", features = ["no-entrypoint"] }
+spl-token-2022 = "=1.0.0"
+switchboard-on-demand = "0.1.0"
+syn = "2.0.72"
+thiserror = "1.0.57"
+tokio = { version = "1.36.0", features = ["full"] }
+relayer-ncn-client = { path = "./clients/rust/relayer_ncn", version = "0.0.1" }
+relayer-hub-client = { path = "./clients/rust/relayer_hub", version = "0.0.1" }
+relayer-ncn-core = { path = "./core", version = "=0.0.1" }
+relayer-ncn-program = { path = "./program", version = "=0.0.1" }
+relayer-ncn-shank-cli = { path = "./shank_cli", version = "=0.0.1" }
+relayer-hub-sdk = { path = "./relayer_hub_sdk", version = "=0.0.1" }
+merkle-tree = { path = "merkle_tree", version = "=0.0.1" }
+jito-bytemuck = { git = "https://github.com/jito-foundation/restaking.git", rev = "eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d" }
+jito-account-traits-derive = { git = "https://github.com/jito-foundation/restaking.git", rev = "eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d" }
+jito-jsm-core = { git = "https://github.com/jito-foundation/restaking.git", rev = "eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d" }
+jito-restaking-client = { git = "https://github.com/jito-foundation/restaking.git", rev = "eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d" }
+jito-restaking-core = { git = "https://github.com/jito-foundation/restaking.git", rev = "eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d" }
+jito-restaking-program = { git = "https://github.com/jito-foundation/restaking.git", rev = "eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d", features = ["no-entrypoint"] }
+jito-restaking-sdk = { git = "https://github.com/jito-foundation/restaking.git", rev = "eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d" }
+jito-vault-client = { git = "https://github.com/jito-foundation/restaking.git", rev = "eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d" }
+jito-vault-core = { git = "https://github.com/jito-foundation/restaking.git", rev = "eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d" }
+jito-vault-program = { git = "https://github.com/jito-foundation/restaking.git", rev = "eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d", features = ["no-entrypoint"] }
+jito-vault-sdk = { git = "https://github.com/jito-foundation/restaking.git", rev = "eaf88e7e5ca2845fe3108c4fc4a06a25f9a8514d" }
+
+[patch.crates-io]
+# Force all Solana dependencies to use the Jito fork
+solana-program = { git = "https://github.com/jito-foundation/jito-solana.git", rev = "0bbcbe476c0e728907ac01135115e661c16538e5" }
+solana-sdk = { git = "https://github.com/jito-foundation/jito-solana.git", rev = "0bbcbe476c0e728907ac01135115e661c16538e5" }
+solana-rpc-client = { git = "https://github.com/jito-foundation/jito-solana.git", rev = "0bbcbe476c0e728907ac01135115e661c16538e5" }
+# necessary for solana thin client
+solana-rpc-client-api = { git = "https://github.com/jito-foundation/jito-solana.git", rev = "0bbcbe476c0e728907ac01135115e661c16538e5" }
+# necessary for ellipsis client
+solana-transaction-status = { git = "https://github.com/jito-foundation/jito-solana.git", rev = "0bbcbe476c0e728907ac01135115e661c16538e5" }
