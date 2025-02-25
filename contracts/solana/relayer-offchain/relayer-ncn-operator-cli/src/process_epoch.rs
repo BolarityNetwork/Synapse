@@ -22,12 +22,18 @@ pub async fn wait_for_next_epoch(rpc_client: &RpcClient) -> Result<()> {
 
     loop {
         tokio::time::sleep(Duration::from_secs(10)).await; // Check every 10 seconds
-        let new_epoch = rpc_client.get_epoch_info()?.epoch;
 
-        if new_epoch > current_epoch {
-            info!("New epoch detected: {} -> {}", current_epoch, new_epoch);
-            return Ok(());
+        let epoch_info = rpc_client.get_epoch_info();
+
+        if let Ok(epoch_info) = epoch_info {
+            let new_epoch = epoch_info.epoch;
+
+            if new_epoch > current_epoch {
+                info!("New epoch detected: {} -> {}", current_epoch, new_epoch);
+                return Ok(());
+            }
         }
+
     }
 }
 
