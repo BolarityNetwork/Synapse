@@ -1,1 +1,0 @@
-{"version":3,"file":"tokenAccount.js","sourceRoot":"","sources":["../../../../src/sdk/accounts/tokenAccount.ts"],"names":[],"mappings":";;;AAAA,mEAAqE;AACrE,6CAA6D;AAE7D,SAAgB,qBAAqB,CACnC,SAA4B,EAC5B,IAAuB;IAEvB,OAAO,IAAA,sBAAa,EAClB,CAAC,MAAM,CAAC,IAAI,CAAC,OAAO,CAAC,EAAE,IAAI,mBAAS,CAAC,IAAI,CAAC,CAAC,QAAQ,EAAE,CAAC,EACtD,SAAS,CACV,CAAC;AACJ,CAAC;AARD,sDAQC"}
