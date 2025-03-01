@@ -83,3 +83,4 @@ jspm_packages/
 
 # Test typescript output
 test-out
+build
