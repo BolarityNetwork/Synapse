@@ -12,10 +12,10 @@ import {
 	CHAIN_ID_SOLANA ,CHAIN_ID_SEPOLIA
 } from "@certusone/wormhole-sdk";
 import {
-	SOLANA_RPC,
-	RELAYER_SOLANA_SECRET,
-	RELAYER_SOLANA_PROGRAM,
-	RELAYER_SEPOLIA_PROGRAM, RELAYER_SEPOLIA_SECRET, SEPOLIA_RPC,
+    SOLANA_RPC,
+    RELAYER_SOLANA_SECRET,
+    RELAYER_SOLANA_PROGRAM,
+    RELAYER_SEPOLIA_PROGRAM, RELAYER_SEPOLIA_SECRET, SEPOLIA_RPC, CHAIN_WORKER_FILE,
 } from "./consts";
 import {
 	get_relayer_of_current_epoch,
@@ -28,42 +28,95 @@ import * as bs58 from  "bs58";
 import { processSepoliaToSolana, processSolanaToSepolia } from "./controller";
 import { ethers } from "ethers";
 import { Worker, isMainThread, parentPort } from 'worker_threads';
-import { Job } from "./worker";
+import { Job } from "./chain_worker";
+import { ParsedVaaWithBytes } from "@wormhole-foundation/relayer-engine/relayer/application";
+import { hexStringToUint8Array } from "./utils";
 
-const tasks: number[] = [CHAIN_ID_SOLANA, CHAIN_ID_SEPOLIA];
+const chainTasks: number[] = [CHAIN_ID_SOLANA, CHAIN_ID_SEPOLIA];
+interface WorkerData {
+    worker: Worker;
+    workerId: number;
+}
 
-function runService(workerData: number) {
-    const worker = new Worker('./build/src/worker.js', {
-        workerData,
+// One worker per chain.
+const workers: WorkerData[] = [];
+
+function runService(workerId: number) {
+    const worker = new Worker(CHAIN_WORKER_FILE, {
+        workerData: { workerId },
     });
 
     worker.on('message', (result) => {
-        console.log(`Result from worker for task ${workerData}: ${result}`);
+        console.log(`Result from worker ${workerId}: ${result}`);
     });
 
     worker.on('error', (error) => {
-        console.error(`Worker error: ${error}`);
+        console.error(`Worker ${workerId} error: ${error}`);
     });
 
     worker.on('exit', (code) => {
         if (code !== 0) {
-            console.error(`Worker stopped with exit code ${code}`);
+            console.error(`Worker ${workerId} stopped with exit code ${code}`);
         }
     });
-    setInterval(() => {
-        const taskNumber = Math.floor(Math.random() * 100);
-        worker.postMessage(taskNumber);
-    }, 1000);
+    workers.push({ worker, workerId });
 }
 
 (async function main() {
-    tasks.forEach(task => runService(task));
+    chainTasks.forEach(task => runService(task));
     console.log('Main thread is doing other work...');
-    // const worker = new Worker('./build/src/worker.js');
-    // setInterval(() => {
-    //     const taskNumber = Math.floor(Math.random() * 100);
-    //     worker.postMessage(taskNumber);
-    // }, 1000);
+    const vaaSepolia: ParsedVaaWithBytes = {
+        consistencyLevel: 0,
+        emitterAddress: Buffer.from([1,2,3]),
+        emitterChain: CHAIN_ID_SEPOLIA,
+        guardianSetIndex: 0,
+        guardianSignatures: [],
+        hash: undefined,
+        nonce: 0,
+        payload: undefined,
+        sequence: 0n,
+        timestamp: 0,
+        version: 0,
+        id: {
+            emitterChain: CHAIN_ID_SEPOLIA,
+            emitterAddress: "5235325",
+            sequence: "235235",
+        },
+        bytes:new Uint8Array([1,2,3])
+    };
+    const vaaSolana: ParsedVaaWithBytes = {
+        consistencyLevel: 0,
+        emitterAddress: Buffer.from([1,2,3]),
+        emitterChain: CHAIN_ID_SOLANA,
+        guardianSetIndex: 0,
+        guardianSignatures: [],
+        hash: undefined,
+        nonce: 0,
+        payload: undefined,
+        sequence: 0n,
+        timestamp: 0,
+        version: 0,
+        id: {
+            emitterChain: CHAIN_ID_SOLANA,
+            emitterAddress: "5235325",
+            sequence: "235235",
+        },
+        bytes:new Uint8Array([1,2,3])
+    };
+    const vaaBytes = new Uint8Array([1,2,3]);
+    setInterval(() => {
+        const workerData = workers.find(w => w.workerId === CHAIN_ID_SEPOLIA);
+        workerData.worker.postMessage({vaa:vaaSepolia, vaaBytes});
+    }, 1000);
+    setInterval(() => {
+        const workerData = workers.find(w => w.workerId === CHAIN_ID_SOLANA);
+        workerData.worker.postMessage({vaa:vaaSolana, vaaBytes});
+    }, 1000);
+  //   const worker = new Worker('./build/src/worker.js');
+  //   setInterval(() => {
+  //       const taskNumber = Math.floor(Math.random() * 100);
+  //       worker.postMessage(taskNumber);
+  //   }, 1000);
   // // initialize relayer engine app, pass relevant config options
 	// const app = new StandardRelayerApp<StandardRelayerContext>(
 	// 	Environment.TESTNET,
