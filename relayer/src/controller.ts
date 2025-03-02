@@ -3,7 +3,7 @@ import {
     CONTRACTS,
     postVaaSolana,
     ChainId,
-    CHAIN_ID_SEPOLIA
+    CHAIN_ID_SEPOLIA, SignedVaa,
 } from "@certusone/wormhole-sdk";
 import {
     deriveAddress,
@@ -62,7 +62,7 @@ const RawDataSchema = {
     }
 };
 
-export async function processSepoliaToSolana(connection:Connection, program:Program, adminKeypair:Keypair, vaa:ParsedVaaWithBytes, ctx:StandardRelayerContext):Promise<[boolean, string]>  {
+export async function processSepoliaToSolana(connection:Connection, program:Program, adminKeypair:Keypair, vaa:ParsedVaaWithBytes, vaaBytes:SignedVaa):Promise<[boolean, string]>  {
     let executed = false;
     const NETWORK = "TESTNET";
     const WORMHOLE_CONTRACTS = CONTRACTS[NETWORK];
@@ -76,7 +76,7 @@ export async function processSepoliaToSolana(connection:Connection, program:Prog
         },
         CORE_BRIDGE_PID,
         adminKeypair.publicKey.toString(),
-        Buffer.from(ctx.vaaBytes)
+        Buffer.from(vaaBytes)
     );
     function renameFolder() {
         console.log("delay~~");
@@ -208,7 +208,7 @@ export async function processSepoliaToSolana(connection:Connection, program:Prog
 export async function processSolanaToSepolia(
     signer: ethers.Signer,
     contractAbi: { [x: string]: ethers.ContractInterface },
-    ctx: StandardRelayerContext,
+    vaaBytes:SignedVaa,
 ):Promise<[boolean, string]> {
     let executed = false;
     const contract = new ethers.Contract(
@@ -219,7 +219,7 @@ export async function processSolanaToSepolia(
     let hash = "";
     try {
         const contractWithWallet = contract.connect(signer);
-        const tx = await contractWithWallet.receiveMessage(ctx.vaaBytes);
+        const tx = await contractWithWallet.receiveMessage(vaaBytes);
         hash = tx.hash;
         await tx.wait();
         console.log("Transaction successful");

@@ -1,38 +1,37 @@
 import {
-  Connection,
-  TransactionInstruction,
-  sendAndConfirmTransaction,
-  Transaction,
-  Signer,
+  Commitment,
   ComputeBudgetProgram,
   ConfirmOptions,
-  PublicKeyInitData,
+  Connection, Keypair,
   PublicKey,
+  PublicKeyInitData,
+  sendAndConfirmTransaction,
+  Signer,
+  Transaction,
+  TransactionInstruction,
 } from "@solana/web3.js";
-import {deriveWrappedMintKey} from "@certusone/wormhole-sdk/lib/cjs/solana/tokenBridge";
+import { deriveWrappedMintKey } from "@certusone/wormhole-sdk/lib/cjs/solana/tokenBridge";
 import {
-  postVaaSolanaWithRetry,
-  NodeWallet,
+    NodeWallet,
+    postVaaSolanaWithRetry,
 } from "@certusone/wormhole-sdk/lib/cjs/solana";
-import {
-  CHAIN_ID_SOLANA,
-  ChainId,
-  ParsedTokenTransferVaa,
-} from "@certusone/wormhole-sdk";
-import {getOrCreateAssociatedTokenAccount} from "@solana/spl-token";
+import { CHAIN_ID_SOLANA, ChainId } from "@certusone/wormhole-sdk";
+import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
+import { SOLANA_RPC } from "./consts";
+import anchor, { Program } from "@coral-xyz/anchor";
 
 export class SendIxError extends Error {
-  logs: string;
+    logs: string;
 
-  constructor(originalError: Error & {logs?: string[]}) {
-    // The newlines don't actually show up correctly in chai's assertion error, but at least
-    // we have all the information and can just replace '\n' with a newline manually to see
-    // what's happening without having to change the code.
-    const logs = originalError.logs?.join("\n") || "error had no logs";
-    super(originalError.message + "\nlogs:\n" + logs);
-    this.stack = originalError.stack;
-    this.logs = logs;
-  }
+    constructor(originalError: Error & { logs?: string[] }) {
+        // The newlines don't actually show up correctly in chai's assertion error, but at least
+        // we have all the information and can just replace '\n' with a newline manually to see
+        // what's happening without having to change the code.
+        const logs = originalError.logs?.join("\n") || "error had no logs";
+        super(originalError.message + "\nlogs:\n" + logs);
+        this.stack = originalError.stack;
+        this.logs = logs;
+    }
 }
 
 export const sendAndConfirmIx = async (
@@ -120,4 +119,22 @@ export function hexStringToUint8Array(hexString: string): Uint8Array {
     }
 
     return byteArray;
+}
+
+export function getSolanaConnection():Connection {
+  const commitment: Commitment = "confirmed";
+  return new Connection(SOLANA_RPC, {
+      commitment,
+      confirmTransactionInitialTimeout: 60 * 10 * 1000,
+  });
+}
+
+export  function getSolanaProgram(connection:Connection, wallet:Keypair, idlPath:string) {
+  const options = anchor.AnchorProvider.defaultOptions();
+  const provider = new anchor.AnchorProvider(connection,new anchor.Wallet(wallet), options);
+  anchor.setProvider(provider);
+  const idl = JSON.parse(
+  	require("fs").readFileSync(idlPath, "utf8")
+  );
+  return  new Program(idl as any, provider);
 }
