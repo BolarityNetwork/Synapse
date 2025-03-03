@@ -4,33 +4,23 @@ import {
 	StandardRelayerContext,
 } from "@wormhole-foundation/relayer-engine";
 import {
-    Connection,
     Keypair,
-    Commitment,
 } from "@solana/web3.js";
 import {
 	CHAIN_ID_SOLANA ,CHAIN_ID_SEPOLIA
 } from "@certusone/wormhole-sdk";
 import {
-    SOLANA_RPC,
-    RELAYER_SOLANA_SECRET,
-    RELAYER_SOLANA_PROGRAM,
-    RELAYER_SEPOLIA_PROGRAM, RELAYER_SEPOLIA_SECRET, SEPOLIA_RPC, CHAIN_WORKER_FILE,
+	RELAYER_SOLANA_SECRET,
+	RELAYER_SOLANA_PROGRAM,
+	RELAYER_SEPOLIA_PROGRAM,
+	CHAIN_WORKER_FILE,
 } from "./consts";
 import {
 	get_relayer_of_current_epoch,
-	init_transaction,
-	execute_transaction,
 } from "./relayer_hub"
-import {Program, Provider} from "@coral-xyz/anchor";
-const anchor = require("@coral-xyz/anchor");
 import * as bs58 from  "bs58";
-import { processSepoliaToSolana, processSolanaToSepolia } from "./controller";
-import { ethers } from "ethers";
-import { Worker, isMainThread, parentPort } from 'worker_threads';
-import { Job } from "./chain_worker";
-import { ParsedVaaWithBytes } from "@wormhole-foundation/relayer-engine/relayer/application";
-import { getSolanaConnection, getSolanaProgram, hexStringToUint8Array } from "./utils";
+import { Worker } from 'worker_threads';
+import { getSolanaConnection, getSolanaProgram, getSolanaProvider } from "./utils";
 
 const chainTasks: number[] = [CHAIN_ID_SOLANA, CHAIN_ID_SEPOLIA];
 interface WorkerData {
@@ -76,10 +66,10 @@ function runService(workerId: number) {
 	const relayer = relayerSolanaKeypair.publicKey;
 	// init connection
     const connection = getSolanaConnection();
+	const provider = getSolanaProvider(connection, relayerSolanaKeypair);
     const currentDirectory = process.cwd();
     const idlPath = currentDirectory + "/idl/relayer_hub.json";
-	const relayerHubProgram = getSolanaProgram(connection, relayerSolanaKeypair, idlPath);
-
+	const relayerHubProgram = getSolanaProgram(idlPath, provider);
 
 	app.multiple(
 		{
@@ -94,8 +84,10 @@ function runService(workerId: number) {
 			console.log(
 			  `=====${now}==========Got a VAA with sequence: ${vaa.sequence} from with txhash: ${hash}=========================`,
 			);
-			let currentRelayer = await get_relayer_of_current_epoch(connection, relayerHubProgram);
+
+			let currentRelayer = await get_relayer_of_current_epoch(relayerHubProgram);
 			console.log(`================current relayer:${currentRelayer.toBase58()}, your relayer:${relayer.toBase58()}`);
+
 			if (currentRelayer.toBase58() == relayer.toBase58()) {
 				console.log("==============Now it's your turn to relay======================");
                 const workerData = workers.find(w => w.workerId === vaa.emitterChain);

@@ -1,4 +1,4 @@
-import { Commitment, Connection, Keypair, PublicKey, sendAndConfirmTransaction, Transaction } from "@solana/web3.js";
+import { Commitment, Keypair, PublicKey, sendAndConfirmTransaction, Transaction } from "@solana/web3.js";
 import {
     CONTRACTS,
     postVaaSolana,
@@ -7,12 +7,10 @@ import {
 } from "@certusone/wormhole-sdk";
 import {
     deriveAddress,
-    getPostMessageCpiAccounts,
+    NodeWallet,
 } from "@certusone/wormhole-sdk/lib/cjs/solana";
-import { Program } from "@coral-xyz/anchor";
-import { RelayerHub } from "../types/relayer_hub";
+import anchor, { Program } from "@coral-xyz/anchor";
 import { ParsedVaaWithBytes } from "@wormhole-foundation/relayer-engine/relayer/application";
-import { StandardRelayerContext } from "@wormhole-foundation/relayer-engine";
 const borsh = require('borsh');
 import { createHash } from 'crypto';
 import * as bs58 from  "bs58";
@@ -20,7 +18,7 @@ import * as tokenBridgeRelayer from "./sdk/";
 import {
     TOKEN_BRIDGE_PID,
     TOKEN_BRIDGE_RELAYER_PID,
-    CROSS_SECRET, SOL_MINT, RELAYER_SEPOLIA_SECRET, RELAYER_SEPOLIA_PROGRAM,
+    CROSS_SECRET, SOL_MINT, RELAYER_SEPOLIA_PROGRAM,
 } from "./consts";
 import { sendAndConfirmIx } from "./utils";
 import { ethers } from "ethers";
@@ -62,7 +60,12 @@ const RawDataSchema = {
     }
 };
 
-export async function processSepoliaToSolana(connection:Connection, program:Program, adminKeypair:Keypair, vaa:ParsedVaaWithBytes, vaaBytes:SignedVaa):Promise<[boolean, string]>  {
+export async function processSepoliaToSolana(program:Program, vaa:ParsedVaaWithBytes, vaaBytes:SignedVaa):Promise<[boolean, string]>  {
+    const provider = program.provider as anchor.AnchorProvider;
+    const wallet = provider.wallet as unknown as NodeWallet;
+
+    const connection = provider.connection;
+
     let executed = false;
     const NETWORK = "TESTNET";
     const WORMHOLE_CONTRACTS = CONTRACTS[NETWORK];
@@ -71,11 +74,11 @@ export async function processSepoliaToSolana(connection:Connection, program:Prog
     await postVaaSolana(
         connection,
         async (transaction) => {
-            transaction.partialSign(adminKeypair);
+            transaction.partialSign(wallet.payer);
             return transaction;
         },
         CORE_BRIDGE_PID,
-        adminKeypair.publicKey.toString(),
+        wallet.publicKey().toString(),
         Buffer.from(vaaBytes)
     );
     function renameFolder() {
@@ -179,7 +182,7 @@ export async function processSepoliaToSolana(connection:Connection, program:Prog
     const ix = program.methods
         .receiveMessage([...vaa.hash], bump, chain_id, new PublicKey(caller).toBuffer())
         .accounts({
-            payer: adminKeypair.publicKey,
+            payer: wallet.publicKey(),
             config: realConfig,
             wormholeProgram: CORE_BRIDGE_PID,
             posted: posted,
@@ -193,7 +196,7 @@ export async function processSepoliaToSolana(connection:Connection, program:Prog
     let signature ="";
     try {
         let commitment: Commitment = 'confirmed';
-        signature = await sendAndConfirmTransaction(connection, tx3, [adminKeypair], {commitment});
+        signature = await sendAndConfirmTransaction(connection, tx3, [wallet.payer], {commitment});
         console.log('Transaction successful, txid:' + signature);
         executed = true;
     }

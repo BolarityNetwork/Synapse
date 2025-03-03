@@ -18,7 +18,8 @@ import {
 import { CHAIN_ID_SOLANA, ChainId } from "@certusone/wormhole-sdk";
 import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 import { SOLANA_RPC } from "./consts";
-import anchor, { Program } from "@coral-xyz/anchor";
+import { AnchorProvider, Program } from "@coral-xyz/anchor";
+const anchor = require("@coral-xyz/anchor");
 
 export class SendIxError extends Error {
     logs: string;
@@ -129,10 +130,15 @@ export function getSolanaConnection():Connection {
   });
 }
 
-export  function getSolanaProgram(connection:Connection, wallet:Keypair, idlPath:string) {
-  const options = anchor.AnchorProvider.defaultOptions();
-  const provider = new anchor.AnchorProvider(connection,new anchor.Wallet(wallet), options);
-  anchor.setProvider(provider);
+export function getSolanaProvider(connection:Connection, keypair:Keypair):AnchorProvider {
+    const options = anchor.AnchorProvider.defaultOptions();
+    const wallet = new NodeWallet(keypair);
+    const provider = new anchor.AnchorProvider(connection, wallet, options);
+    anchor.setProvider(provider);
+    return provider;
+}
+
+export  function getSolanaProgram(idlPath:string, provider:AnchorProvider) {
   const idl = JSON.parse(
   	require("fs").readFileSync(idlPath, "utf8")
   );
