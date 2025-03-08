@@ -4,6 +4,7 @@ import { RelayerSolana } from "../target/types/relayer_solana";
 import { Proxy } from "../target/types/proxy";
 import { Test } from "../target/types/test";
 import { Stake } from "../target/types/stake";
+import { NftVerification } from "../target/types/nft_verification";
 import {Commitment, Keypair, PublicKey, sendAndConfirmTransaction, Transaction, SystemProgram} from "@solana/web3.js";
 const borsh = require('borsh');
 import { createHash } from 'crypto';
@@ -12,11 +13,14 @@ import {
     createAssociatedTokenAccount,
     mintTo,
     getAssociatedTokenAddress,
-    TOKEN_PROGRAM_ID, getMint
+    TOKEN_PROGRAM_ID, getMint,
+    createAssociatedTokenAccountInstruction
 } from "@solana/spl-token";
 import * as buffer from "buffer";
 import * as bs58 from  "bs58";
 import {deriveAddress} from "@certusone/wormhole-sdk/lib/cjs/solana";
+import {expect} from "chai";
+import BN from "bn.js";
 
 describe("relayer_solana", () => {
   // Configure the client to use the local cluster.
@@ -25,7 +29,9 @@ describe("relayer_solana", () => {
   const programProxy = anchor.workspace.Proxy as Program<Proxy>;
   const programTest = anchor.workspace.Test as Program<Test>;
   const programHackathon = anchor.workspace.RelayerSolana as Program<RelayerSolana>;
-    const programStake = anchor.workspace.Stake as Program<Stake>;
+  const programStake = anchor.workspace.Stake as Program<Stake>;
+  const programVerification = anchor.workspace.NftVerification as Program<NftVerification>;
+
   const pg = anchor.getProvider() as anchor.AnchorProvider;
   const requestAirdrop = async (mint_keypair:anchor.web3.Keypair) => {
         const signature = await pg.connection.requestAirdrop(
@@ -139,7 +145,7 @@ describe("relayer_solana", () => {
     //     }
     // }
     const myParametersSchema ={ struct: {'value1':'u8', 'value2':'u8'}}
-    // const schema2 ={ struct: {'value1':'u64'}}
+    const schema2 ={ struct: {'value1':'u64'}}
     it("Test1", async () => {
         await printAccountBalance(keypair.publicKey);
 
@@ -298,6 +304,14 @@ describe("relayer_solana", () => {
             ],
             programHackathon.programId
         );
+        // 0xFE | version (u8) | type (Parser Type, u8)|reserve (u8) | from chain(u16)| to chain(u16)| reserve(24 byte) | data (vec<u8>)
+        const solanaChainId = 1;
+        const evmChainId = 10002; // sepolia
+        const solanaChainIdBuffer = Buffer.alloc(2);
+        solanaChainIdBuffer.writeUInt16BE(solanaChainId);
+        const evmChainIdBuffer = Buffer.alloc(2);
+        evmChainIdBuffer.writeUInt16BE(evmChainId);
+        const payloadHead = Buffer.concat([Buffer.from([0xFE, 0x01, 0x00, 0x00]),  evmChainIdBuffer, solanaChainIdBuffer, Buffer.alloc(24)]);
 
         let paras = sha256("active").slice(0, 8);
         let encodedParams = Buffer.concat([paras]);
@@ -319,11 +333,11 @@ describe("relayer_solana", () => {
             acc_meta:Buffer.from(encodeMeta),
         };
         let RawDataEncoded = borsh.serialize(RawDataSchema, RawData);
-        const exp_RawData = borsh.deserialize(RawDataSchema, RawDataEncoded);
+        let exp_RawData = borsh.deserialize(RawDataSchema, RawDataEncoded);
 
-        const meta1 = exp_RawData.accounts[0];
-        const accountMeta1 = {pubkey: new PublicKey(meta1.key), isWritable: meta1.isWritable, isSigner: false};
-        const accountMeta2 = {pubkey: TestKeypair.publicKey, isWritable: true, isSigner: false};
+        let meta1 = exp_RawData.accounts[0];
+        let accountMeta1 = {pubkey: new PublicKey(meta1.key), isWritable: meta1.isWritable, isSigner: false};
+        let accountMeta2 = {pubkey: TestKeypair.publicKey, isWritable: true, isSigner: false};
 
         const [tempKey, bump] = PublicKey.findProgramAddressSync([
                 Buffer.from("pda"),
@@ -336,12 +350,12 @@ describe("relayer_solana", () => {
             ],
             programHackathon.programId);
         await printAccountBalance(realForeignEmitter);
-        await programHackathon.methods.receiveMessage2(Buffer.from(RawDataEncoded), bump, realForeignEmitterChain, realForeignEmitterAddress).accounts({payer:TestKeypair.publicKey, programAccount: new PublicKey(exp_RawData.programId)}).remainingAccounts([accountMeta1]).signers([TestKeypair]).rpc();
+        await programHackathon.methods.receiveMessage2(Buffer.concat([payloadHead, Buffer.from(RawDataEncoded)]), bump, realForeignEmitterChain, realForeignEmitterAddress).accounts({payer:TestKeypair.publicKey, programAccount: new PublicKey(exp_RawData.programId)}).remainingAccounts([accountMeta1]).signers([TestKeypair]).rpc();
         await printAccountBalance(realForeignEmitter);
         await requestAirdrop2(realForeignEmitter)
         await printAccountBalance(realForeignEmitter);
 
-        encodeMeta = borsh.serialize(AccountMeta, [{writeable:true, is_signer:false}, {writeable:true, is_signer:false}]);
+        encodeMeta = borsh.serialize(AccountMeta, [{writeable:true, is_signer:true}, {writeable:true, is_signer:false}]);
         paras = sha256("transfer").slice(0, 8);
         let buf = Buffer.alloc(8);
         buf.writeBigUint64LE(BigInt(1000000000),0);
@@ -355,7 +369,7 @@ describe("relayer_solana", () => {
                 {
                     key: realForeignEmitter.toBuffer(),
                     isWritable:true,
-                    isSigner: false,
+                    isSigner: true,
                 },
                 {
                     key: TestKeypair.publicKey.toBuffer(),
@@ -367,25 +381,94 @@ describe("relayer_solana", () => {
             acc_meta:Buffer.from(encodeMeta),
         };
         RawDataEncoded = borsh.serialize(RawDataSchema, RawData);
-        await programHackathon.methods.receiveMessage2(Buffer.from(RawDataEncoded), bump, realForeignEmitterChain, realForeignEmitterAddress).accounts({payer:TestKeypair.publicKey, programAccount: new PublicKey(exp_RawData.programId)}).remainingAccounts([accountMeta1, accountMeta2]).signers([TestKeypair]).rpc();
+        exp_RawData = borsh.deserialize(RawDataSchema, RawDataEncoded);
+        meta1 = exp_RawData.accounts[0];
+        let meta2 = exp_RawData.accounts[1];
+        accountMeta1 = {pubkey: new PublicKey(meta1.key), isWritable: meta1.isWritable, isSigner: false};
+        accountMeta2 = {pubkey: new PublicKey(meta2.key), isWritable: meta2.isWritable, isSigner: false};
+        await programHackathon.methods.receiveMessage2(Buffer.concat([payloadHead, Buffer.from(RawDataEncoded)]), bump, realForeignEmitterChain, realForeignEmitterAddress).accounts({payer:TestKeypair.publicKey, programAccount: new PublicKey(exp_RawData.programId)}).remainingAccounts([accountMeta1, accountMeta2]).signers([TestKeypair]).rpc();
         await printAccountBalance(realForeignEmitter);
-        const seeds = []
-        const [escrow, _bump] = anchor.web3.PublicKey.findProgramAddressSync(seeds, programStake.programId);
-        await programStake.methods.initialize().accounts({signer:TestKeypair.publicKey, escrow: escrow}).signers([TestKeypair]).rpc();
+
+        const mint_keypair = Keypair.generate();
+        await requestAirdrop2(mint_keypair.publicKey);
+        const seeds = [Buffer.from("state")];
+        const [statePda, _bump] = anchor.web3.PublicKey.findProgramAddressSync(
+            seeds,
+            programVerification.programId);
+        const mint = await createMint(
+            pg.connection,
+            mint_keypair,
+            mint_keypair.publicKey,
+            null,
+            9
+        );
+        const token_vault_ata = await getAssociatedTokenAddress(
+            mint,
+            statePda,
+            true
+        );
+
+        const createATAIx = createAssociatedTokenAccountInstruction(
+            mint_keypair.publicKey,
+            token_vault_ata,
+            statePda,
+            mint
+        );
+
+        const tx = new anchor.web3.Transaction().add(createATAIx);
+        await pg.sendAndConfirm(tx, [mint_keypair]);
+
+        const mintAmount = BigInt(1000_000000000);
+        await mintTo(
+            pg.connection,
+            mint_keypair,
+            mint,
+            token_vault_ata,
+            mint_keypair.publicKey,
+            mintAmount
+        );
+        const token_vault_ata_balance = await pg.connection.getTokenAccountBalance(token_vault_ata);
+        expect(token_vault_ata_balance.value.amount).to.eq(mintAmount.toString());
+        const token_amount_per_nft = new BN(1_000000000);
+        await programVerification.methods.initialize(token_amount_per_nft).accounts({
+            admin:TestKeypair.publicKey,
+            tokenMint: mint,
+            tokenVault:token_vault_ata,
+            state: statePda,
+        })
+            .signers([TestKeypair]).rpc();
+        const nft_contract = Buffer.alloc(20);
+        await programVerification.methods.setApprovedNft( [...nft_contract], true).accounts({
+            admin:TestKeypair.publicKey,
+            state: statePda,
+        })
+            .signers([TestKeypair]).rpc();
 
 
-        encodeMeta = borsh.serialize(AccountMeta, [{writeable:true, is_signer:true}, {writeable:true, is_signer:false}, {writeable:false, is_signer:false}]);
-        const accountMeta3 = {pubkey: escrow, isWritable: true, isSigner: false};
-        const accountMeta4 = {pubkey: SystemProgram.programId, isWritable: false, isSigner: false};
-        const depositSchema ={ struct: {'amount':'u64'}}
-        const encoded = borsh.serialize(depositSchema, {amount:1000000000});
-        paras = sha256("global:deposit").slice(0, 8);
-        encodedParams = Buffer.concat([paras, encoded]);
+        encodeMeta = borsh.serialize(AccountMeta, [
+            {writeable:true, is_signer:true},
+            {writeable:false, is_signer:false},
+            {writeable:true, is_signer:false},
+            {writeable:false, is_signer:false}]);
+
+        paras = sha256("global:process_wormhole_message").slice(0, 8);
+        const payloadSchema = {
+            struct: {
+                payload: {array: {type: 'u8'}},
+            }
+        }
+        const receiver_keypair = Keypair.generate();
+        const payload = Buffer.concat([Buffer.alloc(20), nft_contract, Buffer.alloc(32),receiver_keypair.publicKey.toBuffer()]);
+        const [proofRecordPda] = anchor.web3.PublicKey.findProgramAddressSync(
+            [Buffer.from("proof"), payload.slice(20,40), payload.slice(64,72)],
+            programVerification.programId);
+        const paraEncode = borsh.serialize(payloadSchema, {payload:payload});
+        encodedParams = Buffer.concat([paras, paraEncode]);
         RawData = {
             chain_id: realForeignEmitterChain,
             caller: new PublicKey(realForeignEmitterAddress).toBuffer(),
-            programId: programStake.programId.toBuffer(),
-            acc_count:3,
+            programId: programVerification.programId.toBuffer(),
+            acc_count:4,
             accounts:[
                 {
                     key: realForeignEmitter.toBuffer(),
@@ -393,7 +476,12 @@ describe("relayer_solana", () => {
                     isSigner: true,
                 },
                 {
-                    key: escrow.toBuffer(),
+                    key: statePda.toBuffer(),
+                    isWritable:false,
+                    isSigner: false,
+                },
+                {
+                    key: proofRecordPda.toBuffer(),
                     isWritable:true,
                     isSigner: false,
                 },
@@ -407,7 +495,86 @@ describe("relayer_solana", () => {
             acc_meta:Buffer.from(encodeMeta),
         };
         RawDataEncoded = borsh.serialize(RawDataSchema, RawData);
-        await programHackathon.methods.receiveMessage2(Buffer.from(RawDataEncoded), bump, realForeignEmitterChain, realForeignEmitterAddress).accounts({payer:TestKeypair.publicKey, programAccount: programStake.programId}).remainingAccounts([accountMeta1, accountMeta3, accountMeta4]).signers([TestKeypair]).rpc();
-        await printAccountBalance(realForeignEmitter);
+        exp_RawData = borsh.deserialize(RawDataSchema, RawDataEncoded);
+        meta1 = exp_RawData.accounts[0];
+        meta2 = exp_RawData.accounts[1];
+        let meta3 = exp_RawData.accounts[2];
+        let meta4 = exp_RawData.accounts[3];
+        accountMeta1 = {pubkey: new PublicKey(meta1.key), isWritable: meta1.isWritable, isSigner: false};
+        accountMeta2 = {pubkey: new PublicKey(meta2.key), isWritable: meta2.isWritable, isSigner: false};
+        let accountMeta3 = {pubkey: new PublicKey(meta3.key), isWritable: meta3.isWritable, isSigner: false};
+        let accountMeta4 = {pubkey: new PublicKey(meta4.key), isWritable: meta4.isWritable, isSigner: false};
+        await programHackathon.methods.receiveMessage2(Buffer.concat([payloadHead, Buffer.from(RawDataEncoded)]), bump, realForeignEmitterChain, realForeignEmitterAddress).accounts({payer:TestKeypair.publicKey, programAccount: new PublicKey(exp_RawData.programId)}).remainingAccounts([accountMeta1, accountMeta2, accountMeta3, accountMeta4]).signers([TestKeypair]).rpc();
+
+
+        await requestAirdrop2(receiver_keypair.publicKey);
+        const receiver_ata = await getAssociatedTokenAddress(
+            mint,
+            receiver_keypair.publicKey,
+            true
+        );
+
+        await pg.sendAndConfirm(new anchor.web3.Transaction().add(createAssociatedTokenAccountInstruction(
+            receiver_keypair.publicKey,
+            receiver_ata,
+            receiver_keypair.publicKey,
+            mint
+        )), [receiver_keypair]);
+
+        await programVerification.methods.claimTokens().accounts({
+            receiver:receiver_keypair.publicKey,
+            state: statePda,
+            tokenVault: token_vault_ata,
+            receiverTokenAccount:receiver_ata,
+            proofRecord: proofRecordPda,
+        })
+            .signers([receiver_keypair]).rpc();
+        const receiver_ata_balance = await pg.connection.getTokenAccountBalance(receiver_ata);
+        console.log(receiver_ata_balance.value.amount);
+
+
+
+
+
+        // const seeds = []
+        // const [escrow, _bump] = anchor.web3.PublicKey.findProgramAddressSync(seeds, programStake.programId);
+        // await programStake.methods.initialize().accounts({signer:TestKeypair.publicKey, escrow: escrow}).signers([TestKeypair]).rpc();
+        //
+        //
+        // encodeMeta = borsh.serialize(AccountMeta, [{writeable:true, is_signer:true}, {writeable:true, is_signer:false}, {writeable:false, is_signer:false}]);
+        // const accountMeta3 = {pubkey: escrow, isWritable: true, isSigner: false};
+        // const accountMeta4 = {pubkey: SystemProgram.programId, isWritable: false, isSigner: false};
+        // const depositSchema ={ struct: {'amount':'u64'}}
+        // const encoded = borsh.serialize(depositSchema, {amount:1000000000});
+        // paras = sha256("global:deposit").slice(0, 8);
+        // encodedParams = Buffer.concat([paras, encoded]);
+        // RawData = {
+        //     chain_id: realForeignEmitterChain,
+        //     caller: new PublicKey(realForeignEmitterAddress).toBuffer(),
+        //     programId: programStake.programId.toBuffer(),
+        //     acc_count:3,
+        //     accounts:[
+        //         {
+        //             key: realForeignEmitter.toBuffer(),
+        //             isWritable:true,
+        //             isSigner: true,
+        //         },
+        //         {
+        //             key: escrow.toBuffer(),
+        //             isWritable:true,
+        //             isSigner: false,
+        //         },
+        //         {
+        //             key: SystemProgram.programId.toBuffer(),
+        //             isWritable:false,
+        //             isSigner: false,
+        //         }
+        //     ],
+        //     paras:encodedParams,
+        //     acc_meta:Buffer.from(encodeMeta),
+        // };
+        // RawDataEncoded = borsh.serialize(RawDataSchema, RawData);
+        // await programHackathon.methods.receiveMessage2(Buffer.concat([payloadHead, Buffer.from(RawDataEncoded)]), bump, realForeignEmitterChain, realForeignEmitterAddress).accounts({payer:TestKeypair.publicKey, programAccount: programStake.programId}).remainingAccounts([accountMeta1, accountMeta3, accountMeta4]).signers([TestKeypair]).rpc();
+        // await printAccountBalance(realForeignEmitter);
     });
 });

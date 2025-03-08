@@ -10,7 +10,7 @@ pub mod error;
 pub mod message;
 pub mod state;
 
-declare_id!("CLErExd7gNADvu5rDFmkFD1uAt7zksJ3TDfXsJqJ4QTs");
+declare_id!("5tFEXwUwpAzMXBWUSjQNWVfEh7gKbTc5hQMqBwi8jQ7k");
 
 #[program]
 /// # Hello World (Scaffolding Example #1)
@@ -408,7 +408,8 @@ pub mod relayer_solana {
 
         let seeds = b"pda";
         let signer_seeds: &[&[&[u8]]] = &[&[seeds,&chain.to_le_bytes(), address.as_slice(), &[bump]]];
-        let account_list = RawData::deserialize(&mut &*data)?;
+        let payload = &data[32..];
+        let account_list = RawData::deserialize(&mut &*payload)?;
         msg!("{:?}", account_list);
         let transfer_buf:[u8;8] = [0x27, 0xf5 ,0x76, 0xca, 0xfb, 0xb2, 0x63, 0xed];
         let active_buf:[u8;8]=[0x96 , 0x87 , 0x96 , 0x11 , 0x65 , 0x0f , 0x80 , 0xa8];
@@ -466,7 +467,7 @@ pub mod relayer_solana {
                 &pda,
                 lamports,
                 0,
-                ctx.accounts.system_program.key,
+                &ctx.accounts.system_program.key,
             );
 
             invoke_signed(
@@ -478,41 +479,7 @@ pub mod relayer_solana {
                 ],
                 signer_seeds,
             )?;
-        } else{
-
-            // let other_pda = Pubkey::create_program_address(&[seeds, acc_infos[0].key.as_ref(), &[other_bump]], ctx.accounts.program_account.key).unwrap();
-            // let other_signer_seeds: &[&[&[u8]]] = &[&[seeds, acc_infos[0].key.as_ref(), &[other_bump]]];
-            // let lamports = (Rent::get()?).minimum_balance(std::mem::size_of::<PDAAccount>()) + 1000000000;
-            //
-            // let create_account_ix = system_instruction::create_account(
-            //     // &acc_infos[0].key,
-            //     ctx.accounts.payer.key,
-            //     &other_pda,
-            //     lamports,
-            //     std::mem::size_of::<PDAAccount>() as u64,
-            //     ctx.accounts.program_account.key,
-            // );
-            // let last_account = ctx.remaining_accounts.last().expect("xxxxxx");
-            // msg!("{:?}", other_pda);
-            // msg!("{:?}", last_account);
-            // msg!("{:?}", other_bump);
-            // invoke_signed(
-            //     &create_account_ix,
-            //     &[
-            //         // acc_infos[0].clone(),
-            //         ctx.accounts.payer.to_account_info(),
-            //         ctx.accounts.system_program.to_account_info(),
-            //         last_account.to_account_info(),
-            //     ],
-            //     // &[&[&[seeds,&chain.to_le_bytes(), address.as_slice(), &[bump]]], &[&[seeds, acc_infos[0].key.as_ref(), &[other_bump]]]]
-            //     //  &[&[seeds,&chain.to_le_bytes(), address.as_slice(), &[bump]], &[seeds, acc_infos[0].key.as_ref(), &[other_bump]]],
-            //     // &[&[seeds,&chain.to_le_bytes(), address.as_slice(), &[bump]]],
-            //     &[&[seeds, acc_infos[0].key.as_ref(), &[other_bump]]],
-            // )?;
-            // let program_meta=&ctx.accounts.system_program.to_account_metas(None)[0];
-            // accounts.push(program_meta.clone());
-            // acc_infos.push(ctx.accounts.system_program.to_account_info());
-            // msg!("{:?}", program_meta);
+        } else {
             let instruction: Instruction = Instruction {
                 program_id: ctx.accounts.program_account.key(),
                 accounts,

@@ -10,26 +10,29 @@ members = [
     "programs/proxy",
     "programs/test",
     "programs/stake",
+    "programs/nft_verification"
 #    "programs/token_bridge_relayer",
 ]
 [programs.localnet]
-relayer_solana = "CLErExd7gNADvu5rDFmkFD1uAt7zksJ3TDfXsJqJ4QTs"
+relayer_solana = "5tFEXwUwpAzMXBWUSjQNWVfEh7gKbTc5hQMqBwi8jQ7k"
 proxy = "E8MhaNDD1nPQzCRCu1KPjuofFcbkjzY6tzvWwLjQxLw5"
 test = "DViLwexyLUuKRRXWCQgFYqzoVLWktEbvUVhzKNZ7qTSF"
 stake = "29fp9FCyJjrT91TDyx5VPGTMinXqrRAbAbd634U7ZiXw"
+nft_verification = "3b5KJUApvzf8Pz1DMrkLNpaWkUBvmJK8WQQcWiRSvZb3"
 #token_bridge_relayer = "EYcqMLNRMUkHvDMg2Jpng8R5HMeJgt8uX7q372omPVsD"
 [programs.devnet]
-relayer_solana = "CLErExd7gNADvu5rDFmkFD1uAt7zksJ3TDfXsJqJ4QTs"
+relayer_solana = "5tFEXwUwpAzMXBWUSjQNWVfEh7gKbTc5hQMqBwi8jQ7k"
 proxy = "E8MhaNDD1nPQzCRCu1KPjuofFcbkjzY6tzvWwLjQxLw5"
 test = "DViLwexyLUuKRRXWCQgFYqzoVLWktEbvUVhzKNZ7qTSF"
 stake = "29fp9FCyJjrT91TDyx5VPGTMinXqrRAbAbd634U7ZiXw"
+nft_verification = "3b5KJUApvzf8Pz1DMrkLNpaWkUBvmJK8WQQcWiRSvZb3"
 #token_bridge_relayer = "EYcqMLNRMUkHvDMg2Jpng8R5HMeJgt8uX7q372omPVsD"
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "localnet"
-wallet = "~/.config/solana/id.json"
+wallet = "./target/deploy/user.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

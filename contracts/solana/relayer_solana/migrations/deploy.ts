@@ -27,38 +27,44 @@ import {
 import path from 'path';
 
 const anchor = require("@coral-xyz/anchor");
+function hexStringToUint8Array(hexString: string): Uint8Array {
+  if (hexString.startsWith("0x")) {
+    hexString = hexString.slice(2);
+  }
 
+  if (hexString.length % 2 !== 0) {
+    throw new Error("Invalid hex string length");
+  }
+
+  const byteArray = new Uint8Array(hexString.length / 2);
+
+  for (let i = 0; i < hexString.length; i += 2) {
+    const hexPair = hexString.slice(i, i + 2);
+    byteArray[i / 2] = parseInt(hexPair, 16);
+  }
+
+  return byteArray;
+}
 module.exports = async function (provider) {
   // Configure client to use the provider.
   anchor.setProvider(provider);
+
   const currentDirectory = process.cwd();
 
   const idl = JSON.parse(
       require("fs").readFileSync(currentDirectory + "/target/idl/relayer_solana.json", "utf8")
   );
-  const programID=new PublicKey("CLErExd7gNADvu5rDFmkFD1uAt7zksJ3TDfXsJqJ4QTs")
+  const programID=new PublicKey("5tFEXwUwpAzMXBWUSjQNWVfEh7gKbTc5hQMqBwi8jQ7k")
   const program = new anchor.Program(idl, programID);
-
-    const idlTest = JSON.parse(
-        require("fs").readFileSync(currentDirectory + "/target/idl/test.json", "utf8")
-    );
-    const programIDTest=new PublicKey("DViLwexyLUuKRRXWCQgFYqzoVLWktEbvUVhzKNZ7qTSF")
-    const programTest = new anchor.Program(idlTest, programIDTest);
 
   const HELLO_WORLD_PID = program.programId;
 
   const NETWORK = "TESTNET";
   const WORMHOLE_CONTRACTS = CONTRACTS[NETWORK];
   const CORE_BRIDGE_PID = new PublicKey(WORMHOLE_CONTRACTS.solana.core);
-  const userKeypair = Keypair.fromSecretKey(
-      bs58.decode(''));
 
-  const adminKeypair = Keypair.fromSecretKey(
-      bs58.decode(''));
-  const realForeignEmitterChain = CHAINS.bsc;
-  // const realForeignEmitterAddress = Buffer.alloc(32, "abcd", "hex");
-     const realForeignEmitterAddress = Buffer.from([0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x87,0xa5,0xe9,0x39,0xb4,0xf0,0x2b,0x76,0xea,0xb6,0xfd,0x01,0x2f,0x80,0xf1,0xbb,0x69,0xc4,0x3a,0x97])
-    // const realForeignEmitterAddress = Buffer.from([0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x7E,0x34,0xca,0xa0,0x6F,0x51,0x32,0xD2,0xBc,0x65,0x68,0xf8,0x83,0x3d,0xD0,0xe6,0x7d,0x01,0x9F,0x40])
+  const realForeignEmitterChain = CHAINS.sepolia;
+  const realForeignEmitterAddress = Buffer.from([0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xeb,0x48,0x5a,0x2B,0xF3,0x56,0x76,0x52,0x18,0x56,0x17,0xB6,0x47,0xd1,0x25,0xa1,0x4D,0xb5,0x90,0x7e])
   const realConfig = deriveAddress([Buffer.from("config")], HELLO_WORLD_PID);
   const realForeignEmitter = deriveAddress(
       [
@@ -71,51 +77,29 @@ module.exports = async function (provider) {
       ],
       HELLO_WORLD_PID
   );
-  console.log(CORE_BRIDGE_PID.toBase58())
 
-
-  const message = deriveAddress(
-      [
-        Buffer.from("sent"),
-        (() => {
-          const buf = Buffer.alloc(8);
-          buf.writeBigUInt64LE(1n);
-          return buf;
-        })(),
-      ],
-      HELLO_WORLD_PID
-  );
-  const wormholeAccounts = getPostMessageCpiAccounts(
-      program.programId,
-      CORE_BRIDGE_PID,
-      adminKeypair.publicKey,
-      message
-  );
-
-    const seeds = []
-    const [myStorage, _bump] = anchor.web3.PublicKey.findProgramAddressSync(seeds, programTest.programId);
-
-    // initialize
-    const ix = programTest.methods
-        .initialize()
-        .accounts({
-            signer: adminKeypair.publicKey,
-            my_storage:myStorage,
-        })
-        .instruction();
-      const tx = new Transaction().add(await ix);
-      try {
-        let commitment: Commitment = 'confirmed';
-        await sendAndConfirmTransaction(provider.connection, tx, [adminKeypair], {commitment});
-      }
-      catch (error: any) {
-        console.log(error);
-      }
+  // const message = deriveAddress(
+  //     [
+  //       Buffer.from("sent"),
+  //       (() => {
+  //         const buf = Buffer.alloc(8);
+  //         buf.writeBigUInt64LE(1n);
+  //         return buf;
+  //       })(),
+  //     ],
+  //     HELLO_WORLD_PID
+  // );
+  // const wormholeAccounts = getPostMessageCpiAccounts(
+  //     program.programId,
+  //     CORE_BRIDGE_PID,
+  //     provider.wallet.publicKey,
+  //     message
+  // );
   // // initialize
   // const ix = program.methods
   //     .initialize()
   //     .accounts({
-  //       owner: adminKeypair.publicKey,
+  //       owner: provider.wallet.publicKey,
   //       config: realConfig,
   //       wormholeProgram: CORE_BRIDGE_PID,
   //       ...wormholeAccounts,
@@ -124,7 +108,7 @@ module.exports = async function (provider) {
   //   const tx = new Transaction().add(await ix);
   //   try {
   //     let commitment: Commitment = 'confirmed';
-  //     await sendAndConfirmTransaction(provider.connection, tx, [adminKeypair], {commitment});
+  //     await sendAndConfirmTransaction(provider.connection, tx, [provider.wallet.payer], {commitment});
   //   }
   //   catch (error: any) {
   //     console.log(error);
@@ -133,7 +117,7 @@ module.exports = async function (provider) {
   // const ix2 = program.methods
   //     .registerEmitter(realForeignEmitterChain, [...realForeignEmitterAddress])
   //     .accounts({
-  //       owner: adminKeypair.publicKey,
+  //       owner: provider.wallet.publicKey,
   //       config: realConfig,
   //       foreignEmitter: realForeignEmitter,
   //     })
@@ -141,52 +125,48 @@ module.exports = async function (provider) {
   // const tx2 = new Transaction().add(await ix2);
   // try {
   //   let commitment: Commitment = 'confirmed';
-  //   await sendAndConfirmTransaction(provider.connection, tx2, [adminKeypair], {commitment});
+  //   await sendAndConfirmTransaction(provider.connection, tx2, [provider.wallet.payer], {commitment});
   // }
   // catch (error: any) {
   //   console.log(error);
   // }
-  // // console.log(await program.account.foreignEmitter.fetch(realForeignEmitterAddress))
 
-  // // get sequence
-  // const message2 = await getProgramSequenceTracker(provider.connection, program.programId, CORE_BRIDGE_PID)
-  //     .then((tracker) =>
-  //         deriveAddress(
-  //             [
-  //               Buffer.from("sent"),
-  //               (() => {
-  //                 const buf = Buffer.alloc(8);
-  //                 buf.writeBigUInt64LE(tracker.sequence + 1n);
-  //                 return buf;
-  //               })(),
-  //             ],
-  //             HELLO_WORLD_PID
-  //         )
-  //     );
-  // const wormholeAccounts2 = getPostMessageCpiAccounts(
-  //     program.programId,
-  //     CORE_BRIDGE_PID,
-  //     adminKeypair.publicKey,
-  //     message2
-  // );
-  // const helloMessage = Buffer.from("All your base are belong to us");
-  // const ix3 = program.methods
-  //     .sendMessage(helloMessage)
-  //     .accounts({
-  //       config: realConfig,
-  //       wormholeProgram: CORE_BRIDGE_PID,
-  //       ...wormholeAccounts2,
-  //     })
-  //     .instruction();
-  // const tx3 = new Transaction().add(await ix3);
-  // try {
-  //   let commitment: Commitment = 'confirmed';
-  //   await sendAndConfirmTransaction(provider.connection, tx3, [adminKeypair], {commitment});
-  // }
-  // catch (error: any) {
-  //   console.log(error);
-  // }
-  //   const targetContractAddressHex =
-  //       "0x" + tryNativeToHexString("CLErExd7gNADvu5rDFmkFD1uAt7zksJ3TDfXsJqJ4QTs", CHAIN_ID_SOLANA);
-  //   console.log(targetContractAddressHex);
+  // get sequence
+  const message2 = await getProgramSequenceTracker(provider.connection, program.programId, CORE_BRIDGE_PID)
+      .then((tracker) =>
+          deriveAddress(
+              [
+                Buffer.from("sent"),
+                (() => {
+                  const buf = Buffer.alloc(8);
+                  buf.writeBigUInt64LE(tracker.sequence + 1n);
+                  return buf;
+                })(),
+              ],
+              HELLO_WORLD_PID
+          )
+      );
+  const wormholeAccounts2 = getPostMessageCpiAccounts(
+      program.programId,
+      CORE_BRIDGE_PID,
+      provider.wallet.publicKey,
+      message2
+  );
+  const helloMessage = hexStringToUint8Array("0xfe0100000001271200000000000000000000000000000000000000000000000057e7e02bc1a9d9b0df22583439844e903278aecd801bf6d8415984099a1be8b2000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000");
+  const ix3 = program.methods
+      .sendMessage(Buffer.from(helloMessage))
+      .accounts({
+        config: realConfig,
+        wormholeProgram: CORE_BRIDGE_PID,
+        ...wormholeAccounts2,
+      })
+      .instruction();
+  const tx3 = new Transaction().add(await ix3);
+  try {
+    let commitment: Commitment = 'confirmed';
+    await sendAndConfirmTransaction(provider.connection, tx3, [provider.wallet.payer], {commitment});
+  }
+  catch (error: any) {
+    console.log(error);
+  }
 };

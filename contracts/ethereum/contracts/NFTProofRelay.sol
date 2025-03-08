@@ -79,7 +79,7 @@ contract NFTProofRelay is Ownable, ReentrancyGuard, Pausable {
      * @param _msgSenderAddress The address of the Wormhole message sender contract
      * @param _initialFee The initial fee required for Wormhole messages
      */
-    constructor(address _msgSenderAddress, uint256 _initialFee) Ownable(msg.sender) {
+    constructor(address _msgSenderAddress, uint256 _initialFee) {
         require(_msgSenderAddress != address(0), "NFTProofRelay: Wormhole message sender address cannot be zero");
         msgSenderAddress = _msgSenderAddress;
         wormholeFee = _initialFee;
@@ -223,7 +223,7 @@ contract NFTProofRelay is Ownable, ReentrancyGuard, Pausable {
         );
 
         // Send message through Wormhole
-        sequence = ISendMessage(msgSenderAddress).sendMessage(){value: msg.value}(
+        sequence = ISendMessage(msgSenderAddress).sendMessage{value: msg.value}(
             payload
         );
 

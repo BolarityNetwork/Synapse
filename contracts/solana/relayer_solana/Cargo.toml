@@ -4,6 +4,7 @@ members = [
     "programs/proxy",
     "programs/test",
     "programs/stake",
+    "programs/nft_verification"
     #    "programs/token_bridge_relayer",
 ]
 resolver = "2"
