@@ -81,10 +81,7 @@ export async function processSepoliaToSolana(program:Program, vaa:ParsedVaaWithB
         wallet.publicKey().toString(),
         Buffer.from(vaaBytes)
     );
-    function renameFolder() {
-        console.log("delay~~");
-    }
-    setTimeout(renameFolder, 20000);
+    await new Promise(resolve => setTimeout(resolve, 100));
     const realConfig = deriveAddress([Buffer.from("config")], program.programId);
     const posted = deriveAddress([Buffer.from("PostedVAA"), vaa.hash], CORE_BRIDGE_PID);
     const fe = deriveAddress(
@@ -110,7 +107,7 @@ export async function processSepoliaToSolana(program:Program, vaa:ParsedVaaWithB
         ],
         program.programId
     );
-    const exp_RawData = borsh.deserialize(RawDataSchema, Buffer.from(vaa.payload));
+    const exp_RawData = borsh.deserialize(RawDataSchema, Buffer.from(vaa.payload).slice(32));
     console.log(exp_RawData)
     if (Buffer.from(exp_RawData.paras).slice(0, 8).equals(Buffer.from("crosstsf"))){
         let balanceBuf = Buffer.from(exp_RawData.paras).slice(8, 16)

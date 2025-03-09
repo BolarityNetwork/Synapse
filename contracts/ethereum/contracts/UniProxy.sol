@@ -81,10 +81,10 @@ contract UniProxy is IWormholeReceiver {
 		uint16 sChain = sourceChain;
 		bytes32 sAddress = sourceAddress;
 		bytes memory sPayload = payload;
-		bytes8 sHead;
+		bytes32 sHead;
 
 		if(registeredSenders[sourceChain] == sourceAddress){
-			(sHead, sAddress, sPayload) = abi.decode(payload, (bytes8, bytes32, bytes));
+			(sHead, sAddress, sPayload) = abi.decode(payload, (bytes32, bytes32, bytes));
 		}
 
 		address proxy = proxys[sChain][sAddress];

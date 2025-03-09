@@ -17,7 +17,7 @@ parentPort?.on('message', async (message:any) => {
     const provider = getSolanaProvider(connection, relayerSolanaKeypair);
     const currentDirectory = process.cwd();
 
-    const relayerSolanaProgram = getSolanaProgram(currentDirectory + "/idl/solana.json", provider);
+    const relayerSolanaProgram = getSolanaProgram(currentDirectory + "/idl/relayer_solana.json", provider);
 
     const relayerHubProgram = getSolanaProgram(currentDirectory + "/idl/relayer_hub.json", provider);
     // init sepolia connection
@@ -30,22 +30,22 @@ parentPort?.on('message', async (message:any) => {
 
     if((vaa.emitterChain == CHAIN_ID_SEPOLIA) || (vaa.emitterChain == CHAIN_ID_SOLANA) ) {
         // record relay transaction
-        let sequence = await init_transaction(relayerHubProgram, Buffer.from(vaaBytes));
+        // let sequence = await init_transaction(relayerHubProgram, Buffer.from(vaaBytes));
         let success = false;
-        let hash_buffer;
+        // let hash_buffer;
         let hash;
         if (vaa.emitterChain == CHAIN_ID_SEPOLIA) {
         	let signature;
         	[success, signature] = await processSepoliaToSolana(relayerSolanaProgram, vaa, vaaBytes);
-        	if (signature!= "") {
-        		hash_buffer = bs58.decode(signature);
-        	}
+        	// if (signature!= "") {
+        	// 	hash_buffer = bs58.decode(signature);
+        	// }
         } else if (vaa.emitterChain == CHAIN_ID_SOLANA) {
         	[success, hash] = await processSolanaToSepolia(signer, contractAbi, vaaBytes);
-        	hash_buffer = Buffer.from(hexStringToUint8Array(hash));
+        	// hash_buffer = Buffer.from(hexStringToUint8Array(hash));
         }
 
-        await execute_transaction(relayerHubProgram, sequence, success, hash_buffer);
+        // await execute_transaction(relayerHubProgram, sequence, success, hash_buffer);
     }
     parentPort?.postMessage('done');
 });

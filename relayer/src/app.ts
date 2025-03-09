@@ -84,17 +84,19 @@ function runService(workerId: number) {
 			console.log(
 			  `=====${now}==========Got a VAA with sequence: ${vaa.sequence} from with txhash: ${hash}=========================`,
 			);
-
+			console.log(
+				`===============Got a VAA: ${Buffer.from(ctx.vaaBytes).toString('hex')}=========================`,
+			);
 			let currentRelayer = await get_relayer_of_current_epoch(relayerHubProgram);
 			console.log(`================current relayer:${currentRelayer.toBase58()}, your relayer:${relayer.toBase58()}`);
 
-			if (currentRelayer.toBase58() == relayer.toBase58()) {
+			// if (currentRelayer.toBase58() == relayer.toBase58()) {
 				console.log("==============Now it's your turn to relay======================");
                 const workerData = workers.find(w => w.workerId === vaa.emitterChain);
                 if(workerData != undefined) {
-                    workerData.worker.postMessage({vaa, vaaBytes:ctx.vaaBytes});
+                    workerData.worker.postMessage({vaa});
                 }
-			}
+			// }
 			next();
 		},
 	);

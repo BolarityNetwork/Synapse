@@ -28,14 +28,14 @@ async function createNestedWorker(task: any) {
 
 async function processQueue() {
     while (true) {
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise(resolve => setTimeout(resolve, 100));
         await mutex.lock();
         if (!queue.isEmpty()) {
             for(let i = 0; i < MAX_THREAD; i++) {
                 const item = queue.dequeue();
                 // Allocate a thread to perform message relay.
-                const { vaa, vaaBytes } = item.arg;
-                await createNestedWorker({ taskId:i, vaa, vaaBytes });
+                const { vaa } = item.arg;
+                await createNestedWorker({ taskId:i, vaa, vaaBytes:vaa.bytes });
                 if (queue.isEmpty()) {
                     break
                 }
@@ -46,10 +46,10 @@ async function processQueue() {
 }
 
 parentPort?.on('message', async (message) => {
-    const { vaa, vaaBytes } = message;
+    const { vaa } = message;
     const job: Job = {
         id: vaa.emitterChain,
-        arg: {vaa, vaaBytes},
+        arg: {vaa},
     };
     await mutex.lock();
     queue.enqueue(job);

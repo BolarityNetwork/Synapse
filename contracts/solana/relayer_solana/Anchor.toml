@@ -31,7 +31,7 @@ nft_verification = "3b5KJUApvzf8Pz1DMrkLNpaWkUBvmJK8WQQcWiRSvZb3"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "./target/deploy/user.json"
 
 [scripts]

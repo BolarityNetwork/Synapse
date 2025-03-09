@@ -64,7 +64,8 @@ module.exports = async function (provider) {
   const CORE_BRIDGE_PID = new PublicKey(WORMHOLE_CONTRACTS.solana.core);
 
   const realForeignEmitterChain = CHAINS.sepolia;
-  const realForeignEmitterAddress = Buffer.from([0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xeb,0x48,0x5a,0x2B,0xF3,0x56,0x76,0x52,0x18,0x56,0x17,0xB6,0x47,0xd1,0x25,0xa1,0x4D,0xb5,0x90,0x7e])
+  const realForeignEmitterAddress = Buffer.alloc(32);
+  realForeignEmitterAddress.set(hexStringToUint8Array('0x1d5737a2819fAF625EF2f2981981f31CA0E1fFF8'), 12);
   const realConfig = deriveAddress([Buffer.from("config")], HELLO_WORLD_PID);
   const realForeignEmitter = deriveAddress(
       [
@@ -131,42 +132,42 @@ module.exports = async function (provider) {
   //   console.log(error);
   // }
 
-  // get sequence
-  const message2 = await getProgramSequenceTracker(provider.connection, program.programId, CORE_BRIDGE_PID)
-      .then((tracker) =>
-          deriveAddress(
-              [
-                Buffer.from("sent"),
-                (() => {
-                  const buf = Buffer.alloc(8);
-                  buf.writeBigUInt64LE(tracker.sequence + 1n);
-                  return buf;
-                })(),
-              ],
-              HELLO_WORLD_PID
-          )
-      );
-  const wormholeAccounts2 = getPostMessageCpiAccounts(
-      program.programId,
-      CORE_BRIDGE_PID,
-      provider.wallet.publicKey,
-      message2
-  );
-  const helloMessage = hexStringToUint8Array("0xfe0100000001271200000000000000000000000000000000000000000000000057e7e02bc1a9d9b0df22583439844e903278aecd801bf6d8415984099a1be8b2000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000");
-  const ix3 = program.methods
-      .sendMessage(Buffer.from(helloMessage))
-      .accounts({
-        config: realConfig,
-        wormholeProgram: CORE_BRIDGE_PID,
-        ...wormholeAccounts2,
-      })
-      .instruction();
-  const tx3 = new Transaction().add(await ix3);
-  try {
-    let commitment: Commitment = 'confirmed';
-    await sendAndConfirmTransaction(provider.connection, tx3, [provider.wallet.payer], {commitment});
-  }
-  catch (error: any) {
-    console.log(error);
-  }
+  // // get sequence
+  // const message2 = await getProgramSequenceTracker(provider.connection, program.programId, CORE_BRIDGE_PID)
+  //     .then((tracker) =>
+  //         deriveAddress(
+  //             [
+  //               Buffer.from("sent"),
+  //               (() => {
+  //                 const buf = Buffer.alloc(8);
+  //                 buf.writeBigUInt64LE(tracker.sequence + 1n);
+  //                 return buf;
+  //               })(),
+  //             ],
+  //             HELLO_WORLD_PID
+  //         )
+  //     );
+  // const wormholeAccounts2 = getPostMessageCpiAccounts(
+  //     program.programId,
+  //     CORE_BRIDGE_PID,
+  //     provider.wallet.publicKey,
+  //     message2
+  // );
+  // const helloMessage = hexStringToUint8Array("0xfe0100000001271200000000000000000000000000000000000000000000000057e7e02bc1a9d9b0df22583439844e903278aecd801bf6d8415984099a1be8b2000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000aa8e23fb1079ea71e0a56f48a2aa51851d8433d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000044a9059cbb000000000000000000000000a550c6011dfba4925abeb0b48104062682870bb8000000000000000000000000000000000000000000000000000000000098969c00000000000000000000000000000000000000000000000000000000");
+  // const ix3 = program.methods
+  //     .sendMessage(Buffer.from(helloMessage))
+  //     .accounts({
+  //       config: realConfig,
+  //       wormholeProgram: CORE_BRIDGE_PID,
+  //       ...wormholeAccounts2,
+  //     })
+  //     .instruction();
+  // const tx3 = new Transaction().add(await ix3);
+  // try {
+  //   let commitment: Commitment = 'confirmed';
+  //   await sendAndConfirmTransaction(provider.connection, tx3, [provider.wallet.payer], {commitment});
+  // }
+  // catch (error: any) {
+  //   console.log(error);
+  // }
 };

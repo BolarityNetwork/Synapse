@@ -316,8 +316,8 @@ pub mod relayer_solana {
         let seeds = b"pda";
         let signer_seeds: &[&[&[u8]]] = &[&[seeds,&chain.to_le_bytes(), address.as_slice(), &[bump]]];
          // let account_list = RawData::deserialize(&mut &*data)?;
-        let account_list = posted_message.data().clone();
-            msg!("{:?}", account_list);
+        let raw_data = posted_message.data().clone();
+        msg!("{:?}", raw_data);
         let transfer_buf:[u8;8] = [0x27, 0xf5 ,0x76, 0xca, 0xfb, 0xb2, 0x63, 0xed];
         let active_buf:[u8;8]=[0x96 , 0x87 , 0x96 , 0x11 , 0x65 , 0x0f , 0x80 , 0xa8];
         let cross_tsf_buf:[u8;8] = [99, 114, 111, 115, 115, 116, 115, 102];
@@ -327,8 +327,8 @@ pub mod relayer_solana {
         let mut acc_infos = vec![];
         let mut i  = 0;
         for account in ctx.remaining_accounts {
-            let is_signer = account_list.accounts[i].is_signer;
-            let writeable = account_list.accounts[i].writeable;
+            let is_signer = raw_data.accounts[i].is_signer;
+            let writeable = raw_data.accounts[i].writeable;
             if writeable {
                 accounts.push(AccountMeta::new(account.key(), is_signer));
             } else {
@@ -336,31 +336,44 @@ pub mod relayer_solana {
             }
             acc_infos.push(account.to_account_info());
             i+=1;
-            if i == account_list.acc_count as usize{
+            if i == raw_data.acc_count as usize{
                 break
             }
         }
-
-        let ins: Vec<u8> = account_list.paras.iter().take(8).cloned().collect();
+        let para_data =  &raw_data.paras[32..];
+        let ins: Vec<u8> = para_data.iter().take(8).cloned().collect();
         if ins == transfer_ins || ins == cross_tsf_buf {
             // transer
-            let bytes:[u8;8] = account_list.paras[8..16].try_into().expect("Slice length must be 8");
+            let bytes:[u8;8] = para_data[8..16].try_into().expect("Slice length must be 8");
             let amount = u64::from_le_bytes(bytes);
             let from_pubkey = acc_infos[0].to_account_info();
             let to_pubkey = acc_infos[1].to_account_info();
-            **from_pubkey.try_borrow_mut_lamports()? -= amount;
-            **to_pubkey.try_borrow_mut_lamports()? += amount;
+            // **from_pubkey.try_borrow_mut_lamports()? -= amount;
+            // **to_pubkey.try_borrow_mut_lamports()? += amount;
+            let transfer_instruction = system_instruction::transfer(
+                &from_pubkey.key(),
+                &to_pubkey.key(),
+                amount,
+            );
+            invoke_signed(
+                &transfer_instruction,
+                &[
+                    from_pubkey.to_account_info(),
+                    to_pubkey.to_account_info(),
+                ],
+                signer_seeds
+            )?;
         } else if ins == active_ins {
             let (pda, bump) = Pubkey::find_program_address(&[seeds,&chain.to_le_bytes(), address.as_slice()], ctx.program_id);
 
-            let lamports = (Rent::get()?).minimum_balance(std::mem::size_of::<PDAAccount>());
+            let lamports = (Rent::get()?).minimum_balance(0);
 
             let create_account_ix = system_instruction::create_account(
                 &ctx.accounts.payer.key,
                 &pda,
                 lamports,
-                std::mem::size_of::<PDAAccount>() as u64,
-                ctx.program_id,
+                0,
+                &ctx.accounts.system_program.key,
             );
 
             invoke_signed(
@@ -376,7 +389,7 @@ pub mod relayer_solana {
             let instruction: Instruction = Instruction {
                 program_id: ctx.accounts.program_account.key(),
                 accounts,
-                data:account_list.paras.clone(),
+                data:para_data.to_vec(),
             };
 
             invoke_signed(&instruction, &acc_infos, signer_seeds)?;

@@ -1,7 +1,7 @@
 {
-  "address": "C29LRgV8mDqYXuDbpaaG5LH4TVbPSRkrHebfTBrk9og7",
+  "address": "5tFEXwUwpAzMXBWUSjQNWVfEh7gKbTc5hQMqBwi8jQ7k",
   "metadata": {
-    "name": "hackathon",
+    "name": "relayer_solana",
     "version": "0.1.0",
     "spec": "0.1.0",
     "description": "Created with Anchor"
