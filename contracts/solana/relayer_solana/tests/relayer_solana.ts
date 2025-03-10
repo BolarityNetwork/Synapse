@@ -45,7 +45,24 @@ describe("relayer_solana", () => {
             signature
         });
   }
+    function hexStringToUint8Array(hexString: string): Uint8Array {
+        if (hexString.startsWith("0x")) {
+            hexString = hexString.slice(2);
+        }
 
+        if (hexString.length % 2 !== 0) {
+            throw new Error("Invalid hex string length");
+        }
+
+        const byteArray = new Uint8Array(hexString.length / 2);
+
+        for (let i = 0; i < hexString.length; i += 2) {
+            const hexPair = hexString.slice(i, i + 2);
+            byteArray[i / 2] = parseInt(hexPair, 16);
+        }
+
+        return byteArray;
+    }
     const requestAirdrop2 = async (pbkey:anchor.web3.PublicKey) => {
         const signature = await pg.connection.requestAirdrop(
             pbkey,
@@ -291,8 +308,8 @@ describe("relayer_solana", () => {
         // await programTest.methods.set(2, 0).accounts({myStorage: myStorage}).rpc();
         // let myStorageStruct = await programTest.account.myStorage.fetch(myStorage);
         const realForeignEmitterChain = 10002;
-        const realForeignEmitterAddress = Buffer.from([0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xa5,0x50,0xC6,0x01,0x1D,0xfB,0xA4,0x92,0x5a,0xbE,0xb0,0xB4,0x81,0x04,0x06,0x26,0x82,0x87,0x0B,0xB8])
-        const realForeignEmitter = deriveAddress(
+        let realForeignEmitterAddress = Buffer.from([0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xa5,0x50,0xC6,0x01,0x1D,0xfB,0xA4,0x92,0x5a,0xbE,0xb0,0xB4,0x81,0x04,0x06,0x26,0x82,0x87,0x0B,0xB8])
+        let realForeignEmitter = deriveAddress(
             [
                 Buffer.from("pda"),
                 (() => {
@@ -311,7 +328,7 @@ describe("relayer_solana", () => {
         solanaChainIdBuffer.writeUInt16BE(solanaChainId);
         const evmChainIdBuffer = Buffer.alloc(2);
         evmChainIdBuffer.writeUInt16BE(evmChainId);
-        const payloadHead = Buffer.concat([Buffer.from([0xFE, 0x01, 0x00, 0x00]),  evmChainIdBuffer, solanaChainIdBuffer, Buffer.alloc(24)]);
+        const payloadHead = Buffer.concat([Buffer.from([0xFE, 0x01, 0x00, 0x00]),  evmChainIdBuffer, solanaChainIdBuffer, Buffer.alloc(0)]);
 
         let paras = sha256("active").slice(0, 8);
         let encodedParams = Buffer.concat([paras]);
@@ -444,12 +461,9 @@ describe("relayer_solana", () => {
         })
             .signers([TestKeypair]).rpc();
 
-
         encodeMeta = borsh.serialize(AccountMeta, [
             {writeable:true, is_signer:true},
-            {writeable:false, is_signer:false},
-            {writeable:true, is_signer:false},
-            {writeable:false, is_signer:false}]);
+            {writeable:true, is_signer:false}]);
 
         paras = sha256("global:process_wormhole_message").slice(0, 8);
         const payloadSchema = {
@@ -458,17 +472,30 @@ describe("relayer_solana", () => {
             }
         }
         const receiver_keypair = Keypair.generate();
-        const payload = Buffer.concat([Buffer.alloc(20), nft_contract, Buffer.alloc(32),receiver_keypair.publicKey.toBuffer()]);
+        const payload = Buffer.concat([Buffer.alloc(20), nft_contract, Buffer.alloc(8),receiver_keypair.publicKey.toBuffer()]);
         const [proofRecordPda] = anchor.web3.PublicKey.findProgramAddressSync(
-            [Buffer.from("proof"), payload.slice(20,40), payload.slice(64,72)],
+            [Buffer.from("proof"), payload.slice(20,40), payload.slice(40,48)],
             programVerification.programId);
         const paraEncode = borsh.serialize(payloadSchema, {payload:payload});
         encodedParams = Buffer.concat([paras, paraEncode]);
+        realForeignEmitterAddress.set(hexStringToUint8Array('0x91A6843858CbD458b018b7701Ed68656F7A3Fbe2'), 12);
+        realForeignEmitter = deriveAddress(
+            [
+                Buffer.from("pda"),
+                (() => {
+                    const buf = Buffer.alloc(2);
+                    buf.writeUInt16LE(realForeignEmitterChain);
+                    return buf;
+                })(),
+                realForeignEmitterAddress,
+            ],
+            programHackathon.programId
+        );
         RawData = {
             chain_id: realForeignEmitterChain,
             caller: new PublicKey(realForeignEmitterAddress).toBuffer(),
             programId: programVerification.programId.toBuffer(),
-            acc_count:4,
+            acc_count:2,
             accounts:[
                 {
                     key: realForeignEmitter.toBuffer(),
@@ -476,18 +503,8 @@ describe("relayer_solana", () => {
                     isSigner: true,
                 },
                 {
-                    key: statePda.toBuffer(),
-                    isWritable:false,
-                    isSigner: false,
-                },
-                {
                     key: proofRecordPda.toBuffer(),
                     isWritable:true,
-                    isSigner: false,
-                },
-                {
-                    key: SystemProgram.programId.toBuffer(),
-                    isWritable:false,
                     isSigner: false,
                 }
             ],
@@ -498,13 +515,14 @@ describe("relayer_solana", () => {
         exp_RawData = borsh.deserialize(RawDataSchema, RawDataEncoded);
         meta1 = exp_RawData.accounts[0];
         meta2 = exp_RawData.accounts[1];
-        let meta3 = exp_RawData.accounts[2];
-        let meta4 = exp_RawData.accounts[3];
         accountMeta1 = {pubkey: new PublicKey(meta1.key), isWritable: meta1.isWritable, isSigner: false};
         accountMeta2 = {pubkey: new PublicKey(meta2.key), isWritable: meta2.isWritable, isSigner: false};
-        let accountMeta3 = {pubkey: new PublicKey(meta3.key), isWritable: meta3.isWritable, isSigner: false};
-        let accountMeta4 = {pubkey: new PublicKey(meta4.key), isWritable: meta4.isWritable, isSigner: false};
-        await programHackathon.methods.receiveMessage2(Buffer.concat([payloadHead, Buffer.from(RawDataEncoded)]), bump, realForeignEmitterChain, realForeignEmitterAddress).accounts({payer:TestKeypair.publicKey, programAccount: new PublicKey(exp_RawData.programId)}).remainingAccounts([accountMeta1, accountMeta2, accountMeta3, accountMeta4]).signers([TestKeypair]).rpc();
+        await programVerification.methods.createProofRecord( payload).accounts({
+            payer:TestKeypair.publicKey,
+            state: statePda,
+            proofRecord:proofRecordPda,
+        }).signers([TestKeypair]).rpc();
+        await programHackathon.methods.receiveMessage2(Buffer.concat([payloadHead, Buffer.from(RawDataEncoded)]), bump, realForeignEmitterChain, realForeignEmitterAddress).accounts({payer:TestKeypair.publicKey, programAccount: new PublicKey(exp_RawData.programId)}).remainingAccounts([accountMeta1, accountMeta2]).signers([TestKeypair]).rpc();
 
 
         await requestAirdrop2(receiver_keypair.publicKey);

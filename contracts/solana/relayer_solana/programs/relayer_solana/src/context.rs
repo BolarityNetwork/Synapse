@@ -224,7 +224,13 @@ pub struct RawData {
     pub paras: Vec<u8>,
     pub acc_meta: Vec<u8>,
 }
-type HelloWorldVaa = wormhole::PostedVaa<RawData>;
+
+#[derive(AnchorSerialize, AnchorDeserialize, Debug, Clone)]
+pub struct Payload {
+    pub head: [u8;8],
+    pub raw_data: RawData,
+}
+type HelloWorldVaa = wormhole::PostedVaa<Payload>;
 
 #[derive(Accounts)]
 #[instruction(vaa_hash: [u8; 32])]

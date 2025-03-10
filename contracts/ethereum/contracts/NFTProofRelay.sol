@@ -16,6 +16,11 @@ interface ISendMessage {
     ) external payable returns (uint64 sequence);
 }
 
+interface IUniProxy {
+    function getReverseAddress(
+        uint16 sourceChain,
+        address sourceAddress) external view returns (bytes32);
+}
 /**
  * @title NFTProofRelay
  * @dev Contract for relaying NFT ownership proofs from Ethereum to Solana via Wormhole
@@ -24,6 +29,7 @@ contract NFTProofRelay is Ownable, ReentrancyGuard, Pausable {
     /// @notice Wormhole message sender contract address
     address public msgSenderAddress;
 
+    address public uniProxyAddress;
     /// @notice Fee required to cover Wormhole message costs
     uint256 public wormholeFee;
 
@@ -41,7 +47,7 @@ contract NFTProofRelay is Ownable, ReentrancyGuard, Pausable {
         address indexed proxyAccount,
         address indexed nftContract,
         uint256 indexed tokenId,
-        bytes solanaReceiver,
+//        bytes32 solanaReceiver,
         uint64 sequence
     );
 
@@ -51,6 +57,11 @@ contract NFTProofRelay is Ownable, ReentrancyGuard, Pausable {
     );
 
     event WormholeAddressUpdated(
+        address indexed oldAddress,
+        address indexed newAddress
+    );
+
+    event UniProxyAddressUpdated(
         address indexed oldAddress,
         address indexed newAddress
     );
@@ -79,9 +90,10 @@ contract NFTProofRelay is Ownable, ReentrancyGuard, Pausable {
      * @param _msgSenderAddress The address of the Wormhole message sender contract
      * @param _initialFee The initial fee required for Wormhole messages
      */
-    constructor(address _msgSenderAddress, uint256 _initialFee) {
+    constructor(address _msgSenderAddress, address _uniProxyAddress, uint256 _initialFee) {
         require(_msgSenderAddress != address(0), "NFTProofRelay: Wormhole message sender address cannot be zero");
         msgSenderAddress = _msgSenderAddress;
+        uniProxyAddress = _uniProxyAddress;
         wormholeFee = _initialFee;
     }
 
@@ -136,7 +148,12 @@ contract NFTProofRelay is Ownable, ReentrancyGuard, Pausable {
         emit WormholeAddressUpdated(oldAddress, _msgSenderAddress);
     }
 
-
+    function setUniProxyAddress(address _uniProxyAddress) external onlyOwner {
+        require(_uniProxyAddress != address(0), "NFTProofRelay: UniPoxy address cannot be zero");
+        address oldAddress = uniProxyAddress;
+        uniProxyAddress = _uniProxyAddress;
+        emit UniProxyAddressUpdated(oldAddress, _uniProxyAddress);
+    }
     /**
      * @dev Updates the fee required for Wormhole messages
      * @param _wormholeFee The new fee amount
@@ -187,19 +204,20 @@ contract NFTProofRelay is Ownable, ReentrancyGuard, Pausable {
             return false;
         }
     }
-
     /**
      * @dev Sends NFT ownership proof to Solana via Wormhole
-     * @param nftContract The address of the NFT contract
-     * @param tokenId The ID of the NFT token
-     * @param solanaReceiver The Solana address that will receive tokens (as bytes)
+     * @param nftContractToken The address of the NFT contract
      * @return sequence The sequence number of the Wormhole message
      */
     function sendProof(
-        address nftContract,
-        uint256 tokenId,
-        bytes calldata solanaReceiver
-    ) external payable nonReentrant whenNotPaused onlyApprovedNFT(nftContract) returns (uint64 sequence) {
+        bytes32 nftContractToken,
+        bytes calldata payload
+    ) external payable nonReentrant whenNotPaused returns (uint64 sequence) {
+        address nftContract = address(uint160(uint256(nftContractToken)));
+        uint256 tokenId = uint256(uint64(uint256(nftContractToken) >> 160));
+        uint16 chainId = uint16(uint256(nftContractToken) >> 224);
+
+        require(approvedNFTContracts[nftContract], "NFTProofRelay: NFT contract not approved");
         // Check that enough ETH was sent to cover the Wormhole fee
         require(msg.value >= wormholeFee, "NFTProofRelay: Insufficient fee for Wormhole transfer");
 
@@ -215,20 +233,28 @@ contract NFTProofRelay is Ownable, ReentrancyGuard, Pausable {
 
         // Prepare payload for Wormhole
         // Format: [proxy_account (20 bytes)][nft_contract (20 bytes)][token_id (32 bytes)][solana_receiver (variable bytes)]
-        bytes memory payload = abi.encodePacked(
-            msg.sender,                 // proxy account (20 bytes)
-            nftContract,                // NFT contract address (20 bytes)
-            tokenId,                    // token ID (32 bytes)
-            solanaReceiver              // Solana receiver address (variable bytes)
-        );
+//        bytes memory payload = abi.encodePacked(
+//        payloadHead,
+//            msg.sender,                 // proxy account (20 bytes)
+//            nftContract,                // NFT contract address (20 bytes)
+//            tokenId,                    // token ID (32 bytes)
+//            solanaReceiver              // Solana receiver address (32 bytes)
+//        );
+        bytes memory modifiedPayload = new bytes(payload.length - 64);
+        bytes32 sender = IUniProxy(uniProxyAddress).getReverseAddress(chainId, msg.sender);
 
+        for (uint256 i = 0; i < payload.length - 64; i++) {
+            modifiedPayload[i] = payload[64 + i];
+        }
+        for (uint256 i = 0; i < 32; i++) {
+            modifiedPayload[211 + i] = sender[i];
+        }
         // Send message through Wormhole
         sequence = ISendMessage(msgSenderAddress).sendMessage{value: msg.value}(
-            payload
+            modifiedPayload
         );
 
-        emit NFTProofSubmitted(msg.sender, nftContract, tokenId, solanaReceiver, sequence);
-
+        emit NFTProofSubmitted(msg.sender, nftContract, tokenId, sequence);
         return sequence;
     }
 

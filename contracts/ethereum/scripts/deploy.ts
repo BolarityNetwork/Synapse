@@ -103,12 +103,14 @@ const RawDataSchema = {
 };
 async function main() {
     const RELAYER_SOLANA_CONTRACT = "5tFEXwUwpAzMXBWUSjQNWVfEh7gKbTc5hQMqBwi8jQ7k";
-    const RELAYER_SEPOLIA_CONTRACT = "0x1d5737a2819fAF625EF2f2981981f31CA0E1fFF8";
+    const RELAYER_SEPOLIA_CONTRACT = "0x232A9b207A1B91d527C300d5fD47778F60596Eb8";
     const SOLANA_CHAIN_ID = 1; //wormhole solana chain id
     const SEPOLIA_CHAIN_ID = 10002; //wormhole sepolia chain id
     const USER_SOLANA_ADDRESS = "6v9YRMJbiXSjwco3evS2XdNuqPbwzKf3ykmn5iQJ4UyF";
     const USER_SEPOLIA_ADDRESS = "0x842aDB7084103E3Ff258dA808A1107f4358ec5c1";
-
+    const NFT_CONTRACT = "0x84D47d9942878B6b40519B665Ca167828DC3b975";
+    const NFT_PROOF_CONTRACT = "0x7d3C4F0F2C0967e6a121e57BEd4E296623770620";
+    const NFT_VERIFICATION_CONTRACT = "6QBQwCw7gYQGb4aTW5Hxexcms24AnJRyU9pBCKhDLNSq";
     // // deploy UniProxy contract
     // const UniProxy = await ethers.deployContract("UniProxy", ["0x4a8bc80Ed5a4067f1CCf107057b8270E0cC11A78", 200]);
     //
@@ -131,39 +133,141 @@ async function main() {
     // const receipt = await UniProxy.setRegisteredSender(SOLANA_CHAIN_ID, targetContractAddressHex);
     // console.log(receipt.hash)
 
+    // //deploy nft contract
+    // const NFT = await ethers.deployContract("NFT", ["Bolarity NFT", "BNFTTest", 0]);
+    //
+    // await NFT.waitForDeployment();
+    //
+    // console.log(
+    //   `deployed to ${NFT.target}`
+    // );
+
+    // // deploy NFTProofRelay contract
+    // const NFTProofRelay = await ethers.deployContract("NFTProofRelay", [RELAYER_SEPOLIA_CONTRACT, RELAYER_SEPOLIA_CONTRACT, 0]);
+    //
+    // await NFTProofRelay.waitForDeployment();
+    //
+    // console.log(
+    //   `deployed to ${NFTProofRelay.target}`
+    // );
+    // const receipt = await NFTProofRelay.setApprovedNFTContract(NFT_CONTRACT, true);
+    // console.log(receipt.hash)
     // 0xFE | version (u8) | type (Parser Type, u8)|reserve (u8) | from chain(u16)| to chain(u16)| reserve(24 byte) | data (vec<u8>)
     const solanaChainIdBuffer = Buffer.alloc(2);
     solanaChainIdBuffer.writeUInt16BE(SOLANA_CHAIN_ID);
-    const evmChainIdBuffer = Buffer.alloc(2);
-    evmChainIdBuffer.writeUInt16BE(SEPOLIA_CHAIN_ID);
-    const reserved = 24;
+    const sepoliaChainIdBuffer = Buffer.alloc(2);
+    sepoliaChainIdBuffer.writeUInt16BE(SEPOLIA_CHAIN_ID);
+    const reserved = 0;
     // solana ---> sepolia
-    // const payloadHead = Buffer.concat([Buffer.from([0xFE, 0x01, 0x00, 0x00]),  solanaChainIdBuffer, evmChainIdBuffer, Buffer.alloc(reserved)]);
+    const solanaPayloadHead = Buffer.concat([Buffer.from([0xFE, 0x01, 0x00, 0x00]),  solanaChainIdBuffer, sepoliaChainIdBuffer, Buffer.alloc(reserved)]);
     // sepolia ---> solana
-    const payloadHead = Buffer.concat([Buffer.from([0xFE, 0x01, 0x00, 0x00]),  evmChainIdBuffer, solanaChainIdBuffer, Buffer.alloc(reserved)]);
+    const sepoliaPayloadHead = Buffer.concat([Buffer.from([0xFE, 0x01, 0x00, 0x00]),  sepoliaChainIdBuffer, solanaChainIdBuffer, Buffer.alloc(reserved)]);
 
-    // =============Solana Account Operation Ethereum Contract=========================================
-    // const coder = ethers.AbiCoder.defaultAbiCoder();
-    // // Query the evm address corresponding to the solana account.
-    // const uniProxy_factory = await ethers.getContractFactory("UniProxy");
-    // const UniProxy = await uniProxy_factory.attach(RELAYER_SEPOLIA_CONTRACT);
-    // const sourceChain = SOLANA_CHAIN_ID;// solana
-    // const userSolanaAddress = ethers.zeroPadValue(new PublicKey(USER_SOLANA_ADDRESS).toBytes(), 32);
-    // const proxyAddress = await UniProxy.proxys(sourceChain, userSolanaAddress);
-    // console.log(proxyAddress);
+    // // =============Solana Account Operation Ethereum Contract=========================================
+    const coder = ethers.AbiCoder.defaultAbiCoder();
+    // Query the evm address corresponding to the solana account.
+    const uniProxy_factory = await ethers.getContractFactory("UniProxy");
+    const UniProxy = await uniProxy_factory.attach(RELAYER_SEPOLIA_CONTRACT);
+    const sourceChain = SOLANA_CHAIN_ID;// solana
+    const userSolanaAddress = ethers.zeroPadValue(new PublicKey(USER_SOLANA_ADDRESS).toBytes(), 32);
+    const proxyAddress = await UniProxy.proxys(sourceChain, userSolanaAddress);
+    console.log(proxyAddress);
+    // // ===============================NFT======================================================
+    // // ===============================Mint NFT======================================================
+    const userAddress = coder.encode(["bytes32"],[Buffer.from(new PublicKey(USER_SOLANA_ADDRESS).toBytes())]);
+    // const contract_address = coder.encode(["bytes32"],[ethers.zeroPadValue(Buffer.from(hexStringToUint8Array(NFT_CONTRACT)), 32)])//NFT contract address
+    // let ABI = ["function mint() external payable"];
+    // let iface = new ethers.Interface(ABI);
+    // let paras = iface.encodeFunctionData("mint");
+    // let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address, 0 , paras])
+    // const payload = coder.encode(["bytes8", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
+    // console.log(payload)
+    // ===============================sendProof======================================================
+    const tokenID = 4;// tokenid,need modify
 
+    const accountMetaList = [
+        {writeable:true, is_signer:true},
+        {writeable:true, is_signer:false},
+        ];
+    let encodeMeta = borsh.serialize(AccountMeta, accountMetaList);
+    const functionSig = sha256("global:process_wormhole_message").slice(0, 8);
+    const payloadSchema = {
+        struct: {
+            payload: {array: {type: 'u8'}},
+        }
+    }
+    let idBuf = Buffer.alloc(8);
+    idBuf.writeBigUint64BE(BigInt(tokenID));
+    // 20+20+8+32
+    const payloadBuf = Buffer.concat([
+        Buffer.from(hexStringToUint8Array(proxyAddress)),
+        Buffer.from(hexStringToUint8Array(NFT_CONTRACT)),
+        idBuf,
+        Buffer.alloc(32),
+    ]);
+    const [proofRecordPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("proof"), payloadBuf.slice(20,40), payloadBuf.slice(40,48)],
+        new PublicKey(NFT_VERIFICATION_CONTRACT));
+
+    const paraEncode = borsh.serialize(payloadSchema, {payload:payloadBuf});
+    let encodedParams = Buffer.concat([functionSig, paraEncode]);
+    const ethAddress = rightAlignBuffer(Buffer.from(hexStringToUint8Array(proxyAddress)));
+      const realForeignEmitter = deriveAddress(
+    [
+        Buffer.from("pda"),
+        (() => {
+            const buf = Buffer.alloc(2);
+            buf.writeUInt16LE(SEPOLIA_CHAIN_ID);
+            return buf;
+        })(),
+        ethAddress,
+    ],
+    new PublicKey(RELAYER_SOLANA_CONTRACT)
+    );
+    let RawData = {
+        chain_id: SEPOLIA_CHAIN_ID,
+        caller: new PublicKey(ethAddress).toBuffer(),
+        programId: new PublicKey(NFT_VERIFICATION_CONTRACT).toBuffer(),
+        acc_count:2,
+        accounts:[
+            {
+                key: realForeignEmitter.toBuffer(),
+                isWritable:accountMetaList[0].writeable,
+                isSigner: accountMetaList[0].is_signer,
+            },
+            {
+                key: proofRecordPda.toBuffer(),
+                isWritable:accountMetaList[1].writeable,
+                isSigner: accountMetaList[1].is_signer,
+            },
+        ],
+        paras:encodedParams,
+        acc_meta:Buffer.from(encodeMeta),
+    };
+    let RawDataEncoded = borsh.serialize(RawDataSchema, RawData);
+    let payloadSend = coder.encode(["bytes"],[Buffer.concat([sepoliaPayloadHead, Buffer.from(RawDataEncoded)])]);
+    const chainIdBuf = Buffer.alloc(4);
+    chainIdBuf.writeUint32BE(SOLANA_CHAIN_ID);
+    const nftContractToken = coder.encode(["bytes32"],[Buffer.concat([chainIdBuf, idBuf, Buffer.from(hexStringToUint8Array(NFT_CONTRACT))])])
+    const contract_address = coder.encode(["bytes32"],[ethers.zeroPadValue(Buffer.from(hexStringToUint8Array(NFT_PROOF_CONTRACT)), 32)])//NFT contract address
+    let ABI = ["function sendProof(bytes32 nftContractToken, bytes calldata payload)"];
+    let iface = new ethers.Interface(ABI);
+    let paras = iface.encodeFunctionData("sendProof",[nftContractToken, payloadSend]);
+    let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address, 0 , paras])
+    const payload = coder.encode([ "bytes8", "bytes32", "bytes"], [ solanaPayloadHead, userAddress, payload_part])
+    console.log(payload)
 
     // // To activate the address, you need to operate on the Solana side and assemble the data
     // const contractAddress = new PublicKey(USER_SOLANA_ADDRESS).toBytes();
     // const sourceAddress = coder.encode(["bytes32"],[Buffer.from(contractAddress)]);
-    // const payload = coder.encode(["bytes32", "bytes32", "bytes"], [payloadHead, sourceAddress, Buffer.from([0])])
+    // const payload = coder.encode(["bytes32", "bytes32", "bytes"], [solanaPayloadHead, sourceAddress, Buffer.from([0])])
     // console.log(payload)
 
     // // Transfer eth to an address
     // const sourceContract = coder.encode(["bytes32"],[Buffer.from(new PublicKey(USER_SOLANA_ADDRESS).toBytes())]);
     // const other_address = coder.encode(["bytes32"],[ethers.zeroPadValue(Buffer.from(hexStringToUint8Array('0x049B426457B5A75e0e25F0b692dF581a06035647')), 32)]) // dst address
-    // let payload_part = coder.encode(["bytes32","uint256", "bytes"], [other_address,BigInt(1000000000000000), Buffer.from([0])]) // 0.001
-    // const txPayload = coder.encode(["bytes32", "bytes32", "bytes"], [payloadHead, sourceContract, payload_part])
+    // let payload_part = coder.encode(["bytes32","uint256", "bytes"], [other_address,BigInt(10000000000000000), Buffer.from([0])]) // 0.001
+    // const txPayload = coder.encode(["bytes8", "bytes32", "bytes"], [solanaPayloadHead, sourceContract, payload_part])
     // console.log(txPayload)
 
 
@@ -186,7 +290,7 @@ async function main() {
     // let iface = new ethers.Interface(ABI);
     // let paras = iface.encodeFunctionData("transfer", ['0xa550C6011DfBA4925abEb0B48104062682870BB8', BigInt('1000000')]);//1usdt, usdt 6-digit precision
     // let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address, 0 , paras])
-    // const payload = coder.encode(["bytes32", "bytes32", "bytes"], [payloadHead, userAddress, payload_part])
+    // const payload = coder.encode(["bytes32", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
     // console.log(payload)
 
     //   // Query the USDT of Deposit
@@ -240,7 +344,7 @@ async function main() {
     // let iface = new ethers.Interface(ABI);
     // let paras = iface.encodeFunctionData("approve", ['0x6ae43d3271ff6888e7fc43fd7321a503ff738951', BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")]);
     // let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address, 0, paras])
-    // const payload = coder.encode(["bytes32","bytes32", "bytes"], [payloadHead, userAddress, payload_part])
+    // const payload = coder.encode(["bytes32","bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
     // console.log(payload)
 
       // // Deposit USDT, you need to approve USDT before use
@@ -249,7 +353,7 @@ async function main() {
       // let iface = new ethers.Interface(ABI);
       // let paras = iface.encodeFunctionData("supply", [USDT_CONTRACT_ADDRESS, 10000000, proxyAddress, 0]);//10usdt, usdt 6-digit precision
       // let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address, 0, paras])
-      // const payload = coder.encode(["bytes32","bytes32", "bytes"], [payloadHead, userAddress, payload_part])
+      // const payload = coder.encode(["bytes32","bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
       // console.log(payload)
 
     //   // withdraw USDT
@@ -258,7 +362,7 @@ async function main() {
     // let iface = new ethers.Interface(ABI);
     // let paras = iface.encodeFunctionData("withdraw", [USDT_CONTRACT_ADDRESS, BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"), proxyAddress]);
     // let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address, 0, paras])
-    // const payload = coder.encode(["bytes32","bytes32", "bytes"], [payloadHead, userAddress, payload_part])
+    // const payload = coder.encode(["bytes32","bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
     // console.log(payload)
 
 
@@ -268,7 +372,7 @@ async function main() {
     // let iface = new ethers.Interface(ABI);
     // let paras = iface.encodeFunctionData("depositETH", ['0x6ae43d3271ff6888e7fc43fd7321a503ff738951', proxyAddress, 0]);
     // let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address,BigInt(10000000000000000), paras]) //0.01eth
-    // const payload = coder.encode(["bytes32", "bytes32", "bytes"], [payloadHead, userAddress, payload_part])
+    // const payload = coder.encode(["bytes32", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
     // console.log(payload)
 
     // // approve
@@ -277,7 +381,7 @@ async function main() {
     // let iface = new ethers.Interface(ABI);
     // let paras = iface.encodeFunctionData("approve", ['0x387d311e47e80b498169e6fb51d3193167d89f7d', BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")]);
     // let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address, 0, paras])
-    // const payload = coder.encode(["bytes32", "bytes32", "bytes"], [payloadHead, userAddress, payload_part])
+    // const payload = coder.encode(["bytes32", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
     // console.log(payload)
 
     // // withdrawETH
@@ -286,58 +390,58 @@ async function main() {
     // let iface = new ethers.Interface(ABI);
     // let paras = iface.encodeFunctionData("withdrawETH", ['0x6ae43d3271ff6888e7fc43fd7321a503ff738951', BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"), proxyAddress]);
     // let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address, 0, paras])
-    // const payload = coder.encode(["bytes32", "bytes32", "bytes"], [payloadHead, userAddress, payload_part])
+    // const payload = coder.encode(["bytes32", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
     // console.log(payload)
 
 
     //=================================Ethereum Account Control Solana Contract============================================================
-    // Get the address and calculate the Solana address corresponding to ETH
-    const HELLO_WORLD_PID = new PublicKey(RELAYER_SOLANA_CONTRACT);
-    const realForeignEmitterChain = SEPOLIA_CHAIN_ID;
-    const ethAddress = rightAlignBuffer(Buffer.from(hexStringToUint8Array(USER_SEPOLIA_ADDRESS)));
-    const addressKey = await deriveEthAddressKey(HELLO_WORLD_PID, realForeignEmitterChain, new PublicKey(ethAddress));
-    console.log(addressKey.toBase58())
+    // // Get the address and calculate the Solana address corresponding to ETH
+    // const HELLO_WORLD_PID = new PublicKey(RELAYER_SOLANA_CONTRACT);
+    // const realForeignEmitterChain = SEPOLIA_CHAIN_ID;
+    // const ethAddress = rightAlignBuffer(Buffer.from(hexStringToUint8Array(USER_SEPOLIA_ADDRESS)));
+    // const addressKey = await deriveEthAddressKey(HELLO_WORLD_PID, realForeignEmitterChain, new PublicKey(ethAddress));
+    // console.log(addressKey.toBase58())
 
-    //Activation Address
-    const paras = sha256("active").slice(0, 8);
-    const encodedParams = Buffer.concat([paras]);
-
-    let accountMetaList = [
-        {writeable:true, is_signer:false},
-    ]
-  const encodeMeta = borsh.serialize(AccountMeta, accountMetaList);
-  const realForeignEmitter = deriveAddress(
-    [
-        Buffer.from("pda"),
-        (() => {
-            const buf = Buffer.alloc(2);
-            buf.writeUInt16LE(realForeignEmitterChain);
-            return buf;
-        })(),
-        ethAddress,
-    ],
-    HELLO_WORLD_PID
-);
-  const RawData = {
-      chain_id: realForeignEmitterChain,
-      caller: ethAddress,
-      programId:new PublicKey(HELLO_WORLD_PID).toBuffer(),
-      acc_count:1,
-      accounts:[
-          {
-              key: realForeignEmitter.toBuffer(),
-              isWritable:true,
-              isSigner: false,
-          }
-      ],
-      paras:encodedParams,
-      acc_meta:Buffer.from(encodeMeta),
-  };
-  const RawDataEncoded = Buffer.from(borsh.serialize(RawDataSchema, RawData));
-  const uniProxy_factory = await ethers.getContractFactory("UniProxy");
-  const UniProxy = await uniProxy_factory.attach(RELAYER_SEPOLIA_CONTRACT);
-  const receipt = await UniProxy.sendMessage(Buffer.concat([payloadHead, RawDataEncoded]));
-  console.log(receipt.hash)
+//     //Activation Address
+//     const paras = sha256("active").slice(0, 8);
+//     const encodedParams = Buffer.concat([paras]);
+//
+//     let accountMetaList = [
+//         {writeable:true, is_signer:false},
+//     ]
+//   const encodeMeta = borsh.serialize(AccountMeta, accountMetaList);
+//   const realForeignEmitter = deriveAddress(
+//     [
+//         Buffer.from("pda"),
+//         (() => {
+//             const buf = Buffer.alloc(2);
+//             buf.writeUInt16LE(realForeignEmitterChain);
+//             return buf;
+//         })(),
+//         ethAddress,
+//     ],
+//     HELLO_WORLD_PID
+// );
+//   const RawData = {
+//       chain_id: realForeignEmitterChain,
+//       caller: ethAddress,
+//       programId:new PublicKey(HELLO_WORLD_PID).toBuffer(),
+//       acc_count:1,
+//       accounts:[
+//           {
+//               key: realForeignEmitter.toBuffer(),
+//               isWritable:true,
+//               isSigner: false,
+//           }
+//       ],
+//       paras:encodedParams,
+//       acc_meta:Buffer.from(encodeMeta),
+//   };
+//   const RawDataEncoded = Buffer.from(borsh.serialize(RawDataSchema, RawData));
+//   const uniProxy_factory = await ethers.getContractFactory("UniProxy");
+//   const UniProxy = await uniProxy_factory.attach(RELAYER_SEPOLIA_CONTRACT);
+//   const receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, RawDataEncoded]));
+//   console.log(receipt.hash)
 
     // //transfer
     // const paras = sha256("transfer").slice(0, 8);
@@ -345,8 +449,10 @@ async function main() {
     // buf.writeBigUint64LE(BigInt(10000000),0);
     // const encodedParams = Buffer.concat([paras, buf]);
     // console.log(encodedParams)
-    //
-    // const encodeMeta = borsh.serialize(AccountMeta, [{writeable:true, is_signer:true},{writeable:true, is_signer:false}]);
+    // let accountMetaList = [
+    //     {writeable:true, is_signer:true},
+    //     {writeable:true, is_signer:false}];
+    // const encodeMeta = borsh.serialize(AccountMeta, accountMetaList);
     // const realForeignEmitter = deriveAddress(
     //     [
     //         Buffer.from("pda"),
@@ -367,25 +473,23 @@ async function main() {
     //     accounts:[
     //         {
     //             key: realForeignEmitter.toBuffer(),
-    //             isWritable:true,
-    //             isSigner: true,
+    //             isWritable:accountMetaList[0].writeable,
+    //             isSigner: accountMetaList[0].is_signer,
     //         },
     //         {
     //             key: new PublicKey("HD4ktk6LUewd5vMePdQF6ZtvKi3mC41AD3ZM3qJW8N8e").toBuffer(),
-    //             isWritable:true,
-    //             isSigner: false,
+    //             isWritable:accountMetaList[1].writeable,
+    //             isSigner: accountMetaList[1].is_signer,
     //         }
     //     ],
     //     paras:encodedParams,
     //     acc_meta:Buffer.from(encodeMeta),
     // };
     // const RawDataEncoded = Buffer.from(borsh.serialize(RawDataSchema, RawData));
-    // console.log(RawDataEncoded);
     // const uniProxy_factory = await ethers.getContractFactory("UniProxy");
-    // const UniProxy = await uniProxy_factory.attach('0x715BFFb9a0Ac608a24840C7373429B8C0342d6A8');
-    // const receipt = await UniProxy.sendMessage(RawDataEncoded);
+    // const UniProxy = await uniProxy_factory.attach(RELAYER_SEPOLIA_CONTRACT);
+    // const receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, RawDataEncoded]));
     // console.log(receipt.hash)
-    // console.log(RawDataEncoded.toString('hex'))
 
 
 //   //Cross-chain transfer sol
@@ -438,90 +542,6 @@ async function main() {
     // const receipt = await UniProxy.sendMessage(RawDataEncoded);
     // console.log(receipt.hash)
 
-// Calling Contract 1
-//   const programTest = "DViLwexyLUuKRRXWCQgFYqzoVLWktEbvUVhzKNZ7qTSF";
-//   const paras = sha256("global:tet").slice(0, 8);
-//   const encodedParams = Buffer.concat([paras]);
-
-//   const encodeMeta = borsh.serialize(AccountMeta, [{writeable:true, is_signer:true}]);
-//   const realForeignEmitter = deriveAddress(
-//     [
-//         Buffer.from("pda"),
-//         (() => {
-//             const buf = Buffer.alloc(2);
-//             buf.writeUInt16LE(realForeignEmitterChain);
-//             return buf;
-//         })(),
-//         ethAddress,
-//     ],
-//     HELLO_WORLD_PID
-// );
-//   const RawData = {
-//       chain_id: realForeignEmitterChain,
-//       caller: ethAddress,
-//       programId:new PublicKey(programTest).toBuffer(),
-//       acc_count:1,
-//       accounts:[
-//           {
-//               key: realForeignEmitter.toBuffer(),
-//               isWritable:true,
-//               isSigner: true,
-//           }
-//       ],
-//       paras:encodedParams,
-//       acc_meta:Buffer.from(encodeMeta),
-//   };
-//   const RawDataEncoded = Buffer.from(borsh.serialize(RawDataSchema, RawData));
-//   console.log(RawDataEncoded);
-//   const uniProxy_factory = await ethers.getContractFactory("UniProxy");
-//   const UniProxy = await uniProxy_factory.attach('0x438aCC4fB994D97A052d225f0Ca3BF720a3552A9');
-//   const receipt = await UniProxy.sendMessage(RawDataEncoded);
-//   console.log(receipt.hash)
-
-//   // Calling Contract 2
-//   const programTest = "DViLwexyLUuKRRXWCQgFYqzoVLWktEbvUVhzKNZ7qTSF";
-//   const [myStorage, _bump] = PublicKey.findProgramAddressSync([], new PublicKey(programTest));
-//   const params = new MyParameters(2, 2);
-//   const encoded = borsh.serialize(myParametersSchema, params);
-//   const paras = sha256("global:set").slice(0, 8);
-//   const encodedParams = Buffer.concat([paras, encoded]);
-
-//   const encodeMeta = borsh.serialize(AccountMeta, [{writeable:true, is_signer:false}]);
-//   const realForeignEmitter = deriveAddress(
-//     [
-//         Buffer.from("pda"),
-//         (() => {
-//             const buf = Buffer.alloc(2);
-//             buf.writeUInt16LE(realForeignEmitterChain);
-//             return buf;
-//         })(),
-//         ethAddress,
-//     ],
-//     HELLO_WORLD_PID
-// );
-//   const RawData = {
-//       chain_id: realForeignEmitterChain,
-//       caller: ethAddress,
-//       programId:new PublicKey(programTest).toBuffer(),
-//       acc_count:1,
-//       accounts:[
-//           {
-//               key: myStorage.toBuffer(),
-//               isWritable:true,
-//               isSigner: false,
-//           }
-//       ],
-//       paras:encodedParams,
-//       acc_meta:Buffer.from(encodeMeta),
-//   };
-//   const RawDataEncoded = Buffer.from(borsh.serialize(RawDataSchema, RawData));
-//   console.log(RawDataEncoded);
-//   const uniProxy_factory = await ethers.getContractFactory("UniProxy");
-//   const UniProxy = await uniProxy_factory.attach('0x438aCC4fB994D97A052d225f0Ca3BF720a3552A9');
-//   const receipt = await UniProxy.sendMessage(RawDataEncoded);
-//   console.log(receipt.hash)
-
-
   // =============Solana account control eth contract Intent-centric transaction=========================================
   //  const coder = ethers.AbiCoder.defaultAbiCoder();
   // // Query address
@@ -554,7 +574,7 @@ async function main() {
   // let approveIface = new ethers.Interface(approveABI);
   // let approveParas = approveIface.encodeFunctionData("approve", [TOKEN_BRIDGE_RELAYER_CONTRACT, BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")]);
   // let approvePayloadPart = coder.encode(["bytes32","uint256", "bytes"], [byte32WsolContract, 0, approveParas])
-  // const approvePayload = coder.encode(["bytes32", "bytes32", "bytes"], [payloadHead, userAddress, approvePayloadPart])
+  // const approvePayload = coder.encode(["bytes32", "bytes32", "bytes"], [solanaPayloadHead, userAddress, approvePayloadPart])
   // console.log(approvePayload)
 
   // Using RBT to transfer SOL to an address on Solana devnet
@@ -578,7 +598,7 @@ async function main() {
 //   let iface = new ethers.Interface(ABI);
 //   let paras = iface.encodeFunctionData("transferTokensWithRelay", [WSOL_CONTRACT_ADDRESS,100000000, 0, 1, targetRecipient , 0]);// sol precision is 9,100000000=0.1sol
 //   let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address, 0, paras])
-//   const payload = coder.encode(["bytes32", "bytes32", "bytes"], [payloadHead, userAddress, payload_part])
+//   const payload = coder.encode(["bytes32", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
 //   console.log(payload)
 //
 //   // Using LBT to transfer SOL to an address on the Ethereum testnet
@@ -619,7 +639,7 @@ async function main() {
   // let iface = new ethers.Interface(ABI);
   // let paras = iface.encodeFunctionData("transfer", ['', BigInt('100000000')]);//0.1swol, wsol 9-digit precision
   // let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address, 0 , paras])
-  // const payload = coder.encode(["bytes32", "bytes32", "bytes"], [payloadHead, userAddress, payload_part])
+  // const payload = coder.encode(["bytes32", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
   // console.log(payload)
   // // Calling and sending messages on Solana
 

@@ -316,13 +316,15 @@ pub mod relayer_solana {
         let seeds = b"pda";
         let signer_seeds: &[&[&[u8]]] = &[&[seeds,&chain.to_le_bytes(), address.as_slice(), &[bump]]];
          // let account_list = RawData::deserialize(&mut &*data)?;
-        let raw_data = posted_message.data().clone();
+        let raw_data = posted_message.data().raw_data.clone();
         msg!("{:?}", raw_data);
         let transfer_buf:[u8;8] = [0x27, 0xf5 ,0x76, 0xca, 0xfb, 0xb2, 0x63, 0xed];
         let active_buf:[u8;8]=[0x96 , 0x87 , 0x96 , 0x11 , 0x65 , 0x0f , 0x80 , 0xa8];
         let cross_tsf_buf:[u8;8] = [99, 114, 111, 115, 115, 116, 115, 102];
+        // let verification_buf:[u8;8] = [0xa5 , 0x3e , 0x8f , 0x99 , 0x2a , 0xe2 , 0x6b , 0xca];
         let transfer_ins = transfer_buf.to_vec();
         let active_ins = active_buf.to_vec();
+        // let verification_ins = verification_buf.to_vec();
         let mut accounts:Vec<AccountMeta>=vec![];
         let mut acc_infos = vec![];
         let mut i  = 0;
@@ -340,7 +342,7 @@ pub mod relayer_solana {
                 break
             }
         }
-        let para_data =  &raw_data.paras[32..];
+        let para_data =  &raw_data.paras;
         let ins: Vec<u8> = para_data.iter().take(8).cloned().collect();
         if ins == transfer_ins || ins == cross_tsf_buf {
             // transer
@@ -421,7 +423,7 @@ pub mod relayer_solana {
 
         let seeds = b"pda";
         let signer_seeds: &[&[&[u8]]] = &[&[seeds,&chain.to_le_bytes(), address.as_slice(), &[bump]]];
-        let payload = &data[32..];
+        let payload = &data[8..];
         let account_list = RawData::deserialize(&mut &*payload)?;
         msg!("{:?}", account_list);
         let transfer_buf:[u8;8] = [0x27, 0xf5 ,0x76, 0xca, 0xfb, 0xb2, 0x63, 0xed];

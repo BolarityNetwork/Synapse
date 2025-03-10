@@ -97,26 +97,49 @@ pub struct AdminAction<'info> {
 
 #[derive(Accounts)]
 #[instruction(payload: Vec<u8>)]
-pub struct ProcessWormholeMessage<'info> {
+pub struct CreateProofRecord<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
     pub state: Account<'info, StateAccount>,
 
     #[account(
-        init,
+        init_if_needed,
         payer = payer,
         space = 8 + ProofRecord::LEN,
         seeds = [
             b"proof",
             &payload[20..40],  // NFT contract address
-            &payload[64..72],  // Token ID
+            &payload[40..48],  // Token ID
         ],
         bump
     )]
     pub proof_record: Account<'info, ProofRecord>,
 
     pub system_program: Program<'info, System>,
+}
+#[derive(Accounts)]
+#[instruction(payload: Vec<u8>)]
+pub struct ProcessWormholeMessage<'info> {
+    #[account(
+        mut,
+    )]
+    pub payer: Signer<'info>,
+
+    // pub state: Account<'info, StateAccount>,
+
+    #[account(
+        mut,
+        seeds = [
+            b"proof",
+            &payload[20..40],  // NFT contract address
+            &payload[40..48],  // Token ID
+        ],
+        bump
+    )]
+    pub proof_record: Account<'info, ProofRecord>,
+
+    // pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]

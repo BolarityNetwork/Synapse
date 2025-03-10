@@ -6,7 +6,7 @@ pub mod error;
 pub mod utils;
 pub mod instructions;
 
-declare_id!("3b5KJUApvzf8Pz1DMrkLNpaWkUBvmJK8WQQcWiRSvZb3");
+declare_id!("6QBQwCw7gYQGb4aTW5Hxexcms24AnJRyU9pBCKhDLNSq");
 
 #[program]
 pub mod nft_verification {
@@ -41,6 +41,13 @@ pub mod nft_verification {
         new_token_amount: u64,
     ) -> Result<()> {
         instructions::update_token_amount(ctx, new_token_amount)
+    }
+
+    pub fn create_proof_record(
+        ctx: Context<CreateProofRecord>,
+        payload: Vec<u8>,
+    ) -> Result<()> {
+        instructions::create_proof_record(ctx, payload)
     }
 
     /// Processes a Wormhole message containing NFT ownership proof

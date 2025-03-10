@@ -98,6 +98,24 @@ pub fn update_token_amount(
     Ok(())
 }
 
+pub fn create_proof_record(
+    ctx: Context<CreateProofRecord>,
+    payload: Vec<u8>,
+) -> Result<()> {
+    let state = &ctx.accounts.state;
+
+    let nft_contract_bytes: [u8; 20] = payload[20..40].try_into().map_err(|_| NftVerificationError::InvalidPayload)?;
+    let nft_contract = ethereum_address_to_pubkey(&nft_contract_bytes);
+    // 3. Validate that the NFT contract is in the approved list
+    require!(
+            state.is_approved_nft(&nft_contract),
+            NftVerificationError::UnapprovedNftContract
+        );
+
+
+    Ok(())
+}
+
 /// Processes a Wormhole message containing NFT ownership proof
 /// @param ctx The context for processing the message
 /// @param vaa_hash The VAA hash used to locate the Wormhole message
@@ -105,43 +123,45 @@ pub fn process_wormhole_message(
     ctx: Context<ProcessWormholeMessage>,
     payload: Vec<u8>,
 ) -> Result<()> {
-    let state = &ctx.accounts.state;
+
+    // let state = &ctx.accounts.state;
     // let wormhole_message = &ctx.accounts.wormhole_message;
     //
     // // 1. Verify the VAA comes from the expected emitter (Ethereum contract)
     // require_keys_eq!(
-    //     wormhole_message.emitter_address,
-    //     state.wormhole_emitter,
-    //     NftVerificationError::InvalidEmitter
-    // );
-
-    // 2. Parse the payload from the Wormhole message
-    // Format from Ethereum: [proxy_account (20 bytes)][nft_contract (20 bytes)][token_id (32 bytes)][solana_receiver (32 bytes)]
+    //         wormhole_message.emitter_address,
+    //         state.wormhole_emitter,
+    //         NftVerificationError::InvalidEmitter
+    //     );
+    //
+    // // 2. Parse the payload from the Wormhole message
+    // // Format from Ethereum: [proxy_account (20 bytes)][nft_contract (20 bytes)][token_id (32 bytes)][solana_receiver (32 bytes)]
+    // let payload = wormhole_message.payload.as_ref();
     require!(
-            payload.len() >= 104, // 20 + 20 + 32 + 32
+            payload.len() >= 80, // 20 + 20 + 8 + 32
             NftVerificationError::InvalidPayload
         );
 
     // Extract data from payload
     let proxy_account_bytes: [u8; 20] = payload[..20].try_into().map_err(|_| NftVerificationError::InvalidPayload)?;
     let nft_contract_bytes: [u8; 20] = payload[20..40].try_into().map_err(|_| NftVerificationError::InvalidPayload)?;
-    let token_id_bytes: [u8; 32] = payload[40..72].try_into().map_err(|_| NftVerificationError::InvalidPayload)?;
-    let solana_receiver_bytes: [u8; 32] = payload[72..104].try_into().map_err(|_| NftVerificationError::InvalidPayload)?;
+    let token_id_bytes: [u8; 8] = payload[40..48].try_into().map_err(|_| NftVerificationError::InvalidPayload)?;
+    let solana_receiver_bytes: [u8; 32] = payload[48..80].try_into().map_err(|_| NftVerificationError::InvalidPayload)?;
 
     // Convert to Solana types
     let proxy_account = ethereum_address_to_pubkey(&proxy_account_bytes);
     let nft_contract = ethereum_address_to_pubkey(&nft_contract_bytes);
 
     // Convert token_id from big-endian bytes to u64
-    let token_id = u64::from_be_bytes(token_id_bytes[24..32].try_into().map_err(|_| NftVerificationError::InvalidPayload)?);
+    let token_id = u64::from_be_bytes(token_id_bytes.try_into().map_err(|_| NftVerificationError::InvalidPayload)?);
 
     let solana_receiver = Pubkey::new(&solana_receiver_bytes);
 
-    // 3. Validate that the NFT contract is in the approved list
-    require!(
-            state.is_approved_nft(&nft_contract),
-            NftVerificationError::UnapprovedNftContract
-        );
+    // // 3. Validate that the NFT contract is in the approved list
+    // require!(
+    //         state.is_approved_nft(&nft_contract),
+    //         NftVerificationError::UnapprovedNftContract
+    //     );
 
     // 4. Store the proof in a new account
     let proof_account = &mut ctx.accounts.proof_record;
@@ -166,7 +186,6 @@ pub fn process_wormhole_message(
             token_id,
             solana_receiver,
             sequence: 0,
-            // sequence: wormhole_message.sequence,
         });
 
     Ok(())

@@ -16,6 +16,7 @@ contract UniProxy is IWormholeReceiver {
 	uint8 public wormholeFinality;
 	// mapping   ChainId+wormholeAddress -> address  (AddressMapping)
 	mapping(uint16 => mapping(bytes32 => address)) public proxys;
+	mapping(uint16 => mapping(address => bytes32)) public reverseProxys;
 	mapping(uint16 => bytes32) public registeredSenders;
 	mapping(bytes32 => bool) consumedMessages;
 	
@@ -81,10 +82,10 @@ contract UniProxy is IWormholeReceiver {
 		uint16 sChain = sourceChain;
 		bytes32 sAddress = sourceAddress;
 		bytes memory sPayload = payload;
-		bytes32 sHead;
+		bytes8 sHead;
 
 		if(registeredSenders[sourceChain] == sourceAddress){
-			(sHead, sAddress, sPayload) = abi.decode(payload, (bytes32, bytes32, bytes));
+			(sHead, sAddress, sPayload) = abi.decode(payload, (bytes8, bytes32, bytes));
 		}
 
 		address proxy = proxys[sChain][sAddress];
@@ -96,6 +97,7 @@ contract UniProxy is IWormholeReceiver {
 			}
 			IEvmProxy(proxy).initialize(sChain, sAddress);
 			proxys[sChain][sAddress] = proxy;
+			reverseProxys[sChain][proxy] = sAddress;
 			emit ProxyCreated(sChain, sAddress, proxy);
 		} else {
 			IEvmProxy(proxy).doProxy{value: msg.value}(sPayload);
@@ -122,4 +124,11 @@ contract UniProxy is IWormholeReceiver {
             wormholeFinality
         );
     }
+
+	function getReverseAddress(
+		uint16 sourceChain,
+		address sourceAddress) external view returns (bytes32) {
+		return reverseProxys[sourceChain][sourceAddress];
+	}
+
 }
