@@ -103,16 +103,25 @@ pub fn create_proof_record(
     payload: Vec<u8>,
 ) -> Result<()> {
     let state = &ctx.accounts.state;
+    let proof_account = &mut ctx.accounts.proof_record;
 
+    let proxy_account_bytes: [u8; 20] = payload[..20].try_into().map_err(|_| NftVerificationError::InvalidPayload)?;
     let nft_contract_bytes: [u8; 20] = payload[20..40].try_into().map_err(|_| NftVerificationError::InvalidPayload)?;
     let nft_contract = ethereum_address_to_pubkey(&nft_contract_bytes);
+    let relayer_contract_bytes: [u8; 32] = payload[80..112].try_into().map_err(|_| NftVerificationError::InvalidPayload)?;
+    let chain_id_bytes: [u8; 2] = payload[112..114].try_into().map_err(|_| NftVerificationError::InvalidPayload)?;
+
+    let chain_id = u16::from_le_bytes(chain_id_bytes.try_into().map_err(|_| NftVerificationError::InvalidPayload)?);
+    let proxy_account = ethereum_address_fill_pubkey(&proxy_account_bytes);
+    let relayer_contract = Pubkey::new(&relayer_contract_bytes);
     // 3. Validate that the NFT contract is in the approved list
     require!(
             state.is_approved_nft(&nft_contract),
             NftVerificationError::UnapprovedNftContract
         );
-
-
+    proof_account.relayer_account = relayer_contract;
+    proof_account.chain_id = chain_id;
+    proof_account.proxy_account = proxy_account;
     Ok(())
 }
 

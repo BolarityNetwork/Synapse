@@ -123,6 +123,13 @@ pub struct CreateProofRecord<'info> {
 pub struct ProcessWormholeMessage<'info> {
     #[account(
         mut,
+        seeds = [
+            b"pda",
+            &proof_record.chain_id.to_le_bytes(),
+            &proof_record.proxy_account.as_ref(),
+        ],
+        seeds::program = proof_record.relayer_account.key(),
+        bump
     )]
     pub payer: Signer<'info>,
 
@@ -234,6 +241,9 @@ pub struct ProofRecord {
     /// The timestamp when the tokens were claimed (0 if not claimed)
     pub claim_timestamp: i64,
 
+    pub chain_id: u16,
+
+    pub relayer_account: Pubkey,
     /// Reserved space for future upgrades
     pub reserved: [u8; 32],
 }
@@ -247,6 +257,8 @@ impl ProofRecord {
         1 +  // initialized
         8 +  // timestamp
         8 +  // claim_timestamp
+        2 +  // chain_id
+        32 + // relayer_account
         32;  // reserved
 }
 #[event]

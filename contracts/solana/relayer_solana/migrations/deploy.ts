@@ -53,6 +53,7 @@ function hexStringToUint8Array(hexString: string): Uint8Array {
 
   return byteArray;
 }
+
 module.exports = async function (provider) {
   // Configure client to use the provider.
   anchor.setProvider(provider);
@@ -173,47 +174,52 @@ module.exports = async function (provider) {
     const [statePda, _bump] = anchor.web3.PublicKey.findProgramAddressSync(
         seeds,
         programVerification.programId);
-//   const helloMessage = hexStringToUint8Array("0xfe0100000001271200000000000000000000000000000000000000000000000057e7e02bc1a9d9b0df22583439844e903278aecd801bf6d8415984099a1be8b2000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000002400000000000000000000000007d3c4f0f2c0967e6a121e57bed4e2966237706200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000001a47737e87600000001000000000000000484d47d9942878b6b40519b665ca167828dc3b97500000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000fffe0100002712000112270000000000000000000000008ac04a8869daaea57b7c37452ff5255d6fd8c6c5503a911ef42bf340d0a8db9e156020a511f7cc4b9acb2c40e43d0c147eb774860202000000a8c08c265f9258de43c4c1bd49463d52cd4b17b59f0d36633e8e07201c585236010116abacc739ea3cd95a0df63beb1606f77a800cc4b583513db7b89ae73c12908901005c000000a53e8f992ae26bca500000008ac04a8869daaea57b7c37452ff5255d6fd8c6c584d47d9942878b6b40519b665ca167828dc3b975000000000000000400000000000000000000000000000000000000000000000000000000000000000800000002000000010101000000000000000000000000000000000000000000000000000000000000");
-//     const tokenID = 4;
-//     let idBuf = Buffer.alloc(8);
-//     idBuf.writeBigUint64BE(BigInt(tokenID));
-//     const payloadBuf = Buffer.concat([
-//         Buffer.alloc(20),
-//         Buffer.from(hexStringToUint8Array("0x84D47d9942878B6b40519B665Ca167828DC3b975")),
-//         idBuf,
-//         Buffer.alloc(32),
-//     ]);
-//     const [proofRecordPda] = PublicKey.findProgramAddressSync(
-//         [Buffer.from("proof"), payloadBuf.slice(20,40), payloadBuf.slice(40,48)],
-//         programVerification.programId);
-//     let ix = await programVerification.methods.createProofRecord(payloadBuf).accounts({
-//         payer:provider.wallet.publicKey,
-//         state: statePda,
-//         proofRecord:proofRecordPda,
-//     }).instruction();
-//     let tx = new Transaction().add(await ix);
-//     try {
-//       await sendAndConfirmTransaction(provider.connection, tx, [provider.wallet.payer], {commitment});
-//         console.log("execute success");
-//     }
-//     catch (error: any) {
-//       console.log(error);
-//     }
-//   const ix3 = program.methods
-//       .sendMessage(Buffer.from(helloMessage))
-//       .accounts({
-//         config: realConfig,
-//         wormholeProgram: CORE_BRIDGE_PID,
-//         ...wormholeAccounts2,
-//       })
-//       .instruction();
-//   const tx3 = new Transaction().add(await ix3);
-//   try {
-//     await sendAndConfirmTransaction(provider.connection, tx3, [provider.wallet.payer], {commitment});
-//   }
-//   catch (error: any) {
-//     console.log(error);
-//   }
+  // const helloMessage = hexStringToUint8Array("0xfe0100000001271200000000000000000000000000000000000000000000000057e7e02bc1a9d9b0df22583439844e903278aecd801bf6d8415984099a1be8b2000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000002400000000000000000000000007d3c4f0f2c0967e6a121e57bed4e2966237706200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000001a47737e87600000001000000000000000684d47d9942878b6b40519b665ca167828dc3b97500000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000fffe0100002712000112270000000000000000000000008ac04a8869daaea57b7c37452ff5255d6fd8c6c5503a911ef42bf340d0a8db9e156020a511f7cc4b9acb2c40e43d0c147eb774860202000000a8c08c265f9258de43c4c1bd49463d52cd4b17b59f0d36633e8e07201c5852360101d3dcbcbf502ecebbf407ed003bd0b46936534c559edc1214f51d5eb6e97fd84201005c000000a53e8f992ae26bca500000008ac04a8869daaea57b7c37452ff5255d6fd8c6c584d47d9942878b6b40519b665ca167828dc3b975000000000000000600000000000000000000000000000000000000000000000000000000000000000800000002000000010101000000000000000000000000000000000000000000000000000000000000");
+  //   const tokenID = 6;
+  //   let idBuf = Buffer.alloc(8);
+  //   idBuf.writeBigUint64BE(BigInt(tokenID));
+  //   const proxyAddressBuf = Buffer.from(hexStringToUint8Array('0x8aC04a8869DaaeA57b7C37452ff5255D6Fd8c6c5')); // your proxy evm address
+  //   const chainIdBuf = Buffer.alloc(2);
+  //   chainIdBuf.writeUInt16LE(realForeignEmitterChain);
+  //   const payloadBuf = Buffer.concat([
+  //       proxyAddressBuf,
+  //       Buffer.from(hexStringToUint8Array("0x84D47d9942878B6b40519B665Ca167828DC3b975")),
+  //       idBuf,
+  //       Buffer.alloc(32),
+  //       programID.toBuffer(),
+  //       chainIdBuf,
+  //   ]);
+  //   const [proofRecordPda] = PublicKey.findProgramAddressSync(
+  //       [Buffer.from("proof"), payloadBuf.slice(20,40), payloadBuf.slice(40,48)],
+  //       programVerification.programId);
+  //   let ix = await programVerification.methods.createProofRecord(payloadBuf).accounts({
+  //       payer:provider.wallet.publicKey,
+  //       state: statePda,
+  //       proofRecord:proofRecordPda,
+  //   }).instruction();
+  //   let tx = new Transaction().add(await ix);
+  //   try {
+  //     await sendAndConfirmTransaction(provider.connection, tx, [provider.wallet.payer], {commitment});
+  //       console.log("execute success");
+  //   }
+  //   catch (error: any) {
+  //     console.log(error);
+  //   }
+  // const ix3 = program.methods
+  //     .sendMessage(Buffer.from(helloMessage))
+  //     .accounts({
+  //       config: realConfig,
+  //       wormholeProgram: CORE_BRIDGE_PID,
+  //       ...wormholeAccounts2,
+  //     })
+  //     .instruction();
+  // const tx3 = new Transaction().add(await ix3);
+  // try {
+  //   await sendAndConfirmTransaction(provider.connection, tx3, [provider.wallet.payer], {commitment});
+  // }
+  // catch (error: any) {
+  //   console.log(error);
+  // }
 
 
     const mint = new PublicKey("7XSrPHGyxhWvX5aD25twNu12jj2GVTJkPFTBfEhwkhEH");
@@ -245,12 +251,13 @@ module.exports = async function (provider) {
     // console.log("receiver_ata:", receiver_ata.toBase58());
 
     // =======================claim token===================================
-    const tokenID = 4;
+    const tokenID = 6;
     let idBuf = Buffer.alloc(8);
     idBuf.writeBigUint64BE(BigInt(tokenID));
+
     const payloadBuf = Buffer.concat([
         Buffer.alloc(20),
-        Buffer.from(hexStringToUint8Array("0x84D47d9942878B6b40519B665Ca167828DC3b975")),
+        Buffer.from(hexStringToUint8Array("0x84D47d9942878B6b40519B665Ca167828DC3b975")), // nft contract
         idBuf,
         Buffer.alloc(32),
     ]);

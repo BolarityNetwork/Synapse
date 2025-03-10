@@ -183,7 +183,7 @@ async function main() {
     // const payload = coder.encode(["bytes8", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
     // console.log(payload)
     // ===============================sendProof======================================================
-    const tokenID = 4;// tokenid,need modify
+    const tokenID = 6;// tokenid,need modify
 
     const accountMetaList = [
         {writeable:true, is_signer:true},
@@ -212,7 +212,7 @@ async function main() {
     const paraEncode = borsh.serialize(payloadSchema, {payload:payloadBuf});
     let encodedParams = Buffer.concat([functionSig, paraEncode]);
     const ethAddress = rightAlignBuffer(Buffer.from(hexStringToUint8Array(proxyAddress)));
-      const realForeignEmitter = deriveAddress(
+    const realForeignEmitter = deriveAddress(
     [
         Buffer.from("pda"),
         (() => {
@@ -224,6 +224,7 @@ async function main() {
     ],
     new PublicKey(RELAYER_SOLANA_CONTRACT)
     );
+    console.log(realForeignEmitter);
     let RawData = {
         chain_id: SEPOLIA_CHAIN_ID,
         caller: new PublicKey(ethAddress).toBuffer(),
