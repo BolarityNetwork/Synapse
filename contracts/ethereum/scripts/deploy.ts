@@ -260,7 +260,7 @@ async function main() {
     // // To activate the address, you need to operate on the Solana side and assemble the data
     // const contractAddress = new PublicKey(USER_SOLANA_ADDRESS).toBytes();
     // const sourceAddress = coder.encode(["bytes32"],[Buffer.from(contractAddress)]);
-    // const payload = coder.encode(["bytes32", "bytes32", "bytes"], [solanaPayloadHead, sourceAddress, Buffer.from([0])])
+    // const payload = coder.encode(["bytes8", "bytes32", "bytes"], [solanaPayloadHead, sourceAddress, Buffer.from([0])])
     // console.log(payload)
 
     // // Transfer eth to an address
@@ -290,7 +290,7 @@ async function main() {
     // let iface = new ethers.Interface(ABI);
     // let paras = iface.encodeFunctionData("transfer", ['0xa550C6011DfBA4925abEb0B48104062682870BB8', BigInt('1000000')]);//1usdt, usdt 6-digit precision
     // let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address, 0 , paras])
-    // const payload = coder.encode(["bytes32", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
+    // const payload = coder.encode(["bytes8", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
     // console.log(payload)
 
     //   // Query the USDT of Deposit
@@ -344,7 +344,7 @@ async function main() {
     // let iface = new ethers.Interface(ABI);
     // let paras = iface.encodeFunctionData("approve", ['0x6ae43d3271ff6888e7fc43fd7321a503ff738951', BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")]);
     // let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address, 0, paras])
-    // const payload = coder.encode(["bytes32","bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
+    // const payload = coder.encode(["bytes8","bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
     // console.log(payload)
 
       // // Deposit USDT, you need to approve USDT before use
@@ -353,7 +353,7 @@ async function main() {
       // let iface = new ethers.Interface(ABI);
       // let paras = iface.encodeFunctionData("supply", [USDT_CONTRACT_ADDRESS, 10000000, proxyAddress, 0]);//10usdt, usdt 6-digit precision
       // let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address, 0, paras])
-      // const payload = coder.encode(["bytes32","bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
+      // const payload = coder.encode(["bytes8","bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
       // console.log(payload)
 
     //   // withdraw USDT
@@ -362,7 +362,7 @@ async function main() {
     // let iface = new ethers.Interface(ABI);
     // let paras = iface.encodeFunctionData("withdraw", [USDT_CONTRACT_ADDRESS, BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"), proxyAddress]);
     // let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address, 0, paras])
-    // const payload = coder.encode(["bytes32","bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
+    // const payload = coder.encode(["bytes8","bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
     // console.log(payload)
 
 
@@ -372,7 +372,7 @@ async function main() {
     // let iface = new ethers.Interface(ABI);
     // let paras = iface.encodeFunctionData("depositETH", ['0x6ae43d3271ff6888e7fc43fd7321a503ff738951', proxyAddress, 0]);
     // let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address,BigInt(10000000000000000), paras]) //0.01eth
-    // const payload = coder.encode(["bytes32", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
+    // const payload = coder.encode(["bytes8", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
     // console.log(payload)
 
     // // approve
@@ -381,7 +381,7 @@ async function main() {
     // let iface = new ethers.Interface(ABI);
     // let paras = iface.encodeFunctionData("approve", ['0x387d311e47e80b498169e6fb51d3193167d89f7d', BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")]);
     // let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address, 0, paras])
-    // const payload = coder.encode(["bytes32", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
+    // const payload = coder.encode(["bytes8", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
     // console.log(payload)
 
     // // withdrawETH
@@ -390,7 +390,7 @@ async function main() {
     // let iface = new ethers.Interface(ABI);
     // let paras = iface.encodeFunctionData("withdrawETH", ['0x6ae43d3271ff6888e7fc43fd7321a503ff738951', BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"), proxyAddress]);
     // let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address, 0, paras])
-    // const payload = coder.encode(["bytes32", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
+    // const payload = coder.encode(["bytes8", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
     // console.log(payload)
 
 
@@ -574,7 +574,7 @@ async function main() {
   // let approveIface = new ethers.Interface(approveABI);
   // let approveParas = approveIface.encodeFunctionData("approve", [TOKEN_BRIDGE_RELAYER_CONTRACT, BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")]);
   // let approvePayloadPart = coder.encode(["bytes32","uint256", "bytes"], [byte32WsolContract, 0, approveParas])
-  // const approvePayload = coder.encode(["bytes32", "bytes32", "bytes"], [solanaPayloadHead, userAddress, approvePayloadPart])
+  // const approvePayload = coder.encode(["bytes8", "bytes32", "bytes"], [solanaPayloadHead, userAddress, approvePayloadPart])
   // console.log(approvePayload)
 
   // Using RBT to transfer SOL to an address on Solana devnet
@@ -598,7 +598,7 @@ async function main() {
 //   let iface = new ethers.Interface(ABI);
 //   let paras = iface.encodeFunctionData("transferTokensWithRelay", [WSOL_CONTRACT_ADDRESS,100000000, 0, 1, targetRecipient , 0]);// sol precision is 9,100000000=0.1sol
 //   let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address, 0, paras])
-//   const payload = coder.encode(["bytes32", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
+//   const payload = coder.encode(["bytes8", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
 //   console.log(payload)
 //
 //   // Using LBT to transfer SOL to an address on the Ethereum testnet
@@ -639,7 +639,7 @@ async function main() {
   // let iface = new ethers.Interface(ABI);
   // let paras = iface.encodeFunctionData("transfer", ['', BigInt('100000000')]);//0.1swol, wsol 9-digit precision
   // let payload_part = coder.encode(["bytes32","uint256", "bytes"], [contract_address, 0 , paras])
-  // const payload = coder.encode(["bytes32", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
+  // const payload = coder.encode(["bytes8", "bytes32", "bytes"], [solanaPayloadHead, userAddress, payload_part])
   // console.log(payload)
   // // Calling and sending messages on Solana
 
@@ -662,7 +662,7 @@ async function main() {
     // let stakeIface = new ethers.Interface(stakeABI);
     // let stakeParas = stakeIface.encodeFunctionData("stake", [60]); // 60 represents 60s
     // let stakePayloadPart = coder.encode(["bytes32","uint256", "bytes"], [byte32WsolContract, BigInt(10000000000000000), stakeParas]) // stake 0.01eth
-    // const stakePayload = coder.encode(["bytes32", "bytes"], [userAddress, stakePayloadPart])
+    // const stakePayload = coder.encode(["bytes8","bytes32", "bytes"], [solanaPayloadHead, userAddress, stakePayloadPart])
     // console.log(stakePayload)
     // // Solana sends cross-chain messages
 
