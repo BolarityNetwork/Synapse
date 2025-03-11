@@ -107,7 +107,7 @@ export async function processSepoliaToSolana(program:Program, vaa:ParsedVaaWithB
         ],
         program.programId
     );
-    const exp_RawData = borsh.deserialize(RawDataSchema, Buffer.from(vaa.payload).slice(32));
+    const exp_RawData = borsh.deserialize(RawDataSchema, Buffer.from(vaa.payload).slice(8));
     console.log(exp_RawData)
     if (Buffer.from(exp_RawData.paras).slice(0, 8).equals(Buffer.from("crosstsf"))){
         let balanceBuf = Buffer.from(exp_RawData.paras).slice(8, 16)
