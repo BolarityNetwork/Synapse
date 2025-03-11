@@ -1,0 +1,868 @@
+{
+  "address": "6QBQwCw7gYQGb4aTW5Hxexcms24AnJRyU9pBCKhDLNSq",
+  "metadata": {
+    "name": "nft_verification",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "claim_tokens",
+      "docs": [
+        "Allows eligible users to claim tokens for verified NFTs",
+        "@param ctx The context for claiming tokens"
+      ],
+      "discriminator": [
+        108,
+        216,
+        210,
+        231,
+        0,
+        212,
+        42,
+        64
+      ],
+      "accounts": [
+        {
+          "name": "receiver",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "state"
+        },
+        {
+          "name": "token_vault",
+          "writable": true
+        },
+        {
+          "name": "receiver_token_account",
+          "writable": true
+        },
+        {
+          "name": "proof_record",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_proof_record",
+      "discriminator": [
+        28,
+        172,
+        129,
+        151,
+        152,
+        98,
+        33,
+        59
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "state"
+        },
+        {
+          "name": "proof_record",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "payload",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
+      "name": "initialize",
+      "docs": [
+        "Initialize the program with required configurations",
+        "@param ctx The context for initialization",
+        "@param token_amount_per_nft The amount of tokens to distribute per verified NFT"
+      ],
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_mint"
+        },
+        {
+          "name": "token_vault"
+        },
+        {
+          "name": "state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "token_amount_per_nft",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "process_wormhole_message",
+      "docs": [
+        "Processes a Wormhole message containing NFT ownership proof",
+        "@param ctx The context for processing the message",
+        "@param vaa_hash The VAA hash used to locate the Wormhole message"
+      ],
+      "discriminator": [
+        165,
+        62,
+        143,
+        153,
+        42,
+        226,
+        107,
+        202
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  100,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "proof_record.chain_id",
+                "account": "ProofRecord"
+              },
+              {
+                "kind": "account",
+                "path": "proof_record.proxy_account",
+                "account": "ProofRecord"
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "proof_record.relayer_account",
+              "account": "ProofRecord"
+            }
+          }
+        },
+        {
+          "name": "proof_record",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "payload",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
+      "name": "set_approved_nft",
+      "docs": [
+        "Sets the approval status for an NFT contract",
+        "@param ctx The context for the action",
+        "@param nft_contract The Ethereum NFT contract address (20 bytes)",
+        "@param status Whether to approve or disapprove the NFT contract"
+      ],
+      "discriminator": [
+        42,
+        246,
+        187,
+        93,
+        115,
+        76,
+        56,
+        168
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "state",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "nft_contract",
+          "type": {
+            "array": [
+              "u8",
+              20
+            ]
+          }
+        },
+        {
+          "name": "status",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "update_admin",
+      "docs": [
+        "Updates the admin of the program",
+        "@param ctx The context for updating the admin",
+        "@param new_admin The public key of the new admin"
+      ],
+      "discriminator": [
+        161,
+        176,
+        40,
+        213,
+        60,
+        184,
+        179,
+        228
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "state",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "new_admin",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "update_token_amount",
+      "docs": [
+        "Updates the token amount distributed per verified NFT",
+        "@param ctx The context for the action",
+        "@param new_token_amount The new token amount to set"
+      ],
+      "discriminator": [
+        114,
+        183,
+        112,
+        206,
+        155,
+        246,
+        62,
+        189
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "state",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "new_token_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "withdraw_tokens",
+      "docs": [
+        "Allows the admin to withdraw tokens from the vault",
+        "@param ctx The context for withdrawing tokens",
+        "@param amount The amount of tokens to withdraw"
+      ],
+      "discriminator": [
+        2,
+        4,
+        225,
+        61,
+        19,
+        182,
+        106,
+        170
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "state"
+        },
+        {
+          "name": "token_vault",
+          "writable": true
+        },
+        {
+          "name": "admin_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "ProofRecord",
+      "discriminator": [
+        237,
+        59,
+        155,
+        172,
+        204,
+        117,
+        87,
+        44
+      ]
+    },
+    {
+      "name": "StateAccount",
+      "discriminator": [
+        142,
+        247,
+        54,
+        95,
+        85,
+        133,
+        249,
+        103
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "AdminUpdated",
+      "discriminator": [
+        69,
+        82,
+        49,
+        171,
+        43,
+        3,
+        80,
+        161
+      ]
+    },
+    {
+      "name": "ApprovedNftUpdated",
+      "discriminator": [
+        191,
+        31,
+        88,
+        176,
+        156,
+        99,
+        222,
+        185
+      ]
+    },
+    {
+      "name": "ProgramInitialized",
+      "discriminator": [
+        43,
+        70,
+        110,
+        241,
+        199,
+        218,
+        221,
+        245
+      ]
+    },
+    {
+      "name": "ProofRecorded",
+      "discriminator": [
+        55,
+        159,
+        128,
+        127,
+        158,
+        254,
+        93,
+        145
+      ]
+    },
+    {
+      "name": "TokenAmountUpdated",
+      "discriminator": [
+        229,
+        117,
+        180,
+        93,
+        161,
+        129,
+        235,
+        236
+      ]
+    },
+    {
+      "name": "TokensClaimed",
+      "discriminator": [
+        25,
+        128,
+        244,
+        55,
+        241,
+        136,
+        200,
+        91
+      ]
+    },
+    {
+      "name": "TokensWithdrawn",
+      "discriminator": [
+        30,
+        116,
+        110,
+        147,
+        87,
+        89,
+        9,
+        158
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Unauthorized access"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidEmitter",
+      "msg": "Invalid Wormhole emitter"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidPayload",
+      "msg": "Invalid payload format"
+    },
+    {
+      "code": 6003,
+      "name": "UnapprovedNftContract",
+      "msg": "NFT contract not in approved list"
+    },
+    {
+      "code": 6004,
+      "name": "ProofAlreadyRecorded",
+      "msg": "Proof already recorded"
+    },
+    {
+      "code": 6005,
+      "name": "ProofNotFound",
+      "msg": "Proof not found"
+    },
+    {
+      "code": 6006,
+      "name": "AlreadyClaimed",
+      "msg": "Token already claimed"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidReceiver",
+      "msg": "Invalid receiver"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidTokenAccount",
+      "msg": "Invalid token account"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidVaultOwner",
+      "msg": "Invalid vault owner"
+    },
+    {
+      "code": 6010,
+      "name": "InsufficientFunds",
+      "msg": "Insufficient funds in vault"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidAdminAddress",
+      "msg": "Invalid admin address"
+    },
+    {
+      "code": 6012,
+      "name": "BumpNotFound",
+      "msg": "Bump seed not found"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidConsistencyLevel",
+      "msg": "Invalid Wormhole consistency level"
+    }
+  ],
+  "types": [
+    {
+      "name": "AdminUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old_admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_admin",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ApprovedNftUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "nft_contract",
+            "type": "pubkey"
+          },
+          {
+            "name": "status",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProgramInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_amount_per_nft",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProofRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "proxy_account",
+            "docs": [
+              "The Ethereum proxy account that owns the NFT"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "nft_contract",
+            "docs": [
+              "The Ethereum NFT contract address"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "token_id",
+            "docs": [
+              "The NFT token ID"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "solana_receiver",
+            "docs": [
+              "The Solana account that will receive tokens"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "claimed",
+            "docs": [
+              "Whether the tokens have been claimed"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "initialized",
+            "docs": [
+              "Whether this proof record has been initialized"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "timestamp",
+            "docs": [
+              "The timestamp when the proof was recorded"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "claim_timestamp",
+            "docs": [
+              "The timestamp when the tokens were claimed (0 if not claimed)"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "chain_id",
+            "type": "u16"
+          },
+          {
+            "name": "relayer_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "reserved",
+            "docs": [
+              "Reserved space for future upgrades"
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProofRecorded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "proxy_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "nft_contract",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_id",
+            "type": "u64"
+          },
+          {
+            "name": "solana_receiver",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StateAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "docs": [
+              "The administrator of the program"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "token_mint",
+            "docs": [
+              "The mint address of the token to be distributed"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "token_vault",
+            "docs": [
+              "The token vault that holds the tokens to be distributed"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "token_amount_per_nft",
+            "docs": [
+              "The amount of tokens to distribute per verified NFT"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "approved_nfts",
+            "docs": [
+              "List of approved NFT contracts"
+            ],
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump seed"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "init_timestamp",
+            "docs": [
+              "Program initialization timestamp"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "reserved",
+            "docs": [
+              "Reserved space for future upgrades"
+            ],
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "TokenAmountUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old_amount",
+            "type": "u64"
+          },
+          {
+            "name": "new_amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TokensClaimed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "receiver",
+            "type": "pubkey"
+          },
+          {
+            "name": "nft_contract",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_id",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TokensWithdrawn",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "receiver",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ]
+}
