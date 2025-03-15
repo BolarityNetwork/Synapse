@@ -73,8 +73,8 @@ function runService(workerId: number) {
 
 	app.multiple(
 		{
-			[CHAIN_ID_SOLANA]: [RELAYER_SOLANA_PROGRAM, TOKEN_BRIDGE_SOLANA_PID],
-			[CHAIN_ID_SEPOLIA]: [RELAYER_SEPOLIA_PROGRAM, TOKEN_BRIDGE_SEPOLIA_PID],
+			[CHAIN_ID_SOLANA]: [RELAYER_SOLANA_PROGRAM],
+			[CHAIN_ID_SEPOLIA]: [RELAYER_SEPOLIA_PROGRAM],
 		},
 		async (ctx, next) => {
 			// Get vaa and check whether it has been executed. If not, continue processing.
