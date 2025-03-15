@@ -6,7 +6,7 @@ import { ethers } from "ethers";
 import { getSolanaConnection, getSolanaProgram, getSolanaProvider, hexStringToUint8Array } from "./utils";
 import { Keypair } from "@solana/web3.js";
 import * as bs58 from "bs58";
-import { processSepoliaToSolana, processSolanaToSepolia } from "./controller";
+import { processSepoliaToSolana, processSolanaToSepolia, processTokenBridgeFromSolana } from "./controller";
 
 
 parentPort?.on('message', async (message:any) => {
@@ -29,13 +29,13 @@ parentPort?.on('message', async (message:any) => {
     let success = false;
     let signature = "";
     let hash = "";
-    // // Token bridge message.
-    // switch (vaa.emitterAddress) {
-    //     case TOKEN_BRIDGE_SOLANA_PID: {
-    //         [success, hash] = await processTokenBridgeFromSolana(signer);
-    //     }
-    //     break;
-    // }
+    // Token bridge message.
+    switch (vaa.emitterAddress) {
+        case TOKEN_BRIDGE_SOLANA_PID: {
+            [success, hash] = await processTokenBridgeFromSolana(signer, tokenBridge);
+        }
+        break;
+    }
 
     let payload = Buffer.from(vaa.payload);
     const payloadMagic = 0xFE;

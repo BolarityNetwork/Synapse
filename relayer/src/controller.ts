@@ -3,7 +3,7 @@ import {
     CONTRACTS,
     postVaaSolana,
     ChainId,
-    CHAIN_ID_SEPOLIA, SignedVaa,
+    CHAIN_ID_SEPOLIA, SignedVaa, TokenTransfer, TokenBridgePayload,
 } from "@certusone/wormhole-sdk";
 import {
     deriveAddress,
@@ -237,25 +237,51 @@ export async function processSolanaToSepolia(
 }
 
 
-// export async function processTokenBridgeFromSolana(
-//     signer: ethers.Signer,
-// ):Promise<[boolean, string]> {
-//     let executed = false;
-//     const contract = new ethers.Contract(
-//         RELAYER_SEPOLIA_PROGRAM,
-//         contractAbi["abi"],
-//         signer.provider,
-//     );
-//     let hash = "";
-//     try {
-//         const contractWithWallet = contract.connect(signer);
-//         const tx = await contractWithWallet.receiveMessage(vaaBytes);
-//         hash = tx.hash;
-//         await tx.wait();
-//         console.log("Transaction successful:" + hash);
-//         executed = true;
-//     } catch (error) {
-//         console.error("Transaction failed:", error);
-//     }
-//     return [executed, hash];
-// }
+export async function processTokenBridgeFromSolana(
+    signer: ethers.Signer,
+    payload?: TokenTransfer
+):Promise<[boolean, string]> {
+    switch (payload?.payloadType) {
+        case TokenBridgePayload.Transfer:
+            console.log(
+                `Transfer processing for: \n` +
+                `\tToken: ${payload.tokenChain}:${payload.tokenAddress.toString(
+                    "hex",
+                )}\n` +
+                `\tAmount: ${payload.amount}\n` +
+                `\tReceiver: ${payload.toChain}:${payload.to.toString("hex")}\n`,
+            );
+            break;
+        case TokenBridgePayload.TransferWithPayload:
+        {
+            console.log(
+            `Transfer processing for: \n` +
+            `\tToken: ${payload.tokenChain}:${payload.tokenAddress.toString(
+                "hex",
+            )}\n` +
+            `\tAmount: ${payload.amount}\n` +
+            `\tSender ${payload.fromAddress?.toString("hex")}\n` +
+            `\tReceiver: ${payload.toChain}:${payload.to.toString("hex")}\n` +
+            `\tPayload: ${payload.tokenTransferPayload.toString("hex")}\n`,
+            );
+        }
+    }
+    let executed = false;
+    // const contract = new ethers.Contract(
+    //     RELAYER_SEPOLIA_PROGRAM,
+    //     contractAbi["abi"],
+    //     signer.provider,
+    // );
+    let hash = "";
+    // try {
+    //     const contractWithWallet = contract.connect(signer);
+    //     const tx = await contractWithWallet.receiveMessage(vaaBytes);
+    //     hash = tx.hash;
+    //     await tx.wait();
+    //     console.log("Transaction successful:" + hash);
+    //     executed = true;
+    // } catch (error) {
+    //     console.error("Transaction failed:", error);
+    // }
+    return [executed, hash];
+}
