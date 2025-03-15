@@ -1,12 +1,30 @@
 import { parentPort } from "worker_threads";
-import { CHAIN_ID_SEPOLIA, CHAIN_ID_SOLANA, TokenBridgePayload } from "@certusone/wormhole-sdk";
-import { RELAYER_SEPOLIA_SECRET_LIST, RELAYER_SOLANA_SECRET, SEPOLIA_RPC, TOKEN_BRIDGE_SOLANA_PID } from "./consts";
+import { CHAIN_ID_SEPOLIA, CHAIN_ID_SOLANA, TokenBridgePayload, tryNativeToHexString } from "@certusone/wormhole-sdk";
+import {
+    RELAYER_SEPOLIA_SECRET_LIST,
+    RELAYER_SOLANA_SECRET,
+    SEPOLIA_RPC,
+    TOKEN_BRIDGE_RELAYER_SEPOLIA_PID, TOKEN_BRIDGE_RELAYER_SOLANA_PID,
+    TOKEN_BRIDGE_SOLANA_PID,
+} from "./consts";
 import { execute_transaction, init_transaction } from "./relayer_hub";
 import { ethers } from "ethers";
-import { getSolanaConnection, getSolanaProgram, getSolanaProvider, hexStringToUint8Array } from "./utils";
+import {
+    getSolanaConnection,
+    getSolanaProgram,
+    getSolanaProvider,
+    hexStringToUint8Array,
+    rightAlignBuffer,
+} from "./utils";
 import { Keypair } from "@solana/web3.js";
 import * as bs58 from "bs58";
-import { processSepoliaToSolana, processSolanaToSepolia, processTokenBridgeFromSolana } from "./controller";
+import {
+    processSepoliaToSolana,
+    processSolanaToSepolia,
+    processTokenBridgeTransferFromSolana,
+    processTokenBridgeTransferWithPayloadFromSepolia,
+    processTokenBridgeTransferWithPayloadFromSolana,
+} from "./controller";
 
 
 parentPort?.on('message', async (message:any) => {
@@ -29,6 +47,10 @@ parentPort?.on('message', async (message:any) => {
     let success = false;
     let signature = "";
     let hash = "";
+    const tokenBridgeRelayerSolana = tryNativeToHexString(
+        TOKEN_BRIDGE_RELAYER_SOLANA_PID,
+        CHAIN_ID_SOLANA
+    );
     // Token bridge message.
     switch (tokenBridge?.payloadType) {
         case TokenBridgePayload.Transfer: {
@@ -40,6 +62,9 @@ parentPort?.on('message', async (message:any) => {
                 `\tAmount: ${tokenBridge.amount}\n` +
                 `\tReceiver: ${tokenBridge.toChain}:${tokenBridge.to.toString("hex")}\n`,
             );
+            if (vaa.emitterChain == CHAIN_ID_SOLANA) {
+                [success, hash] = await processTokenBridgeTransferFromSolana(signer, vaaBytes);
+            }
         }
         break;
         case TokenBridgePayload.TransferWithPayload: {
@@ -53,6 +78,18 @@ parentPort?.on('message', async (message:any) => {
                 `\tReceiver: ${tokenBridge.toChain}:${tokenBridge.to.toString("hex")}\n` +
                 `\tPayload: ${tokenBridge.tokenTransferPayload.toString("hex")}\n`,
             );
+            if (vaa.emitterChain == CHAIN_ID_SOLANA) {
+                if (tokenBridge.to == rightAlignBuffer(Buffer.from(hexStringToUint8Array(TOKEN_BRIDGE_RELAYER_SEPOLIA_PID)))) {
+                    const contractAbi = JSON.parse(
+                        require("fs").readFileSync(currentDirectory + "/idl/TokenBridgeRelayer.json", "utf8")
+                    );
+                    [success, hash] = await processTokenBridgeTransferWithPayloadFromSolana(signer, contractAbi, vaaBytes);
+                }
+            } else if(vaa.emitterChain == CHAIN_ID_SEPOLIA) {
+                if (tokenBridge.to.toString("hex")==tokenBridgeRelayerSolana){
+                    [success, signature] = await processTokenBridgeTransferWithPayloadFromSepolia(relayerSolanaProgram, vaa, vaaBytes);
+                }
+            }
         }
         break;
     }

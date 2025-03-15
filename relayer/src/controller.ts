@@ -3,7 +3,13 @@ import {
     CONTRACTS,
     postVaaSolana,
     ChainId,
-    CHAIN_ID_SEPOLIA, SignedVaa, TokenTransfer, TokenBridgePayload,
+    CHAIN_ID_SEPOLIA,
+    SignedVaa,
+    TokenTransfer,
+    TokenBridgePayload,
+    getIsTransferCompletedSolana,
+    parseVaa,
+    parseTransferPayload, CHAIN_ID_SOLANA,
 } from "@certusone/wormhole-sdk";
 import {
     deriveAddress,
@@ -18,9 +24,14 @@ import * as tokenBridgeRelayer from "./sdk/";
 import {
     TOKEN_BRIDGE_SOLANA_PID,
     TOKEN_BRIDGE_RELAYER_SOLANA_PID,
-    CROSS_SECRET, SOL_MINT, RELAYER_SEPOLIA_PROGRAM, WORMHOLE_NETWORK,
+    CROSS_SECRET,
+    SOL_MINT,
+    RELAYER_SEPOLIA_PROGRAM,
+    WORMHOLE_NETWORK,
+    TOKEN_BRIDGE_SEPOLIA_PID,
+    TOKEN_BRIDGE_RELAYER_SEPOLIA_PID, CORE_BRIDGE_PID,
 } from "./consts";
-import { sendAndConfirmIx } from "./utils";
+import { createATAForRecipient, postVaaOnSolana, sendAndConfirmIx } from "./utils";
 import { ethers } from "ethers";
 import { Network } from "@certusone/wormhole-sdk/lib/cjs/utils/consts";
 
@@ -237,51 +248,164 @@ export async function processSolanaToSepolia(
 }
 
 
-export async function processTokenBridgeFromSolana(
+export async function processTokenBridgeTransferFromSolana(
     signer: ethers.Signer,
-    payload?: TokenTransfer
+    vaaBytes:SignedVaa,
 ):Promise<[boolean, string]> {
-    switch (payload?.payloadType) {
-        case TokenBridgePayload.Transfer:
-            console.log(
-                `Transfer processing for: \n` +
-                `\tToken: ${payload.tokenChain}:${payload.tokenAddress.toString(
-                    "hex",
-                )}\n` +
-                `\tAmount: ${payload.amount}\n` +
-                `\tReceiver: ${payload.toChain}:${payload.to.toString("hex")}\n`,
-            );
-            break;
-        case TokenBridgePayload.TransferWithPayload:
-        {
-            console.log(
-            `Transfer processing for: \n` +
-            `\tToken: ${payload.tokenChain}:${payload.tokenAddress.toString(
-                "hex",
-            )}\n` +
-            `\tAmount: ${payload.amount}\n` +
-            `\tSender ${payload.fromAddress?.toString("hex")}\n` +
-            `\tReceiver: ${payload.toChain}:${payload.to.toString("hex")}\n` +
-            `\tPayload: ${payload.tokenTransferPayload.toString("hex")}\n`,
-            );
+    let executed = false;
+    const Transfer_ABI = [
+        "function completeTransfer(bytes memory encodedVm) external",
+    ];
+    const contract = new ethers.Contract(
+        TOKEN_BRIDGE_SEPOLIA_PID,
+        Transfer_ABI,
+        signer.provider,
+    );
+    let hash = "";
+    try {
+        const contractWithWallet = contract.connect(signer);
+        const tx = await contractWithWallet.completeTransfer(vaaBytes);
+        hash = tx.hash;
+        await tx.wait();
+        console.log("Transaction successful:" + hash);
+        executed = true;
+    } catch (error) {
+        console.error("Transaction failed:", error);
+    }
+    return [executed, hash];
+}
+
+export async function processTokenBridgeTransferWithPayloadFromSolana(
+    signer: ethers.Signer,
+    contractAbi: { [x: string]: ethers.ContractInterface },
+    vaaBytes:SignedVaa,
+):Promise<[boolean, string]> {
+    let executed = false;
+    const contract = new ethers.Contract(
+        TOKEN_BRIDGE_RELAYER_SEPOLIA_PID,
+        contractAbi["abi"],
+        signer.provider,
+    );
+    let hash = "";
+    try {
+        const contractWithWallet = contract.connect(signer);
+        const tx = await contractWithWallet.completeTransferWithRelay(vaaBytes);
+        hash = tx.hash;
+        await tx.wait();
+        console.log("Transaction successful:" + hash);
+        executed = true;
+    } catch (error) {
+        console.error("Transaction failed:", error);
+    }
+    return [executed, hash];
+}
+
+export async function processTokenBridgeTransferWithPayloadFromSepolia(program:Program, vaa:ParsedVaaWithBytes, vaaBytes:SignedVaa):Promise<[boolean, string]> {
+    let executed = false;
+    let signature ="";
+    let signedVaa = Buffer.from(vaaBytes);
+    const provider = program.provider as anchor.AnchorProvider;
+    const wallet = provider.wallet as unknown as NodeWallet;
+
+    const connection = provider.connection;
+    // Check to see if the VAA has been redeemed already.
+    const isRedeemed = await getIsTransferCompletedSolana(
+        new PublicKey(TOKEN_BRIDGE_SOLANA_PID),
+        signedVaa,
+        connection
+    );
+    if (isRedeemed) {
+        console.log("VAA has already been redeemed");
+    } else {
+        // Parse the VAA.
+        const parsedVaa = parseVaa(signedVaa);
+
+        // Make sure it's a payload 3.
+        const payloadType = parsedVaa.payload.readUint8(0);
+        if (payloadType != 3) {
+            console.log("Not a payload 3");
+        } else {
+            // Parse the payload.
+            const transferPayload = parseTransferPayload(parsedVaa.payload);
+            console.log(transferPayload);
+            const PROGRAM_ID = new PublicKey(TOKEN_BRIDGE_RELAYER_SOLANA_PID);
+            const PROGRAM_ID_HEX = Buffer.from(PROGRAM_ID.toBytes()).toString("hex");
+            // Confirm that the destination is the relayer contract.
+            if (transferPayload.targetAddress != PROGRAM_ID_HEX) {
+                console.log("Destination is not the relayer contract");
+            } else {
+                // Confirm that the sender is a registered relayer contract.
+                const registeredForeignContract =
+                    await tokenBridgeRelayer.getForeignContractData(
+                        connection,
+                        PROGRAM_ID,
+                        parsedVaa.emitterChain as ChainId
+                    );
+                if (
+                    registeredForeignContract.address.toString("hex") !==
+                    transferPayload.fromAddress
+                ) {
+                    console.log("Sender is not a registered relayer contract");
+                } else {
+                    // Post the VAA on chain.
+                    try {
+                        await postVaaOnSolana(
+                            connection,
+                            wallet.payer,
+                            new PublicKey(CORE_BRIDGE_PID),
+                            signedVaa
+                        );
+                    } catch (e) {
+                        console.log(e);
+                    }
+                    // Parse the recipient address from the additional payload.
+                    const recipientInPayload = parsedVaa.payload.subarray(198, 230);
+                    const recipient = new PublicKey(recipientInPayload);
+
+                    // Create the associated token account for the recipient if it doesn't exist.
+                    await createATAForRecipient(
+                        connection,
+                        wallet.payer,
+                        new PublicKey(TOKEN_BRIDGE_SOLANA_PID),
+                        recipient,
+                        transferPayload.originChain as ChainId,
+                        Buffer.from(transferPayload.originAddress, "hex")
+                    );
+
+                    // See if the token being transferred is native to Solana.
+                    const isNative = transferPayload.originChain == CHAIN_ID_SOLANA;
+                    // Create the redemption instruction. There are two different instructions
+                    // depending on whether the token is native or not.
+                    const completeTransferIx = await (isNative
+                        ? tokenBridgeRelayer.createCompleteNativeTransferWithRelayInstruction
+                        : tokenBridgeRelayer.createCompleteWrappedTransferWithRelayInstruction)(
+                        connection,
+                        PROGRAM_ID,
+                        wallet.payer.publicKey,
+                        wallet.payer.publicKey,
+                        new PublicKey(TOKEN_BRIDGE_SOLANA_PID),
+                        CORE_BRIDGE_PID,
+                        signedVaa,
+                        recipient
+                    );
+
+                    // Send the transaction.
+                    const tx = await sendAndConfirmIx(
+                        connection,
+                        completeTransferIx,
+                        wallet.payer,
+                        250000 // compute units
+                    );
+                    if (tx === undefined) {
+                        console.log("Transaction failed.");
+                    } else {
+                        executed = true
+                        signature = tx;
+                        console.log("Transaction successful:", tx);
+                    }
+                }
+            }
         }
     }
-    let executed = false;
-    // const contract = new ethers.Contract(
-    //     RELAYER_SEPOLIA_PROGRAM,
-    //     contractAbi["abi"],
-    //     signer.provider,
-    // );
-    let hash = "";
-    // try {
-    //     const contractWithWallet = contract.connect(signer);
-    //     const tx = await contractWithWallet.receiveMessage(vaaBytes);
-    //     hash = tx.hash;
-    //     await tx.wait();
-    //     console.log("Transaction successful:" + hash);
-    //     executed = true;
-    // } catch (error) {
-    //     console.error("Transaction failed:", error);
-    // }
-    return [executed, hash];
+    return [executed, signature];
 }

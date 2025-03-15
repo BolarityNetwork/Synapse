@@ -122,6 +122,16 @@ export function hexStringToUint8Array(hexString: string): Uint8Array {
     return byteArray;
 }
 
+export function rightAlignBuffer(data: Buffer): Buffer {
+    const buffer = Buffer.alloc(32);
+    const dataLength = data.length;
+    if (dataLength > 32) {
+        throw new Error("Data exceeds 32 bytes");
+    }
+    data.copy(buffer, 32 - dataLength, 0, dataLength);
+    return buffer;
+}
+
 export function getSolanaConnection():Connection {
   const commitment: Commitment = "confirmed";
   return new Connection(SOLANA_RPC, {
