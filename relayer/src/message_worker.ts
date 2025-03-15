@@ -1,5 +1,5 @@
 import { parentPort } from "worker_threads";
-import { CHAIN_ID_SEPOLIA, CHAIN_ID_SOLANA } from "@certusone/wormhole-sdk";
+import { CHAIN_ID_SEPOLIA, CHAIN_ID_SOLANA, TokenBridgePayload } from "@certusone/wormhole-sdk";
 import { RELAYER_SEPOLIA_SECRET_LIST, RELAYER_SOLANA_SECRET, SEPOLIA_RPC, TOKEN_BRIDGE_SOLANA_PID } from "./consts";
 import { execute_transaction, init_transaction } from "./relayer_hub";
 import { ethers } from "ethers";
@@ -30,9 +30,29 @@ parentPort?.on('message', async (message:any) => {
     let signature = "";
     let hash = "";
     // Token bridge message.
-    switch (vaa.emitterAddress) {
-        case TOKEN_BRIDGE_SOLANA_PID: {
-            [success, hash] = await processTokenBridgeFromSolana(signer, tokenBridge);
+    switch (tokenBridge?.payloadType) {
+        case TokenBridgePayload.Transfer: {
+            console.log(
+                `Transfer processing for: \n` +
+                `\tToken: ${tokenBridge.tokenChain}:${tokenBridge.tokenAddress.toString(
+                    "hex",
+                )}\n` +
+                `\tAmount: ${tokenBridge.amount}\n` +
+                `\tReceiver: ${tokenBridge.toChain}:${tokenBridge.to.toString("hex")}\n`,
+            );
+        }
+        break;
+        case TokenBridgePayload.TransferWithPayload: {
+            console.log(
+                `Transfer processing for: \n` +
+                `\tToken: ${tokenBridge.tokenChain}:${tokenBridge.tokenAddress.toString(
+                    "hex",
+                )}\n` +
+                `\tAmount: ${tokenBridge.amount}\n` +
+                `\tSender ${tokenBridge.fromAddress?.toString("hex")}\n` +
+                `\tReceiver: ${tokenBridge.toChain}:${tokenBridge.to.toString("hex")}\n` +
+                `\tPayload: ${tokenBridge.tokenTransferPayload.toString("hex")}\n`,
+            );
         }
         break;
     }
