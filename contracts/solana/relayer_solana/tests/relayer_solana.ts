@@ -472,13 +472,23 @@ describe("relayer_solana", () => {
             }
         }
         const receiver_keypair = Keypair.generate();
-        const payload = Buffer.concat([Buffer.alloc(20), nft_contract, Buffer.alloc(8),receiver_keypair.publicKey.toBuffer()]);
+        const chainIdBuf = Buffer.alloc(2);
+        chainIdBuf.writeUInt16LE(realForeignEmitterChain);
+        const proxyEvmAccount = '0x91A6843858CbD458b018b7701Ed68656F7A3Fbe2';// proxy evm account,random address for test
+        realForeignEmitterAddress.set(hexStringToUint8Array(proxyEvmAccount), 12);
+        const payload = Buffer.concat([
+            hexStringToUint8Array(proxyEvmAccount),
+            nft_contract,
+            Buffer.alloc(8),
+            receiver_keypair.publicKey.toBuffer(),
+            programHackathon.programId.toBuffer(),
+            chainIdBuf,
+        ]);
         const [proofRecordPda] = anchor.web3.PublicKey.findProgramAddressSync(
             [Buffer.from("proof"), payload.slice(20,40), payload.slice(40,48)],
             programVerification.programId);
         const paraEncode = borsh.serialize(payloadSchema, {payload:payload});
         encodedParams = Buffer.concat([paras, paraEncode]);
-        realForeignEmitterAddress.set(hexStringToUint8Array('0x91A6843858CbD458b018b7701Ed68656F7A3Fbe2'), 12);
         realForeignEmitter = deriveAddress(
             [
                 Buffer.from("pda"),
