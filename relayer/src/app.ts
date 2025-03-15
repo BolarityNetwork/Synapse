@@ -13,7 +13,7 @@ import {
 	RELAYER_SOLANA_SECRET,
 	RELAYER_SOLANA_PROGRAM,
 	RELAYER_SEPOLIA_PROGRAM,
-	CHAIN_WORKER_FILE,
+	CHAIN_WORKER_FILE, WORMHOLE_ENVIRONMENT, TOKEN_BRIDGE_SOLANA_PID, TOKEN_BRIDGE_SEPOLIA_PID,
 } from "./consts";
 import {
 	get_relayer_of_current_epoch,
@@ -56,7 +56,7 @@ function runService(workerId: number) {
     chainTasks.forEach(task => runService(task));
     // initialize relayer engine app, pass relevant config options
 	const app = new StandardRelayerApp<StandardRelayerContext>(
-		Environment.TESTNET,
+		WORMHOLE_ENVIRONMENT as Environment,
 		{
 			name: `BolarityRelayer`,
 		},
@@ -73,8 +73,8 @@ function runService(workerId: number) {
 
 	app.multiple(
 		{
-			[CHAIN_ID_SOLANA]: [RELAYER_SOLANA_PROGRAM],
-			[CHAIN_ID_SEPOLIA]: [RELAYER_SEPOLIA_PROGRAM],
+			[CHAIN_ID_SOLANA]: [RELAYER_SOLANA_PROGRAM, TOKEN_BRIDGE_SOLANA_PID],
+			[CHAIN_ID_SEPOLIA]: [RELAYER_SEPOLIA_PROGRAM, TOKEN_BRIDGE_SEPOLIA_PID],
 		},
 		async (ctx, next) => {
 			// Get vaa and check whether it has been executed. If not, continue processing.
@@ -94,7 +94,7 @@ function runService(workerId: number) {
 				console.log("==============Now it's your turn to relay======================");
                 const workerData = workers.find(w => w.workerId === vaa.emitterChain);
                 if(workerData != undefined) {
-                    workerData.worker.postMessage({vaa});
+                    workerData.worker.postMessage({ctx});
                 }
 			// }
 			next();

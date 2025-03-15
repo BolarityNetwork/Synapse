@@ -16,12 +16,13 @@ import { createHash } from 'crypto';
 import * as bs58 from  "bs58";
 import * as tokenBridgeRelayer from "./sdk/";
 import {
-    TOKEN_BRIDGE_PID,
-    TOKEN_BRIDGE_RELAYER_PID,
-    CROSS_SECRET, SOL_MINT, RELAYER_SEPOLIA_PROGRAM,
+    TOKEN_BRIDGE_SOLANA_PID,
+    TOKEN_BRIDGE_RELAYER_SOLANA_PID,
+    CROSS_SECRET, SOL_MINT, RELAYER_SEPOLIA_PROGRAM, WORMHOLE_NETWORK,
 } from "./consts";
 import { sendAndConfirmIx } from "./utils";
 import { ethers } from "ethers";
+import { Network } from "@certusone/wormhole-sdk/lib/cjs/utils/consts";
 
 function sha256(input: string): Buffer {
     const hash = createHash('sha256');
@@ -67,7 +68,7 @@ export async function processSepoliaToSolana(program:Program, vaa:ParsedVaaWithB
     const connection = provider.connection;
 
     let executed = false;
-    const NETWORK = "TESTNET";
+    const NETWORK:Network = WORMHOLE_NETWORK as Network;
     const WORMHOLE_CONTRACTS = CONTRACTS[NETWORK];
     const CORE_BRIDGE_PID = new PublicKey(WORMHOLE_CONTRACTS.solana.core);
     // First, post the VAA to the core bridge
@@ -138,21 +139,26 @@ export async function processSepoliaToSolana(program:Program, vaa:ParsedVaaWithB
         const transferIx =
             await tokenBridgeRelayer.createTransferNativeTokensWithRelayInstruction(
                 connection,
-                TOKEN_BRIDGE_RELAYER_PID,
+                TOKEN_BRIDGE_RELAYER_SOLANA_PID,
                 crossKeypair.publicKey,
-                TOKEN_BRIDGE_PID,
+                TOKEN_BRIDGE_SOLANA_PID,
                 CORE_BRIDGE_PID,
                 mint,
                 sendParams
             );
         console.log(transferIx)
         // Send the transaction.
-        const tx = await sendAndConfirmIx(connection, transferIx, crossKeypair, 250000);
-        if (tx === undefined) {
-            console.log("Transaction failed:", tx);
+        try {
+            const tx = await sendAndConfirmIx(connection, transferIx, crossKeypair, 250000);
+            if (tx === undefined) {
+                console.log("Transaction failed:", tx);
+                return [executed, ""];
+            } else {
+                console.log("Transaction successful, txid: ", tx);
+            }
+        }  catch (error: any) {
+            console.error('Transaction failed:', error);
             return [executed, ""];
-        } else {
-            console.log("Transaction successful:", tx);
         }
     }
     const contract_pbkey = new PublicKey(exp_RawData.programId)
@@ -194,7 +200,7 @@ export async function processSepoliaToSolana(program:Program, vaa:ParsedVaaWithB
     try {
         let commitment: Commitment = 'confirmed';
         signature = await sendAndConfirmTransaction(connection, tx3, [wallet.payer], {commitment});
-        console.log('Transaction successful, txid:' + signature);
+        console.log('Transaction successful, txid: ' + signature);
         executed = true;
     }
     catch (error: any) {
@@ -222,10 +228,34 @@ export async function processSolanaToSepolia(
         const tx = await contractWithWallet.receiveMessage(vaaBytes);
         hash = tx.hash;
         await tx.wait();
-        console.log("Transaction successful");
+        console.log("Transaction successful:" + hash);
         executed = true;
     } catch (error) {
         console.error("Transaction failed:", error);
     }
     return [executed, hash];
 }
+
+
+// export async function processTokenBridgeFromSolana(
+//     signer: ethers.Signer,
+// ):Promise<[boolean, string]> {
+//     let executed = false;
+//     const contract = new ethers.Contract(
+//         RELAYER_SEPOLIA_PROGRAM,
+//         contractAbi["abi"],
+//         signer.provider,
+//     );
+//     let hash = "";
+//     try {
+//         const contractWithWallet = contract.connect(signer);
+//         const tx = await contractWithWallet.receiveMessage(vaaBytes);
+//         hash = tx.hash;
+//         await tx.wait();
+//         console.log("Transaction successful:" + hash);
+//         executed = true;
+//     } catch (error) {
+//         console.error("Transaction failed:", error);
+//     }
+//     return [executed, hash];
+// }

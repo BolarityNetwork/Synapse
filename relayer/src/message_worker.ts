@@ -1,6 +1,6 @@
 import { parentPort } from "worker_threads";
 import { CHAIN_ID_SEPOLIA, CHAIN_ID_SOLANA } from "@certusone/wormhole-sdk";
-import { RELAYER_SEPOLIA_SECRET_LIST, RELAYER_SOLANA_SECRET, SEPOLIA_RPC } from "./consts";
+import { RELAYER_SEPOLIA_SECRET_LIST, RELAYER_SOLANA_SECRET, SEPOLIA_RPC, TOKEN_BRIDGE_SOLANA_PID } from "./consts";
 import { execute_transaction, init_transaction } from "./relayer_hub";
 import { ethers } from "ethers";
 import { getSolanaConnection, getSolanaProgram, getSolanaProvider, hexStringToUint8Array } from "./utils";
@@ -10,7 +10,10 @@ import { processSepoliaToSolana, processSolanaToSepolia } from "./controller";
 
 
 parentPort?.on('message', async (message:any) => {
-    const { taskId, vaa, vaaBytes } = message;
+    const { taskId, ctx } = message;
+    let vaa = ctx.vaa;
+    let vaaBytes = vaa.vaaBytes;
+
     const relayerSolanaKeypair = Keypair.fromSecretKey(bs58.decode(RELAYER_SOLANA_SECRET));
 
     const connection = getSolanaConnection();
@@ -24,28 +27,48 @@ parentPort?.on('message', async (message:any) => {
     var index = Number(taskId)%RELAYER_SEPOLIA_SECRET_LIST.length;
     const privateKey = RELAYER_SEPOLIA_SECRET_LIST[index];
     const signer = new ethers.Wallet(privateKey, new ethers.providers.JsonRpcProvider(SEPOLIA_RPC));
-    const contractAbi = JSON.parse(
-        require("fs").readFileSync(currentDirectory + "/idl/UniProxy.json", "utf8")
-    );
 
-    if((vaa.emitterChain == CHAIN_ID_SEPOLIA) || (vaa.emitterChain == CHAIN_ID_SOLANA) ) {
-        // record relay transaction
-        // let sequence = await init_transaction(relayerHubProgram, Buffer.from(vaaBytes));
-        let success = false;
-        // let hash_buffer;
-        let hash;
-        if (vaa.emitterChain == CHAIN_ID_SEPOLIA) {
-        	let signature;
-        	[success, signature] = await processSepoliaToSolana(relayerSolanaProgram, vaa, vaaBytes);
-        	// if (signature!= "") {
-        	// 	hash_buffer = bs58.decode(signature);
-        	// }
-        } else if (vaa.emitterChain == CHAIN_ID_SOLANA) {
-        	[success, hash] = await processSolanaToSepolia(signer, contractAbi, vaaBytes);
-        	// hash_buffer = Buffer.from(hexStringToUint8Array(hash));
+    let success = false;
+    let signature = "";
+    let hash = "";
+    // // Token bridge message.
+    // switch (vaa.emitterAddress) {
+    //     case TOKEN_BRIDGE_SOLANA_PID: {
+    //         [success, hash] = await processTokenBridgeFromSolana(signer);
+    //     }
+    //     break;
+    // }
+
+    let payload = Buffer.from(vaa.payload);
+    const payloadMagic = 0xFE;
+    // check payload head
+    if((payload.length > 8)&& payload[0] == payloadMagic) {
+        let fromChain = payload.slice(4,6).readUInt16BE();
+        let toChain = payload.slice(6,8).readUInt16BE();
+
+        if((vaa.emitterChain == CHAIN_ID_SEPOLIA) || (vaa.emitterChain == CHAIN_ID_SOLANA) ) {
+            // record relay transaction
+            // let sequence = await init_transaction(relayerHubProgram, Buffer.from(vaaBytes));
+
+            // let hash_buffer;
+
+            if ((fromChain == CHAIN_ID_SEPOLIA) && (toChain == CHAIN_ID_SOLANA)) {
+
+                [success, signature] = await processSepoliaToSolana(relayerSolanaProgram, vaa, vaaBytes);
+                // if (signature!= "") {
+                // 	hash_buffer = bs58.decode(signature);
+                // }
+            } else if ((fromChain == CHAIN_ID_SOLANA) && (toChain == CHAIN_ID_SEPOLIA)) {
+                const contractAbi = JSON.parse(
+                    require("fs").readFileSync(currentDirectory + "/idl/UniProxy.json", "utf8")
+                );
+                [success, hash] = await processSolanaToSepolia(signer, contractAbi, vaaBytes);
+                // hash_buffer = Buffer.from(hexStringToUint8Array(hash));
+            }
+
+            // await execute_transaction(relayerHubProgram, sequence, success, hash_buffer);
         }
-
-        // await execute_transaction(relayerHubProgram, sequence, success, hash_buffer);
     }
+
     parentPort?.postMessage('done');
 });
