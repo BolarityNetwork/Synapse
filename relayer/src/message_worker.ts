@@ -10,9 +10,7 @@ import { processSepoliaToSolana, processSolanaToSepolia } from "./controller";
 
 
 parentPort?.on('message', async (message:any) => {
-    const { taskId, ctx } = message;
-    let vaa = ctx.vaa;
-    let vaaBytes = vaa.vaaBytes;
+    const { taskId, vaa, vaaBytes,  tokenBridge} = message;
 
     const relayerSolanaKeypair = Keypair.fromSecretKey(bs58.decode(RELAYER_SOLANA_SECRET));
 

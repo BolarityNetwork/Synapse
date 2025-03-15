@@ -79,6 +79,7 @@ function runService(workerId: number) {
 		async (ctx, next) => {
 			// Get vaa and check whether it has been executed. If not, continue processing.
 			const vaa = ctx.vaa;
+			const tokenBridge = ctx.tokenBridge;
 			let hash = ctx.sourceTxHash;
 			const now: Date = new Date();
 			console.log(
@@ -94,7 +95,7 @@ function runService(workerId: number) {
 				console.log("==============Now it's your turn to relay======================");
                 const workerData = workers.find(w => w.workerId === vaa.emitterChain);
                 if(workerData != undefined) {
-                    workerData.worker.postMessage({ctx});
+                    workerData.worker.postMessage({vaa, tokenBridge});
                 }
 			// }
 			next();
