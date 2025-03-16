@@ -103,9 +103,7 @@ function runService(workerId: number) {
 				[Buffer.from("emitter")],
 				new PublicKey(TOKEN_BRIDGE_SOLANA_PID))[0].toBuffer();
 
-			const tkBrgSepoliaEmitter = PublicKey.findProgramAddressSync(
-				[Buffer.from("emitter")],
-				new PublicKey(TOKEN_BRIDGE_SEPOLIA_PID))[0].toBuffer();
+			const tkBrgSepoliaEmitter = rightAlignBuffer(Buffer.from(hexStringToUint8Array(TOKEN_BRIDGE_SEPOLIA_PID)));
 
 			let skipProcess = false;
 			// Token bridge message.
