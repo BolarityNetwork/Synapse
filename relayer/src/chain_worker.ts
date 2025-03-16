@@ -15,11 +15,20 @@ async function createNestedWorker(task: any) {
     return new Promise<any>((resolve, reject) => {
         const worker = new Worker(MESSAGE_WORKER_FILE);
 
-        worker.on('message', resolve);
+        worker.on('message', (msg) => {
+            if (msg === 'done') {
+                worker.terminate();
+                parentPort?.close();
+            } else {
+                resolve('Nested worker has completed its task.');
+            }
+        });
         worker.on('error', reject);
         worker.on('exit', (code) => {
             if (code !== 0) {
-                reject(new Error(`Worker stopped with exit code ${code}`));
+                reject(new Error(`Nested worker stopped with exit code ${code}`));
+            } else {
+                console.log('Nested worker exited successfully.');
             }
         });
         worker.postMessage(task)
