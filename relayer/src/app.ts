@@ -4,23 +4,33 @@ import {
 	StandardRelayerContext,
 } from "@wormhole-foundation/relayer-engine";
 import {
-    Keypair,
+	Keypair, PublicKey,
 } from "@solana/web3.js";
 import {
-	CHAIN_ID_SOLANA ,CHAIN_ID_SEPOLIA
+	CHAIN_ID_SOLANA, CHAIN_ID_SEPOLIA, tryNativeToHexString, TokenBridgePayload,
 } from "@certusone/wormhole-sdk";
 import {
 	RELAYER_SOLANA_SECRET,
 	RELAYER_SOLANA_PROGRAM,
 	RELAYER_SEPOLIA_PROGRAM,
-	CHAIN_WORKER_FILE, WORMHOLE_ENVIRONMENT, TOKEN_BRIDGE_SOLANA_PID, TOKEN_BRIDGE_SEPOLIA_PID,
+	CHAIN_WORKER_FILE,
+	WORMHOLE_ENVIRONMENT,
+	TOKEN_BRIDGE_SOLANA_PID,
+	TOKEN_BRIDGE_SEPOLIA_PID,
+	TOKEN_BRIDGE_RELAYER_SOLANA_PID, TOKEN_BRIDGE_RELAYER_SEPOLIA_PID,
 } from "./consts";
 import {
 	get_relayer_of_current_epoch,
 } from "./relayer_hub"
 import * as bs58 from  "bs58";
 import { Worker } from 'worker_threads';
-import { getSolanaConnection, getSolanaProgram, getSolanaProvider } from "./utils";
+import {
+	getSolanaConnection,
+	getSolanaProgram,
+	getSolanaProvider,
+	hexStringToUint8Array,
+	rightAlignBuffer,
+} from "./utils";
 
 const chainTasks: number[] = [CHAIN_ID_SOLANA, CHAIN_ID_SEPOLIA];
 interface WorkerData {
@@ -74,7 +84,7 @@ function runService(workerId: number) {
 	app.multiple(
 		{
 			[CHAIN_ID_SOLANA]: [RELAYER_SOLANA_PROGRAM, TOKEN_BRIDGE_SOLANA_PID],
-			[CHAIN_ID_SEPOLIA]: [RELAYER_SEPOLIA_PROGRAM],
+			[CHAIN_ID_SEPOLIA]: [RELAYER_SEPOLIA_PROGRAM, TOKEN_BRIDGE_SEPOLIA_PID],
 		},
 		async (ctx, next) => {
 			// Get vaa and check whether it has been executed. If not, continue processing.
@@ -88,16 +98,62 @@ function runService(workerId: number) {
 			console.log(
 				`===============Got a VAA: ${Buffer.from(ctx.vaaBytes).toString('hex')}=========================`,
 			);
-			let currentRelayer = await get_relayer_of_current_epoch(relayerHubProgram);
-			console.log(`================current relayer:${currentRelayer.toBase58()}, your relayer:${relayer.toBase58()}`);
+			// Filter out messages that do not need to be processed.
+			const tkBrgSolanaEmitter = PublicKey.findProgramAddressSync(
+				[Buffer.from("emitter")],
+				new PublicKey(TOKEN_BRIDGE_SOLANA_PID))[0].toBuffer();
 
-			// if (currentRelayer.toBase58() == relayer.toBase58()) {
+			const tkBrgSepoliaEmitter = PublicKey.findProgramAddressSync(
+				[Buffer.from("emitter")],
+				new PublicKey(TOKEN_BRIDGE_SEPOLIA_PID))[0].toBuffer();
+
+			let skipProcess = false;
+			// Token bridge message.
+			if( ((vaa.emitterChain == CHAIN_ID_SOLANA) && (vaa.emitterAddress == tkBrgSolanaEmitter)) ||
+				((vaa.emitterChain == CHAIN_ID_SEPOLIA) && (vaa.emitterAddress == tkBrgSepoliaEmitter))) {
+
+				switch (payload?.payloadType) {
+					case TokenBridgePayload.Transfer: {
+						// Only redeem solana's cross-chain transfer.
+						if (vaa.emitterChain != CHAIN_ID_SOLANA) {
+							skipProcess = true;
+						}
+					}
+					break;
+					case TokenBridgePayload.TransferWithPayload: {
+						if (vaa.emitterChain == CHAIN_ID_SOLANA) {
+							if (payload.to != rightAlignBuffer(
+								Buffer.from(hexStringToUint8Array(TOKEN_BRIDGE_RELAYER_SEPOLIA_PID)))) {
+								skipProcess = true;
+							}
+						} else if(vaa.emitterChain == CHAIN_ID_SEPOLIA) {
+							if (payload.to.toString("hex") != tryNativeToHexString(
+								TOKEN_BRIDGE_RELAYER_SOLANA_PID,
+								CHAIN_ID_SOLANA
+							)) {
+								skipProcess = true;
+							}
+						}
+					}
+					break;
+					default:{
+						skipProcess = true;
+					}
+				}
+			}
+
+			if(!skipProcess) {
+				// let currentRelayer = await get_relayer_of_current_epoch(relayerHubProgram);
+				// console.log(`================current relayer:${currentRelayer.toBase58()}, your relayer:${relayer.toBase58()}`);
+
+				// if (currentRelayer.toBase58() == relayer.toBase58()) {
 				console.log("==============Now it's your turn to relay======================");
-                const workerData = workers.find(w => w.workerId === vaa.emitterChain);
-                if(workerData != undefined) {
-                    workerData.worker.postMessage({vaa, tokenBridge:payload});
-                }
-			// }
+				const workerData = workers.find(w => w.workerId === vaa.emitterChain);
+				if(workerData != undefined) {
+					workerData.worker.postMessage({vaa, tokenBridge:payload});
+				}
+				// }
+			}
 			next();
 		},
 	);
