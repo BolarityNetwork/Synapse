@@ -29,7 +29,7 @@ import {
     RELAYER_SEPOLIA_PROGRAM,
     WORMHOLE_NETWORK,
     TOKEN_BRIDGE_SEPOLIA_PID,
-    TOKEN_BRIDGE_RELAYER_SEPOLIA_PID, CORE_BRIDGE_PID,
+    TOKEN_BRIDGE_RELAYER_SEPOLIA_PID, CORE_BRIDGE_PID, TOKEN_BRIDGE_SOLANA_FEE_RECIPIENT,
 } from "./consts";
 import { createATAForRecipient, postVaaOnSolana, sendAndConfirmIx } from "./utils";
 import { ethers } from "ethers";
@@ -382,7 +382,7 @@ export async function processTokenBridgeTransferWithPayloadFromSepolia(program:P
                         connection,
                         PROGRAM_ID,
                         wallet.payer.publicKey,
-                        wallet.payer.publicKey,
+                        new PublicKey(TOKEN_BRIDGE_SOLANA_FEE_RECIPIENT),
                         new PublicKey(TOKEN_BRIDGE_SOLANA_PID),
                         CORE_BRIDGE_PID,
                         signedVaa,

@@ -86,7 +86,7 @@ if (parentPort) {
                         [success, hash] = await processTokenBridgeTransferWithPayloadFromSolana(signer, contractAbi, vaaBytes);
                     }
                 } else if(vaa.emitterChain == CHAIN_ID_SEPOLIA) {
-                    if (tokenBridge.to.toString("hex")==tokenBridgeRelayerSolana){
+                    if (Buffer.from(tokenBridge.to).toString("hex")==tokenBridgeRelayerSolana){
                         [success, signature] = await processTokenBridgeTransferWithPayloadFromSepolia(relayerSolanaProgram, vaa, vaaBytes);
                     }
                 }
@@ -124,6 +124,7 @@ if (parentPort) {
                 // await execute_transaction(relayerHubProgram, sequence, success, hash_buffer);
             }
         }
+        await new Promise(resolve => setTimeout(resolve, 2000));
         parentPort?.postMessage('done');
         process.exit(0)
     });
