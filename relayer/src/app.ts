@@ -105,11 +105,13 @@ function runService(workerId: number) {
 
 			const tkBrgSepoliaEmitter = rightAlignBuffer(Buffer.from(hexStringToUint8Array(TOKEN_BRIDGE_SEPOLIA_PID)));
 
+			console.log(`===============emitterAddress: ${Buffer.from(vaa.emitterAddress).toString('hex')}=========================`);
 			let skipProcess = false;
 			// Token bridge message.
 			if( ((vaa.emitterChain == CHAIN_ID_SOLANA) && (vaa.emitterAddress == tkBrgSolanaEmitter)) ||
 				((vaa.emitterChain == CHAIN_ID_SEPOLIA) && (vaa.emitterAddress == tkBrgSepoliaEmitter))) {
-
+				console.log(`=====emitterChain:${vaa.emitterChain}==========tkBrgSolanaEmitter: ${tkBrgSolanaEmitter.toString('hex')}=========================`);
+				console.log(`======emitterChain:${vaa.emitterChain}=========tkBrgSepoliaEmitter: ${tkBrgSepoliaEmitter.toString('hex')}=========================`);
 				switch (payload?.payloadType) {
 					case TokenBridgePayload.Transfer: {
 						// Only redeem solana's cross-chain transfer.

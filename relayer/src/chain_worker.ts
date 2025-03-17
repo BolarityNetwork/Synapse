@@ -12,27 +12,21 @@ const queue = new Queue<Job>();
 const mutex = new Mutex();
 
 async function createNestedWorker(task: any) {
-    return new Promise<any>((resolve, reject) => {
-        const worker = new Worker(MESSAGE_WORKER_FILE);
+    const nestedWorker = new Worker(MESSAGE_WORKER_FILE);
 
-        worker.on('message', (msg) => {
+    nestedWorker.on('message', (msg) => {
             if (msg === 'done') {
-                worker.terminate();
-                parentPort?.close();
-            } else {
-                resolve('Nested worker has completed its task.');
+                console.log('Nested worker has completed its task.');
+                parentPort?.postMessage(`done`);
             }
         });
-        worker.on('error', reject);
-        worker.on('exit', (code) => {
-            if (code !== 0) {
-                reject(new Error(`Nested worker stopped with exit code ${code}`));
-            } else {
-                console.log('Nested worker exited successfully.');
-            }
+    nestedWorker.on('error', (error) => {
+            console.error('Nested worker error:', error);
         });
-        worker.postMessage(task)
-    });
+    nestedWorker.on('exit', (code) => {
+                console.log(`Nested worker stopped with exit code ${code}`);
+        });
+    nestedWorker.postMessage(task)
 }
 
 async function processQueue() {
