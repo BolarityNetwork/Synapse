@@ -118,7 +118,9 @@ if (parentPort) {
                         require("fs").readFileSync(currentDirectory + "/idl/UniProxy.json", "utf8")
                     );
                     [success, hash] = await processSolanaToSepolia(signer, contractAbi, vaaBytes);
-                    hash_buffer = Buffer.from(hexStringToUint8Array(hash));
+                    hash_buffer = Buffer.alloc(64);
+                    let sourceBuffer = Buffer.from(hexStringToUint8Array(hash));
+                    sourceBuffer.copy(hash_buffer, 32, 0, sourceBuffer.length);
                 }
 
                 await execute_transaction(relayerHubProgram, sequence, success, hash_buffer);
