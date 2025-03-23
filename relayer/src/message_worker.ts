@@ -103,25 +103,25 @@ if (parentPort) {
 
             if((vaa.emitterChain == CHAIN_ID_SEPOLIA) || (vaa.emitterChain == CHAIN_ID_SOLANA) ) {
                 // record relay transaction
-                // let sequence = await init_transaction(relayerHubProgram, Buffer.from(vaaBytes));
+                let sequence = await init_transaction(relayerHubProgram, Buffer.from(vaaBytes));
 
-                // let hash_buffer;
+                let hash_buffer;
 
                 if ((fromChain == CHAIN_ID_SEPOLIA) && (toChain == CHAIN_ID_SOLANA)) {
 
                     [success, signature] = await processSepoliaToSolana(relayerSolanaProgram, vaa, vaaBytes);
-                    // if (signature!= "") {
-                    // 	hash_buffer = bs58.decode(signature);
-                    // }
+                    if (signature!= "") {
+                    	hash_buffer = bs58.decode(signature);
+                    }
                 } else if ((fromChain == CHAIN_ID_SOLANA) && (toChain == CHAIN_ID_SEPOLIA)) {
                     const contractAbi = JSON.parse(
                         require("fs").readFileSync(currentDirectory + "/idl/UniProxy.json", "utf8")
                     );
                     [success, hash] = await processSolanaToSepolia(signer, contractAbi, vaaBytes);
-                    // hash_buffer = Buffer.from(hexStringToUint8Array(hash));
+                    hash_buffer = Buffer.from(hexStringToUint8Array(hash));
                 }
 
-                // await execute_transaction(relayerHubProgram, sequence, success, hash_buffer);
+                await execute_transaction(relayerHubProgram, sequence, success, hash_buffer);
             }
         }
         await new Promise(resolve => setTimeout(resolve, 2000));

@@ -83,8 +83,8 @@ function runService(workerId: number) {
 
 	app.multiple(
 		{
-			[CHAIN_ID_SOLANA]: [RELAYER_SOLANA_PROGRAM, TOKEN_BRIDGE_SOLANA_PID],
-			[CHAIN_ID_SEPOLIA]: [RELAYER_SEPOLIA_PROGRAM, TOKEN_BRIDGE_SEPOLIA_PID],
+			[CHAIN_ID_SOLANA]: [RELAYER_SOLANA_PROGRAM],
+			[CHAIN_ID_SEPOLIA]: [RELAYER_SEPOLIA_PROGRAM],
 		},
 		async (ctx, next) => {
 			// Get vaa and check whether it has been executed. If not, continue processing.
@@ -143,16 +143,16 @@ function runService(workerId: number) {
 			}
 
 			if(!skipProcess) {
-				// let currentRelayer = await get_relayer_of_current_epoch(relayerHubProgram);
-				// console.log(`================current relayer:${currentRelayer.toBase58()}, your relayer:${relayer.toBase58()}`);
+				let currentRelayer = await get_relayer_of_current_epoch(relayerHubProgram);
+				console.log(`================current relayer:${currentRelayer.toBase58()}, your relayer:${relayer.toBase58()}`);
 
-				// if (currentRelayer.toBase58() == relayer.toBase58()) {
-				console.log("==============Now it's your turn to relay======================");
-				const workerData = workers.find(w => w.workerId === vaa.emitterChain);
-				if(workerData != undefined) {
-					workerData.worker.postMessage({vaa, tokenBridge:payload});
+				if (currentRelayer.toBase58() == relayer.toBase58()) {
+					console.log("==============Now it's your turn to relay======================");
+					const workerData = workers.find(w => w.workerId === vaa.emitterChain);
+					if(workerData != undefined) {
+						workerData.worker.postMessage({vaa, tokenBridge:payload});
+					}
 				}
-				// }
 			}
 			next();
 		},
