@@ -12,21 +12,28 @@ const queue = new Queue<Job>();
 const mutex = new Mutex();
 
 async function createNestedWorker(task: any) {
-    const nestedWorker = new Worker(MESSAGE_WORKER_FILE);
+    return new Promise<void>((resolve, reject) => {
+        const nestedWorker = new Worker(MESSAGE_WORKER_FILE);
 
-    nestedWorker.on('message', (msg) => {
-            if (msg === 'done') {
-                console.log('Nested worker has completed its task.');
+        nestedWorker.on("message", msg => {
+            if (msg === "done") {
+                console.log("Nested worker has completed its task.");
                 parentPort?.postMessage(`done`);
+                resolve();
             }
         });
-    nestedWorker.on('error', (error) => {
-            console.error('Nested worker error:', error);
+        nestedWorker.on("error", error => {
+            console.error("Nested worker error:", error);
+            reject(error);
         });
-    nestedWorker.on('exit', (code) => {
-                console.log(`Nested worker stopped with exit code ${code}`);
+        nestedWorker.on("exit", code => {
+            console.log(`Nested worker stopped with exit code ${code}`);
+            if (code !== 0) {
+                reject(new Error(`Worker stopped with exit code ${code}`));
+            }
         });
-    nestedWorker.postMessage(task)
+        nestedWorker.postMessage(task);
+    });
 }
 
 async function processQueue() {
@@ -38,7 +45,11 @@ async function processQueue() {
                 const item = queue.dequeue();
                 // Allocate a thread to perform message relay.
                 const { vaa, tokenBridge } = item.arg;
-                await createNestedWorker({ taskId:i, vaa, vaaBytes:vaa.bytes,  tokenBridge});
+                try {
+                    await createNestedWorker({ taskId:i, vaa, vaaBytes:vaa.bytes,  tokenBridge});
+                } catch (error) {
+                    console.error('Error processing task:', error);
+                }
                 if (queue.isEmpty()) {
                     break
                 }

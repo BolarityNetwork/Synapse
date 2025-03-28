@@ -27,6 +27,7 @@ import {
     CROSS_SECRET,
     SOL_MINT,
     RELAYER_SEPOLIA_PROGRAM,
+    RELAYER_BASE_SEPOLIA_PROGRAM,
     WORMHOLE_NETWORK,
     TOKEN_BRIDGE_SEPOLIA_PID,
     TOKEN_BRIDGE_RELAYER_SEPOLIA_PID, CORE_BRIDGE_PID, TOKEN_BRIDGE_SOLANA_FEE_RECIPIENT,
@@ -221,15 +222,15 @@ export async function processSepoliaToSolana(program:Program, vaa:ParsedVaaWithB
     return [executed, signature];
 }
 
-
-export async function processSolanaToSepolia(
+async function processSolanaToEvm(
     signer: ethers.Signer,
     contractAbi: { [x: string]: ethers.ContractInterface },
     vaaBytes:SignedVaa,
+    address:string,
 ):Promise<[boolean, string]> {
     let executed = false;
     const contract = new ethers.Contract(
-        RELAYER_SEPOLIA_PROGRAM,
+        address,
         contractAbi["abi"],
         signer.provider,
     );
@@ -246,7 +247,21 @@ export async function processSolanaToSepolia(
     }
     return [executed, hash];
 }
+export async function processSolanaToSepolia(
+    signer: ethers.Signer,
+    contractAbi: { [x: string]: ethers.ContractInterface },
+    vaaBytes:SignedVaa,
+):Promise<[boolean, string]> {
+    return await processSolanaToEvm(signer, contractAbi, vaaBytes, RELAYER_SEPOLIA_PROGRAM);
+}
 
+export async function processSolanaToBaseSepolia(
+    signer: ethers.Signer,
+    contractAbi: { [x: string]: ethers.ContractInterface },
+    vaaBytes:SignedVaa,
+):Promise<[boolean, string]> {
+    return await processSolanaToEvm(signer, contractAbi, vaaBytes, RELAYER_BASE_SEPOLIA_PROGRAM);
+}
 
 export async function processTokenBridgeTransferFromSolana(
     signer: ethers.Signer,

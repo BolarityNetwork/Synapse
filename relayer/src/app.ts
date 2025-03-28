@@ -7,7 +7,7 @@ import {
 	Keypair, PublicKey,
 } from "@solana/web3.js";
 import {
-	CHAIN_ID_SOLANA, CHAIN_ID_SEPOLIA, tryNativeToHexString, TokenBridgePayload,
+	CHAIN_ID_SOLANA, CHAIN_ID_SEPOLIA, tryNativeToHexString, TokenBridgePayload, CHAIN_ID_BASE_SEPOLIA
 } from "@certusone/wormhole-sdk";
 import {
 	RELAYER_SOLANA_SECRET,
@@ -17,7 +17,9 @@ import {
 	WORMHOLE_ENVIRONMENT,
 	TOKEN_BRIDGE_SOLANA_PID,
 	TOKEN_BRIDGE_SEPOLIA_PID,
-	TOKEN_BRIDGE_RELAYER_SOLANA_PID, TOKEN_BRIDGE_RELAYER_SEPOLIA_PID,
+	TOKEN_BRIDGE_RELAYER_SOLANA_PID,
+	TOKEN_BRIDGE_RELAYER_SEPOLIA_PID,
+	RELAYER_BASE_SEPOLIA_PROGRAM,
 } from "./consts";
 import {
 	get_relayer_of_current_epoch,
@@ -32,7 +34,7 @@ import {
 	rightAlignBuffer,
 } from "./utils";
 
-const chainTasks: number[] = [CHAIN_ID_SOLANA, CHAIN_ID_SEPOLIA];
+const chainTasks: number[] = [CHAIN_ID_SOLANA, CHAIN_ID_SEPOLIA, CHAIN_ID_BASE_SEPOLIA];
 interface WorkerData {
     worker: Worker;
     workerId: number;
@@ -85,6 +87,7 @@ function runService(workerId: number) {
 		{
 			[CHAIN_ID_SOLANA]: [RELAYER_SOLANA_PROGRAM],
 			[CHAIN_ID_SEPOLIA]: [RELAYER_SEPOLIA_PROGRAM],
+			[CHAIN_ID_BASE_SEPOLIA]: [RELAYER_BASE_SEPOLIA_PROGRAM],
 		},
 		async (ctx, next) => {
 			// Get vaa and check whether it has been executed. If not, continue processing.

@@ -82,7 +82,7 @@
 
 "@certusone/wormhole-sdk@^0.10.11":
   version "0.10.18"
-  resolved "https://registry.npmjs.org/@certusone/wormhole-sdk/-/wormhole-sdk-0.10.18.tgz"
+  resolved "https://registry.yarnpkg.com/@certusone/wormhole-sdk/-/wormhole-sdk-0.10.18.tgz#a300381b838108d3fc31be2056de976e718029a9"
   integrity sha512-VuN4AGB018ELkzTT/jN+yWgE6TWqXsHilxxCVWqGctzow2hKSFd8ADUhxhHigies436rS0vPvrgXi6m0J1+Ecw==
   dependencies:
     "@certusone/wormhole-sdk-proto-web" "0.0.7"
