@@ -8,19 +8,25 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract NFT is ERC721Enumerable, Ownable {
     uint256 public mintPrice;
     uint256 public nextTokenId;
+    uint256 public maxNumber;
     string public _baseTokenURI;
 
     event Minted(address indexed owner, uint256 indexed tokenId);
 
-    constructor(string memory name, string memory symbol, uint256 _mintPrice)
+    constructor(string memory name, string memory symbol, uint256 _mintPrice, uint256 _maxNumber)
     ERC721(name, symbol)
     {
         mintPrice = _mintPrice;
         nextTokenId = 1;
+        maxNumber = _maxNumber;
     }
 
     function setBaseURI(string memory baseURI_) external onlyOwner() {
         _baseTokenURI = baseURI_;
+    }
+
+    function setMaxNumber(uint256 _maxNumber) external onlyOwner() {
+        maxNumber = _maxNumber;
     }
 
     function _baseURI() internal view virtual override returns (string memory) {
@@ -31,6 +37,7 @@ contract NFT is ERC721Enumerable, Ownable {
     external payable
     {
         require(msg.value >= mintPrice, "Insufficient funds to mint NFT");
+        require(nextTokenId <= maxNumber, "The mint limit has been reached");
 
         uint256 tokenId = nextTokenId;
         nextTokenId++;

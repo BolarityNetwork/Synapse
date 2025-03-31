@@ -26,7 +26,14 @@ const config: HardhatUserConfig = {
           accounts: [
               process.env.USER_EVM_PRIVATE!,
           ]
-    }
+    },
+  base_sepolia: {
+      url: process.env.EVM_RPC!,
+      chainId: 84532,
+      accounts: [
+          process.env.USER_EVM_PRIVATE!,
+      ]
+  },
   },
 };
 
