@@ -266,13 +266,14 @@ export async function processSolanaToBaseSepolia(
 export async function processTokenBridgeTransferFromSolana(
     signer: ethers.Signer,
     vaaBytes:SignedVaa,
+    contractAddress:string,
 ):Promise<[boolean, string]> {
     let executed = false;
     const Transfer_ABI = [
         "function completeTransfer(bytes memory encodedVm) external",
     ];
     const contract = new ethers.Contract(
-        TOKEN_BRIDGE_SEPOLIA_PID,
+        contractAddress,
         Transfer_ABI,
         signer.provider,
     );

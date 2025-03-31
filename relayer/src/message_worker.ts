@@ -11,8 +11,8 @@ import {
     RELAYER_BASE_SEPOLIA_SECRET_LIST,
     RELAYER_SEPOLIA_SECRET_LIST,
     RELAYER_SOLANA_SECRET,
-    SEPOLIA_RPC,
-    TOKEN_BRIDGE_RELAYER_SEPOLIA_PID, TOKEN_BRIDGE_RELAYER_SOLANA_PID,
+    SEPOLIA_RPC, TOKEN_BRIDGE_BASE_SEPOLIA_PID,
+    TOKEN_BRIDGE_RELAYER_SEPOLIA_PID, TOKEN_BRIDGE_RELAYER_SOLANA_PID, TOKEN_BRIDGE_SEPOLIA_PID,
     TOKEN_BRIDGE_SOLANA_PID,
 } from "./consts";
 import { execute_transaction, init_transaction } from "./relayer_hub";
@@ -75,7 +75,11 @@ if (parentPort) {
                     `\tReceiver: ${tokenBridge.toChain}:${tokenBridge.to.toString("hex")}\n`,
                 );
                 if (vaa.emitterChain == CHAIN_ID_SOLANA) {
-                    [success, hash] = await processTokenBridgeTransferFromSolana(signer, vaaBytes);
+                    let contract = TOKEN_BRIDGE_SEPOLIA_PID;
+                    if(tokenBridge.toChain == CHAIN_ID_BASE_SEPOLIA) {
+                        contract = TOKEN_BRIDGE_BASE_SEPOLIA_PID;
+                    }
+                    [success, hash] = await processTokenBridgeTransferFromSolana(signer, vaaBytes, contract);
                 }
             }
             break;
