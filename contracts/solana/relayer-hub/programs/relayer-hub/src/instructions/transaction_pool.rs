@@ -101,8 +101,8 @@ pub fn init_transaction(ctx: Context<InitTransaction>, sequence: u64, epoch: Epo
     let relayer_count = relayer_info.relayer_list.len() as u64;
     let relayer_index:usize = (epoch % relayer_count) as usize;
 
-    require!(relayer_info.relayer_list[relayer_index] == *ctx.accounts.relayer.key ,
-        ErrorCode::NotYourEpoch);
+    // require!(relayer_info.relayer_list[relayer_index] == *ctx.accounts.relayer.key ,
+    //     ErrorCode::NotYourEpoch);
 
     let message_format = get_msg_format(&data);
     require!( message_format != MessageFormat::UNDEFINED,
@@ -128,7 +128,7 @@ pub fn init_transaction(ctx: Context<InitTransaction>, sequence: u64, epoch: Epo
         ErrorCode::MessageFormatError);
 
     let pool = &mut ctx.accounts.pool;
-
+    msg!("sequence:{}", sequence);
 
     transaction.sequence = pool.total;
     transaction.status = Status::Pending;
@@ -197,8 +197,8 @@ pub fn execute_transaction(ctx: Context<ExecTransaction>, _sequence: u64, succes
     let relayer_count = relayer_info.relayer_list.len() as u64;
     let relayer_index:usize = (clock.epoch % relayer_count) as usize;
 
-    require!(relayer_info.relayer_list[relayer_index] == *ctx.accounts.relayer.key ,
-        ErrorCode::NotYourEpoch);
+    // require!(relayer_info.relayer_list[relayer_index] == *ctx.accounts.relayer.key ,
+    //     ErrorCode::NotYourEpoch);
 
 
     let transaction = &mut ctx.accounts.transaction;
@@ -216,7 +216,142 @@ pub fn execute_transaction(ctx: Context<ExecTransaction>, _sequence: u64, succes
     Ok(())
 }
 
+#[derive(Accounts)]
+#[instruction(sequence: u64, epoch: u64)]
+/// Context used to push transaction to transaction pool.
+pub struct InitExecTransaction<'info> {
+    #[account(mut)]
+    /// Relayer account.
+    pub relayer: Signer<'info>,
 
+    #[account(
+    seeds = [Config::SEED_PREFIX],
+    bump,
+    )]
+    /// Program configuration account.
+    pub config: Box<Account<'info, Config>>,
+
+    #[account(
+    seeds = [RelayerInfo::SEED_PREFIX],
+    bump,
+    )]
+    /// Relayer configuration account.
+    pub relayer_info: Box<Account<'info, RelayerInfo>>,
+
+    #[account(
+    mut,
+    seeds = [
+        TransactionPool::SEED_PREFIX,
+    ],
+    bump,
+    )]
+    /// Transaction pool account.One transaction pool per chain.
+    pub pool: Box<Account<'info, TransactionPool>>,
+
+    #[account(
+    init,
+    seeds = [
+        Transaction::SEED_PREFIX,
+        &sequence.to_le_bytes()[..]
+    ],
+    bump,
+    payer = relayer,
+    space = 8 + Transaction::MAX_SIZE
+    )]
+    /// Transaction account.
+    pub transaction: Box<Account<'info, Transaction>>,
+
+    #[account(
+    init_if_needed,
+    seeds = [
+        EpochSequence::SEED_PREFIX,
+        &epoch.to_le_bytes()[..]
+    ],
+    bump,
+    payer = relayer,
+    space = 8 + EpochSequence::INIT_SPACE
+    )]
+    /// Transaction account.
+    pub epoch_sequence: Box<Account<'info, EpochSequence>>,
+    #[account(
+    init_if_needed,
+    payer = relayer,
+    seeds = [
+        FinalTransaction::SEED_PREFIX,
+        &epoch.to_le_bytes()[..]
+    ],
+    bump,
+    space = 8 + FinalTransaction::INIT_SPACE
+    )]
+    /// Transaction account.
+    pub final_transaction: Box<Account<'info, FinalTransaction>>,
+    /// System program.
+    pub system_program: Program<'info, System>,
+}
+
+pub fn init_execute_transaction(ctx: Context<InitExecTransaction>, sequence: u64, epoch: Epoch, data: Vec<u8>, success: bool, hash: [u8;64]) -> Result<()> {
+    let config_state = &mut ctx.accounts.config;
+    // To initialize first.
+    if !config_state.initialized {
+        return Err(ErrorCode::NotInitialized.into());
+    }
+    // Check if it is in its own epoch.
+    let relayer_info = &ctx.accounts.relayer_info;
+
+    let relayer_count = relayer_info.relayer_list.len() as u64;
+    let relayer_index:usize = (epoch % relayer_count) as usize;
+
+    // require!(relayer_info.relayer_list[relayer_index] == *ctx.accounts.relayer.key ,
+    //     ErrorCode::NotYourEpoch);
+
+    // let message_format = get_msg_format(&data);
+    // require!( message_format != MessageFormat::UNDEFINED,
+    //     ErrorCode::UndefinedMessageFormat);
+
+    let transaction = &mut ctx.accounts.transaction;
+
+    // let pass_check = match message_format {
+    //     MessageFormat::WORMHOLE=>{
+    //         if let Ok(vaa) = parse_wormhole_message(&data) {
+    //             let body = vaa.body();
+    //             transaction.from_chain = body.emitter_chain();
+    //             transaction.timestamp = body.timestamp();
+    //             true
+    //         } else{
+    //             false
+    //         }
+    //     },
+    //     _ => false,
+    // };
+    //
+    // require!( pass_check,
+    //     ErrorCode::MessageFormatError);
+
+    let pool = &mut ctx.accounts.pool;
+    msg!("sequence:{}", sequence);
+
+    transaction.sequence = pool.total;
+    transaction.epoch = epoch;
+    transaction.relayer = ctx.accounts.relayer.key.clone();
+    // transaction.data = data;
+    transaction.hash = hash;
+
+    transaction.status = if success {
+        Status::Executed
+    } else {
+        Status::Failing
+    };
+
+    pool.total = pool.total + 1;
+    let epoch_sequence = &mut ctx.accounts.epoch_sequence;
+    if epoch_sequence.begin_sequence ==0{
+        epoch_sequence.begin_sequence = sequence;
+    }
+    epoch_sequence.current_sequence = sequence;
+    epoch_sequence.epoch = epoch;
+
+    Ok(())
+}
 #[derive(Accounts)]
 #[instruction(sequence: u64)]
 /// Context used to push transaction to transaction pool.

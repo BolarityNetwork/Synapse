@@ -8,14 +8,14 @@ use wormhole_raw_vaas::Vaa;
 /// We have not yet started using the following format.
 ///
 ///
-/// 0xFE | version (u8) | type (Parser Type, u8) | data (vec<u8>)
+/// 0xFE | version (u8) | type (Parser Type, u8)|reserve (u8) | from chain(u16)| to chain(u16) | data (vec<u8>)
 /// version 0x01 (Not yet enabled)
 /// type 0x00 (Not yet enabled)
 ///
 
 pub const FORMAT_MAGIC_NUMBER:u8 = 0xFE;
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 /// Message data format enumeration.
 pub enum MessageFormat {
     /// wormhole
@@ -54,7 +54,7 @@ pub fn get_msg_format(data:&Vec<u8>) -> MessageFormat {
             format = MessageFormat::WORMHOLE;
         }
     }
-    return format;
+    format
 }
 
 /// Parse wormhole message.

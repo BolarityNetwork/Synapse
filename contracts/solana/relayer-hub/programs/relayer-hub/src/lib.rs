@@ -66,6 +66,18 @@ pub mod relayer_hub {
         instructions::transaction_pool::execute_transaction(ctx, sequence, success, hash)
     }
 
+    pub fn init_execute_transaction(ctx: Context<InitExecTransaction>, epoch: Epoch, data: Vec<u8>, success: bool, hash: [u8;64]) -> Result<()> {
+        let clock = Clock::get()?;
+        let get_epoch = clock.epoch;
+
+        require!( get_epoch == epoch, ErrorCode::EpochError);
+
+        let pool = &ctx.accounts.pool;
+        let sequence = pool.total;
+
+        instructions::transaction_pool::init_execute_transaction(ctx, sequence, epoch, data, success, hash)
+    }
+
     pub fn finalize_transaction(ctx: Context<FinalizeTransaction>, sequence: u64, finalize: bool, state_root: [u8;32]) -> Result<()> {
         instructions::transaction_pool::finalize_transaction(ctx, sequence, finalize, state_root)
     }
