@@ -15,7 +15,7 @@ import {
     TOKEN_BRIDGE_RELAYER_SEPOLIA_PID, TOKEN_BRIDGE_RELAYER_SOLANA_PID, TOKEN_BRIDGE_SEPOLIA_PID,
     TOKEN_BRIDGE_SOLANA_PID,
 } from "./consts";
-import { execute_transaction, init_transaction } from "./relayer_hub";
+import { execute_transaction, init_execute_transaction, init_transaction } from "./relayer_hub";
 import { ethers } from "ethers";
 import {
     getSolanaConnection,
@@ -39,7 +39,7 @@ if (parentPort) {
         const { taskId, vaa, vaaBytes,  tokenBridge} = message;
 
         const relayerSolanaKeypair = Keypair.fromSecretKey(bs58.decode(RELAYER_SOLANA_SECRET));
-
+        console.log(message)
         const connection = getSolanaConnection();
         const provider = getSolanaProvider(connection, relayerSolanaKeypair);
         const currentDirectory = process.cwd();
@@ -114,12 +114,13 @@ if (parentPort) {
         const payloadMagic = 0xFE;
         // check payload head
         if((payload.length > 8)&& payload[0] == payloadMagic) {
+            console.log("===============================")
             let fromChain = payload.slice(4,6).readUInt16BE();
             let toChain = payload.slice(6,8).readUInt16BE();
 
             if((vaa.emitterChain == CHAIN_ID_SEPOLIA) || (vaa.emitterChain == CHAIN_ID_SOLANA) || (vaa.emitterChain == CHAIN_ID_BASE_SEPOLIA)) {
                 // record relay transaction
-                let sequence = await init_transaction(relayerHubProgram, Buffer.from(vaaBytes));
+                // let sequence = await init_transaction(relayerHubProgram, Buffer.from(vaaBytes));
 
                 let hash_buffer;
 
@@ -153,7 +154,8 @@ if (parentPort) {
                     sourceBuffer.copy(hash_buffer, 32, 0, sourceBuffer.length);
                 }
 
-                await execute_transaction(relayerHubProgram, sequence, success, hash_buffer);
+                // await execute_transaction(relayerHubProgram, sequence, success, hash_buffer);
+                await init_execute_transaction(relayerHubProgram, Buffer.alloc(1), success, hash_buffer);
             }
         }
         await new Promise(resolve => setTimeout(resolve, 2000));

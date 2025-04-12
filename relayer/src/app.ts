@@ -1,13 +1,14 @@
 import {
-	Environment,
-	StandardRelayerApp,
+	defaultLogger,
+	Environment, mergeDeep, parseVaaWithBytes,
+	StandardRelayerApp, StandardRelayerAppOpts,
 	StandardRelayerContext,
 } from "@wormhole-foundation/relayer-engine";
 import {
 	Keypair, PublicKey,
 } from "@solana/web3.js";
 import {
-	CHAIN_ID_SOLANA, CHAIN_ID_SEPOLIA, tryNativeToHexString, TokenBridgePayload, CHAIN_ID_BASE_SEPOLIA
+	CHAIN_ID_SOLANA, CHAIN_ID_SEPOLIA, tryNativeToHexString, TokenBridgePayload, CHAIN_ID_BASE_SEPOLIA, parseVaa,
 } from "@certusone/wormhole-sdk";
 import {
 	RELAYER_SOLANA_SECRET,
@@ -33,6 +34,7 @@ import {
 	hexStringToUint8Array,
 	rightAlignBuffer,
 } from "./utils";
+import { MessageStorage, spawnMsgStorageWorker } from "./message_storage";
 
 const chainTasks: number[] = [CHAIN_ID_SOLANA, CHAIN_ID_SEPOLIA, CHAIN_ID_BASE_SEPOLIA];
 interface WorkerData {
@@ -63,7 +65,14 @@ function runService(workerId: number) {
     });
     workers.push({ worker, workerId });
 }
-
+const defaultStdOpts = {
+	spyEndpoint: "localhost:7073",
+	workflows: {
+		retries: 3,
+	},
+	fetchSourceTxhash: true,
+	logger: defaultLogger,
+} satisfies Partial<StandardRelayerAppOpts>;
 (async function main() {
     chainTasks.forEach(task => runService(task));
     // initialize relayer engine app, pass relevant config options
@@ -71,8 +80,33 @@ function runService(workerId: number) {
 		WORMHOLE_ENVIRONMENT as Environment,
 		{
 			name: `BolarityRelayer`,
+			// missedVaaOptions: {
+			// 	startingSequenceConfig: {
+			// 		[CHAIN_ID_SOLANA]:BigInt(31140),
+			// 		[CHAIN_ID_SEPOLIA]:BigInt(318676),
+			// 	},
+			// 	vaasFetchConcurrency:10,
+			// },
 		},
 	);
+	// const parsedVaa = hexStringToUint8Array('010000000001008a07ffe2b3568f412aaeea43593d72b98bdec46e62ea59d75b3b828eecff0a7071f88325a305d8faee78aefa0b457c02227c8fc3b8ae3dd3e557aa8507b1983b0067f4b4f9000000000001f54fc75d51164b8ea89c27471fa40fdc524aecd23d77e83c28fefe7adb53abb8000000000000017a01fe0100000001271200000000000000000000000000000000000000000000000057e7e02bc1a9d9b0df22583439844e903278aecd801bf6d8415984099a1be8b2000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000049b426457b5a75e0e25f0b692df581a06035647000000000000000000000000000000000000000000000000002386f26fc10000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000');
+	// let vaa = parseVaaWithBytes(parsedVaa);
+	// workers[1].worker.postMessage({vaa, tokenBridge:undefined});
+	// const options = mergeDeep<StandardRelayerAppOpts>({}, [
+	// 	defaultStdOpts,
+	// 	{
+	// 		name: `BolarityRelayer`,
+	// 	},
+	// ]);
+	// const msgStorage = new MessageStorage(app, options);
+
+	// setInterval(() => {
+	// 	console.log("============push============================");
+	// 	msgStorage.pushVaaToMsgQueue(1, "f54fc75d51164b8ea89c27471fa40fdc524aecd23d77e83c28fefe7adb53abb8", "1", "11111")
+	// 	msgStorage.pushVaaToMsgQueue(10002, "000000000000000000000000232a9b207a1b91d527c300d5fd47778f60596eb8", "10002", "2222")
+	// 	msgStorage.pushVaaToMsgQueue(10004, "000000000000000000000000232a9b207a1b91d527c300d5fd47778f60596eb8", "10004", "333")
+	// 	console.log("============push============================");
+	// }, 5000);
 
 	const relayerSolanaKeypair = Keypair.fromSecretKey(bs58.decode(RELAYER_SOLANA_SECRET));
 	const relayer = relayerSolanaKeypair.publicKey;

@@ -195,6 +195,152 @@ export type RelayerHub = {
       ]
     },
     {
+      "name": "initExecuteTransaction",
+      "discriminator": [
+        95,
+        181,
+        191,
+        17,
+        143,
+        153,
+        211,
+        20
+      ],
+      "accounts": [
+        {
+          "name": "relayer",
+          "docs": [
+            "Relayer account."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "docs": [
+            "Program configuration account."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "relayerInfo",
+          "docs": [
+            "Relayer configuration account."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "docs": [
+            "Transaction pool account.One transaction pool per chain."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "transaction",
+          "docs": [
+            "Transaction account."
+          ],
+          "writable": true
+        },
+        {
+          "name": "epochSequence",
+          "docs": [
+            "Transaction account."
+          ],
+          "writable": true
+        },
+        {
+          "name": "finalTransaction",
+          "docs": [
+            "Transaction account."
+          ],
+          "writable": true
+        },
+        {
+          "name": "systemProgram",
+          "docs": [
+            "System program."
+          ],
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "epoch",
+          "type": "u64"
+        },
+        {
+          "name": "data",
+          "type": "bytes"
+        },
+        {
+          "name": "success",
+          "type": "bool"
+        },
+        {
+          "name": "hash",
+          "type": {
+            "array": [
+              "u8",
+              64
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "initTransaction",
       "docs": [
         "This instruction is used to push transaction to transaction pool of a certain chain.",
@@ -967,6 +1113,11 @@ export type RelayerHub = {
       "code": 6007,
       "name": "epochError",
       "msg": "Wrong epoch"
+    },
+    {
+      "code": 6008,
+      "name": "sequenceError",
+      "msg": "Wrong sequence"
     }
   ],
   "types": [

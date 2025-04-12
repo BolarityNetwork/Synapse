@@ -189,6 +189,152 @@
       ]
     },
     {
+      "name": "init_execute_transaction",
+      "discriminator": [
+        95,
+        181,
+        191,
+        17,
+        143,
+        153,
+        211,
+        20
+      ],
+      "accounts": [
+        {
+          "name": "relayer",
+          "docs": [
+            "Relayer account."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "docs": [
+            "Program configuration account."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "relayer_info",
+          "docs": [
+            "Relayer configuration account."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "docs": [
+            "Transaction pool account.One transaction pool per chain."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "transaction",
+          "docs": [
+            "Transaction account."
+          ],
+          "writable": true
+        },
+        {
+          "name": "epoch_sequence",
+          "docs": [
+            "Transaction account."
+          ],
+          "writable": true
+        },
+        {
+          "name": "final_transaction",
+          "docs": [
+            "Transaction account."
+          ],
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "docs": [
+            "System program."
+          ],
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "epoch",
+          "type": "u64"
+        },
+        {
+          "name": "data",
+          "type": "bytes"
+        },
+        {
+          "name": "success",
+          "type": "bool"
+        },
+        {
+          "name": "hash",
+          "type": {
+            "array": [
+              "u8",
+              64
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "init_transaction",
       "docs": [
         "This instruction is used to push transaction to transaction pool of a certain chain.",
@@ -961,6 +1107,11 @@
       "code": 6007,
       "name": "EpochError",
       "msg": "Wrong epoch"
+    },
+    {
+      "code": 6008,
+      "name": "SequenceError",
+      "msg": "Wrong sequence"
     }
   ],
   "types": [
