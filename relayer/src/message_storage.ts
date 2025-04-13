@@ -1,4 +1,5 @@
 import {
+    parseVaaWithBytes,
     RedisConnectionOpts,
     RedisStorage,
     RelayerApp,
@@ -10,6 +11,7 @@ import { createPool, Pool } from "generic-pool";
 import { number } from "yargs";
 import { MissedVaaOpts } from "@wormhole-foundation/relayer-engine/lib/cjs/relayer/middleware/missedVaasV3/worker";
 import { workers } from "./app";
+import { hexStringToUint8Array } from "./utils";
 
 export class MessageStorage {
     private readonly pool: Pool<Redis | Cluster>;
@@ -65,6 +67,13 @@ export class MessageStorage {
     ): string {
         return `${prefix}:msgProcess:${emitterChain}:${emitterAddress}:${sequence}`;
     }
+
+    getMsgProcessKeyPattern(
+        prefix: string,
+    ): string {
+        return `${prefix}:msgProcess:*`;
+    }
+
 
     async pushVaaToMsgQueue(
         emitterChain: number,
@@ -139,6 +148,31 @@ export class MessageStorage {
         );
     }
 
+    async clearAllMessageProcessing(
+    ): Promise<void> {
+        const msgSequenceKeyPattern = this.getMsgProcessKeyPattern(this.prefix);
+
+        await this.redisPool.use(
+            async redis => {
+                try {
+                    let cursor = '0';
+
+                    do {
+                        const results = await redis.scan(cursor, 'MATCH', msgSequenceKeyPattern);
+                        cursor = results[0];
+                        const keys = results[1];
+
+                        if (keys.length > 0) {
+                            await redis.del(...keys);
+                            console.log(`Deleted keys: ${keys.join(', ')}`);
+                        }
+                    } while (cursor !== '0');
+                } catch (error) {
+                    console.log(`Clear all message process error: ${error}`);
+                }
+            }
+        );
+    }
     async popVaaFromMsgQueue(
         emitterChain: number,
         emitterAddress: string,
@@ -259,7 +293,9 @@ export async function spawnMsgStorageWorker(
                     const workerData = workers.find(w => w.workerId === filter.emitterChain);
                     if(workerData != undefined) {
                         let vaaAndTokenBridge = JSON.parse(value);
-                        workerData.worker.postMessage({vaa:vaaAndTokenBridge.vaa, tokenBridge:vaaAndTokenBridge.payload});
+                        let parsedVaa = hexStringToUint8Array(vaaAndTokenBridge.vaa);
+                        let vaa = parseVaaWithBytes(parsedVaa);
+                        workerData.worker.postMessage({vaa, tokenBridge:vaaAndTokenBridge.payload});
                     }
                 }
             },

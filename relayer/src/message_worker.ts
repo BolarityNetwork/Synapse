@@ -21,7 +21,7 @@ import {
     getSolanaConnection,
     getSolanaProgram,
     getSolanaProvider,
-    hexStringToUint8Array, makeEmitterString,
+    hexStringToUint8Array,
     rightAlignBuffer,
 } from "./utils";
 import { Keypair } from "@solana/web3.js";
@@ -33,13 +33,14 @@ import {
     processTokenBridgeTransferWithPayloadFromSepolia,
     processTokenBridgeTransferWithPayloadFromSolana,
 } from "./controller";
+import { encodeEmitterAddress } from "@wormhole-foundation/relayer-engine";
 
 if (parentPort) {
     parentPort?.on('message', async (message: any) => {
         const { taskId, vaa, vaaBytes,  tokenBridge} = message;
 
         const relayerSolanaKeypair = Keypair.fromSecretKey(bs58.decode(RELAYER_SOLANA_SECRET));
-        console.log(message)
+
         const connection = getSolanaConnection();
         const provider = getSolanaProvider(connection, relayerSolanaKeypair);
         const currentDirectory = process.cwd();
@@ -114,52 +115,56 @@ if (parentPort) {
         const payloadMagic = 0xFE;
         // check payload head
         if((payload.length > 8)&& payload[0] == payloadMagic) {
-            console.log("===============================")
-            let fromChain = payload.slice(4,6).readUInt16BE();
-            let toChain = payload.slice(6,8).readUInt16BE();
+            try {
+                let fromChain = payload.slice(4,6).readUInt16BE();
+                let toChain = payload.slice(6,8).readUInt16BE();
 
-            if((vaa.emitterChain == CHAIN_ID_SEPOLIA) || (vaa.emitterChain == CHAIN_ID_SOLANA) || (vaa.emitterChain == CHAIN_ID_BASE_SEPOLIA)) {
-                // record relay transaction
-                // let sequence = await init_transaction(relayerHubProgram, Buffer.from(vaaBytes));
+                if((vaa.emitterChain == CHAIN_ID_SEPOLIA) || (vaa.emitterChain == CHAIN_ID_SOLANA) || (vaa.emitterChain == CHAIN_ID_BASE_SEPOLIA)) {
+                    // record relay transaction
+                    // let sequence = await init_transaction(relayerHubProgram, Buffer.from(vaaBytes));
 
-                let hash_buffer;
+                    let hash_buffer;
 
-                if ((fromChain == CHAIN_ID_SEPOLIA) && (toChain == CHAIN_ID_SOLANA)) {
+                    if ((fromChain == CHAIN_ID_SEPOLIA) && (toChain == CHAIN_ID_SOLANA)) {
 
-                    [success, signature] = await processSepoliaToSolana(relayerSolanaProgram, vaa, vaaBytes);
-                    if (signature!= "") {
-                    	hash_buffer = bs58.decode(signature);
+                        [success, signature] = await processSepoliaToSolana(relayerSolanaProgram, vaa, vaaBytes);
+                        if (signature!= "") {
+                            hash_buffer = bs58.decode(signature);
+                        }
+                    } else if ((fromChain == CHAIN_ID_SOLANA) && (toChain == CHAIN_ID_SEPOLIA)) {
+                        const contractAbi = JSON.parse(
+                            require("fs").readFileSync(currentDirectory + "/idl/UniProxy.json", "utf8")
+                        );
+                        [success, hash] = await processSolanaToSepolia(signer, contractAbi, vaaBytes);
+                        hash_buffer = Buffer.alloc(64);
+                        let sourceBuffer = Buffer.from(hexStringToUint8Array(hash));
+                        sourceBuffer.copy(hash_buffer, 32, 0, sourceBuffer.length);
+                    } else if ((fromChain == CHAIN_ID_BASE_SEPOLIA) && (toChain == CHAIN_ID_SOLANA)) {
+
+                        [success, signature] = await processSepoliaToSolana(relayerSolanaProgram, vaa, vaaBytes);
+                        if (signature!= "") {
+                            hash_buffer = bs58.decode(signature);
+                        }
+                    } else if ((fromChain == CHAIN_ID_SOLANA) && (toChain == CHAIN_ID_BASE_SEPOLIA)) {
+                        const contractAbi = JSON.parse(
+                            require("fs").readFileSync(currentDirectory + "/idl/UniProxy.json", "utf8")
+                        );
+                        [success, hash] = await processSolanaToBaseSepolia(baseSigner, contractAbi, vaaBytes);
+                        hash_buffer = Buffer.alloc(64);
+                        let sourceBuffer = Buffer.from(hexStringToUint8Array(hash));
+                        sourceBuffer.copy(hash_buffer, 32, 0, sourceBuffer.length);
                     }
-                } else if ((fromChain == CHAIN_ID_SOLANA) && (toChain == CHAIN_ID_SEPOLIA)) {
-                    const contractAbi = JSON.parse(
-                        require("fs").readFileSync(currentDirectory + "/idl/UniProxy.json", "utf8")
-                    );
-                    [success, hash] = await processSolanaToSepolia(signer, contractAbi, vaaBytes);
-                    hash_buffer = Buffer.alloc(64);
-                    let sourceBuffer = Buffer.from(hexStringToUint8Array(hash));
-                    sourceBuffer.copy(hash_buffer, 32, 0, sourceBuffer.length);
-                } else if ((fromChain == CHAIN_ID_BASE_SEPOLIA) && (toChain == CHAIN_ID_SOLANA)) {
 
-                    [success, signature] = await processSepoliaToSolana(relayerSolanaProgram, vaa, vaaBytes);
-                    if (signature!= "") {
-                        hash_buffer = bs58.decode(signature);
-                    }
-                } else if ((fromChain == CHAIN_ID_SOLANA) && (toChain == CHAIN_ID_BASE_SEPOLIA)) {
-                    const contractAbi = JSON.parse(
-                        require("fs").readFileSync(currentDirectory + "/idl/UniProxy.json", "utf8")
-                    );
-                    [success, hash] = await processSolanaToBaseSepolia(baseSigner, contractAbi, vaaBytes);
-                    hash_buffer = Buffer.alloc(64);
-                    let sourceBuffer = Buffer.from(hexStringToUint8Array(hash));
-                    sourceBuffer.copy(hash_buffer, 32, 0, sourceBuffer.length);
+                    // await execute_transaction(relayerHubProgram, sequence, success, hash_buffer);
+                    await init_execute_transaction(relayerHubProgram, Buffer.alloc(1), success, hash_buffer);
                 }
-
-                // await execute_transaction(relayerHubProgram, sequence, success, hash_buffer);
-                await init_execute_transaction(relayerHubProgram, Buffer.alloc(1), success, hash_buffer);
+            } catch (error) {
+                console.log(`Process cross chain message error:${error}`);
             }
+
         }
         await new Promise(resolve => setTimeout(resolve, 2000));
-        let emitterAddress = makeEmitterString(vaa.emitterAddress);
+        let emitterAddress = Buffer.from(vaa.emitterAddress).toString('hex');
         let doneMessage = `done:${vaa.emitterChain}:${emitterAddress}:${String(vaa.sequence)}`
         parentPort?.postMessage(doneMessage);
         process.exit(0)

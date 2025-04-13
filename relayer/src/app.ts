@@ -31,7 +31,7 @@ import {
 	getSolanaConnection,
 	getSolanaProgram,
 	getSolanaProvider,
-	hexStringToUint8Array, makeEmitterString,
+	hexStringToUint8Array,
 	rightAlignBuffer,
 } from "./utils";
 import { MessageStorage } from "./message_storage";
@@ -61,7 +61,7 @@ function runService(workerId: number) {
 			let emitterAddress = message[2];
 			let sequence = message[3];
 			msgStorage.discardVaaFromMsgQueue(emitterChain, emitterAddress, sequence);
-			msgStorage.setMessageProcessing(emitterChain, emitterAddress, sequence);
+			msgStorage.clearMessageProcessing(emitterChain, emitterAddress, sequence);
 		}
     });
 
@@ -111,6 +111,7 @@ const defaultStdOpts = {
 	]);
 
 	msgStorage = new MessageStorage(app, options);
+	await msgStorage.clearAllMessageProcessing();
 
 	const relayerSolanaKeypair = Keypair.fromSecretKey(bs58.decode(RELAYER_SOLANA_SECRET));
 	const relayer = relayerSolanaKeypair.publicKey;
@@ -191,10 +192,10 @@ const defaultStdOpts = {
 					console.log("==============Now it's your turn to relay======================");
 					// First store message to redis.
 					let vaaAndTokenBridge = JSON.stringify({
-						"vaa":vaa,
+						"vaa":vaa.bytes.toString('hex'),
 						"tb":encodeTokenTransfer(payload),
 					});
-					let emitterAddress = makeEmitterString(vaa.emitterAddress);
+					let emitterAddress = vaa.emitterAddress.toString('hex');
 					await msgStorage.pushVaaToMsgQueue(vaa.emitterChain, emitterAddress, String(vaa.sequence), vaaAndTokenBridge);
 				}
 			}

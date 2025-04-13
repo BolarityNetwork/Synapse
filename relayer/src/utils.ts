@@ -188,9 +188,3 @@ export function parseTokenTransferToString(
     }
     return encodeTokenTransfer(payload);
 }
-
-export function makeEmitterString(emitterAddress:Buffer):string {
-    return  PublicKey.findProgramAddressSync(
-        [Buffer.from("emitter")],
-        new PublicKey(emitterAddress))[0].toBuffer().toString("hex");
-}
