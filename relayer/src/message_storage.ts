@@ -9,6 +9,7 @@ import { Cluster, Redis } from "ioredis";
 import { createPool, Pool } from "generic-pool";
 import { number } from "yargs";
 import { MissedVaaOpts } from "@wormhole-foundation/relayer-engine/lib/cjs/relayer/middleware/missedVaasV3/worker";
+import { workers } from "./app";
 
 export class MessageStorage {
     private readonly pool: Pool<Redis | Cluster>;
@@ -56,20 +57,83 @@ export class MessageStorage {
         return `${prefix}:msgSequence:${emitterChain}:${emitterAddress}`;
     }
 
+    getMsgProcessKey(
+        prefix: string,
+        emitterChain: number,
+        emitterAddress: string,
+        sequence: string,
+    ): string {
+        return `${prefix}:msgProcess:${emitterChain}:${emitterAddress}:${sequence}`;
+    }
+
     async pushVaaToMsgQueue(
         emitterChain: number,
         emitterAddress: string,
         sequence: string,
         vaaBytes: string,
     ): Promise<void> {
-        const seenVaaKey = this.getMsgSequenceKey(this.prefix, emitterChain, emitterAddress);
+        const msgSequenceKey = this.getMsgSequenceKey(this.prefix, emitterChain, emitterAddress);
 
         await this.redisPool.use(
             async redis => {
                 try {
-                    redis.hset(seenVaaKey, sequence, vaaBytes);
+                    redis.hset(msgSequenceKey, sequence, vaaBytes);
                 } catch (error) {
                     console.log(`Set vaa bytes from message queue error: ${error}`);
+                }
+            }
+        );
+    }
+
+    async getMessageProcessing(
+        emitterChain: number,
+        emitterAddress: string,
+        sequence: string,
+    ): Promise<string> {
+        const msgSequenceKey = this.getMsgProcessKey(this.prefix, emitterChain, emitterAddress, sequence);
+        let value ="";
+        await this.redisPool.use(
+            async redis => {
+                try {
+                    value = await redis.get(msgSequenceKey);
+                } catch (error) {
+                    console.log(`Set message process error: ${error}`);
+                }
+            }
+        );
+        return value;
+    }
+    async setMessageProcessing(
+        emitterChain: number,
+        emitterAddress: string,
+        sequence: string,
+    ): Promise<void> {
+        const msgSequenceKey = this.getMsgProcessKey(this.prefix, emitterChain, emitterAddress, sequence);
+
+        await this.redisPool.use(
+            async redis => {
+                try {
+                    redis.set(msgSequenceKey, sequence);
+                } catch (error) {
+                    console.log(`Set message process error: ${error}`);
+                }
+            }
+        );
+    }
+
+    async clearMessageProcessing(
+        emitterChain: number,
+        emitterAddress: string,
+        sequence: string,
+    ): Promise<void> {
+        const msgSequenceKey = this.getMsgProcessKey(this.prefix, emitterChain, emitterAddress, sequence);
+
+        await this.redisPool.use(
+            async redis => {
+                try {
+                    redis.del(msgSequenceKey, sequence);
+                } catch (error) {
+                    console.log(`Set message process error: ${error}`);
                 }
             }
         );
@@ -80,32 +144,47 @@ export class MessageStorage {
         emitterAddress: string,
         sequence: string,
     ): Promise<string> {
-        const seenVaaKey = this.getMsgSequenceKey(this.prefix, emitterChain, emitterAddress);
+        const msgSequenceKey = this.getMsgSequenceKey(this.prefix, emitterChain, emitterAddress);
         let vaaBytes = "";
         await this.redisPool.use(
             async redis => {
                 try {
-                    vaaBytes = await redis.hget(seenVaaKey, sequence);
+                    vaaBytes = await redis.hget(msgSequenceKey, sequence);
                 } catch (error) {
                     console.log(`Got vaa bytes from message queue error: ${error}`);
-                } finally {
-                    redis.hdel(seenVaaKey, sequence);
                 }
             }
         );
         return vaaBytes
     }
 
+    async discardVaaFromMsgQueue(
+        emitterChain: number,
+        emitterAddress: string,
+        sequence: string,
+    ): Promise<void> {
+        const msgSequenceKey = this.getMsgSequenceKey(this.prefix, emitterChain, emitterAddress);
+        await this.redisPool.use(
+            async redis => {
+                try {
+                    redis.hdel(msgSequenceKey, sequence);
+                } catch (error) {
+                    console.log(`Discard message error: ${error}`);
+                }
+            }
+        );
+    }
+
     async seekAllVaaFromMsgQueue(
         emitterChain: number,
         emitterAddress: string,
     ): Promise<string[]> {
-        const seenVaaKey = this.getMsgSequenceKey(this.prefix, emitterChain, emitterAddress);
+        const msgSequenceKey = this.getMsgSequenceKey(this.prefix, emitterChain, emitterAddress);
         let vaaBytes :string[]= [];
         await this.redisPool.use(
             async redis => {
                 try {
-                    vaaBytes = await redis.hkeys(seenVaaKey);
+                    vaaBytes = await redis.hkeys(msgSequenceKey);
                 } catch (error) {
                     console.log(`Got vaa bytes from message queue error: ${error}`);
                 }
@@ -160,16 +239,28 @@ export async function spawnMsgStorageWorker(
                 let messages = await msgStorage.seekAllVaaFromMsgQueue(filter.emitterChain, filter.emitterAddress);
 
                 for (const sequence of messages) {
+                    console.log(`Got message from redis,now process.....`);
                     let value ="";
                     try {
+                        let flag = await msgStorage.getMessageProcessing(filter.emitterChain, filter.emitterAddress, sequence);
+                        if(flag==sequence) {
+                            console.log(`The message is being processed, so skip .....`);
+                            continue;
+                        }
+                        await msgStorage.setMessageProcessing(filter.emitterChain, filter.emitterAddress, sequence);
                         value = await msgStorage.popVaaFromMsgQueue(filter.emitterChain, filter.emitterAddress, sequence);
                     } catch (error) {
                         console.log(
-                            `Error getting last safe sequence for chain: `,
+                            `Error process message: `,
                             error,
                         );
                     }
                     console.log(value);
+                    const workerData = workers.find(w => w.workerId === filter.emitterChain);
+                    if(workerData != undefined) {
+                        let vaaAndTokenBridge = JSON.parse(value);
+                        workerData.worker.postMessage({vaa:vaaAndTokenBridge.vaa, tokenBridge:vaaAndTokenBridge.payload});
+                    }
                 }
             },
         );

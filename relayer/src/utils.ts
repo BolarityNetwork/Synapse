@@ -15,10 +15,17 @@ import {
     NodeWallet,
     postVaaSolanaWithRetry,
 } from "@certusone/wormhole-sdk/lib/cjs/solana";
-import { CHAIN_ID_SOLANA, ChainId } from "@certusone/wormhole-sdk";
+import {
+    CHAIN_ID_SOLANA,
+    ChainId,
+    ParsedTokenTransferVaa,
+    parseTokenTransferVaa,
+    SignedVaa, TokenTransfer,
+} from "@certusone/wormhole-sdk";
 import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 import { SOLANA_RPC } from "./consts";
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
+import { encodeTokenTransfer } from "./encode_decode";
 const anchor = require("@coral-xyz/anchor");
 
 export class SendIxError extends Error {
@@ -153,4 +160,37 @@ export  function getSolanaProgram(idlPath:string, provider:AnchorProvider) {
   	require("fs").readFileSync(idlPath, "utf8")
   );
   return  new Program(idl as any, provider);
+}
+
+export function parseTokenTransferToString(
+    vaaBytes: SignedVaa,
+): string {
+    let parsedTokenTransferVaa;
+    try {
+        parsedTokenTransferVaa =  parseTokenTransferVaa(vaaBytes);
+    } catch (e) {
+        parsedTokenTransferVaa = undefined;
+    }
+
+    let payload;
+    if (parsedTokenTransferVaa !== undefined) {
+        payload = {
+            payloadType: parsedTokenTransferVaa.payloadType,
+            amount: parsedTokenTransferVaa.amount,
+            tokenAddress: parsedTokenTransferVaa.tokenAddress,
+            tokenChain: parsedTokenTransferVaa.tokenChain,
+            to: parsedTokenTransferVaa.to,
+            toChain: parsedTokenTransferVaa.toChain,
+            fee: parsedTokenTransferVaa.fee,
+            fromAddress: parsedTokenTransferVaa.fromAddress,
+            tokenTransferPayload: parsedTokenTransferVaa.tokenTransferPayload,
+        };
+    }
+    return encodeTokenTransfer(payload);
+}
+
+export function makeEmitterString(emitterAddress:Buffer):string {
+    return  PublicKey.findProgramAddressSync(
+        [Buffer.from("emitter")],
+        new PublicKey(emitterAddress))[0].toBuffer().toString("hex");
 }

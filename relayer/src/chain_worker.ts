@@ -16,9 +16,9 @@ async function createNestedWorker(task: any) {
         const nestedWorker = new Worker(MESSAGE_WORKER_FILE);
 
         nestedWorker.on("message", msg => {
-            if (msg === "done") {
+            if (msg.startsWith("done:")) {
                 console.log("Nested worker has completed its task.");
-                parentPort?.postMessage(`done`);
+                parentPort?.postMessage(msg);
                 resolve();
             }
         });

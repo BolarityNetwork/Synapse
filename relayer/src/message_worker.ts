@@ -21,7 +21,7 @@ import {
     getSolanaConnection,
     getSolanaProgram,
     getSolanaProvider,
-    hexStringToUint8Array,
+    hexStringToUint8Array, makeEmitterString,
     rightAlignBuffer,
 } from "./utils";
 import { Keypair } from "@solana/web3.js";
@@ -159,7 +159,9 @@ if (parentPort) {
             }
         }
         await new Promise(resolve => setTimeout(resolve, 2000));
-        parentPort?.postMessage('done');
+        let emitterAddress = makeEmitterString(vaa.emitterAddress);
+        let doneMessage = `done:${vaa.emitterChain}:${emitterAddress}:${String(vaa.sequence)}`
+        parentPort?.postMessage(doneMessage);
         process.exit(0)
     });
 }
