@@ -12,6 +12,7 @@ import { number } from "yargs";
 import { MissedVaaOpts } from "@wormhole-foundation/relayer-engine/lib/cjs/relayer/middleware/missedVaasV3/worker";
 import { workers } from "./app";
 import { hexStringToUint8Array } from "./utils";
+import { decodeTokenTransfer, encodeTokenTransfer } from "./encode_decode";
 
 export class MessageStorage {
     private readonly pool: Pool<Redis | Cluster>;
@@ -295,7 +296,8 @@ export async function spawnMsgStorageWorker(
                         let vaaAndTokenBridge = JSON.parse(value);
                         let parsedVaa = hexStringToUint8Array(vaaAndTokenBridge.vaa);
                         let vaa = parseVaaWithBytes(parsedVaa);
-                        workerData.worker.postMessage({vaa, tokenBridge:vaaAndTokenBridge.payload});
+                        let payload = decodeTokenTransfer(vaaAndTokenBridge.tb)
+                        workerData.worker.postMessage({vaa, tokenBridge:payload});
                     }
                 }
             },
