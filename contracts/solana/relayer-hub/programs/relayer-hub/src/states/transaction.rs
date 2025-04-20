@@ -14,20 +14,20 @@ pub enum Status{
 pub struct Transaction {
     // /// Index of transaction pool.
     // pub pool_index:u16,
-    /// The sequence number of the transaction.
+    /// The sequence number of the transaction pool.
     pub sequence: u64,
-    pub timestamp: u32,
-    pub from_chain: u16,
-    pub to_chain: u16,
+    // pub timestamp: u32,
+    // pub from_chain: u16,
+    // pub to_chain: u16,
     /// The sender of the transaction.
     pub relayer: Pubkey,
     /// Root of transaction's state.
     pub state_root: [u8;32],
     /// Epoch for which this account was created.
     pub epoch: u64,
-    /// 254 failing 255 failed 0 pending 1 executed 2 finality
+    /// 254 failing 255 failed 1 pending 2 executed 3 finality
     pub status: Status,
-    pub hash: [u8;64],
+    // pub hash: [u8;64],
     // /// Transaction data.
     // pub data:Vec<u8>,
 }
@@ -35,7 +35,7 @@ pub struct Transaction {
 impl Transaction {
     pub const SEED_PREFIX: &'static [u8; 2] = b"tx";
     // TODO:change space
-    pub const MAX_SIZE: usize = 8  + 4 + 2 + 2 + 32 + 32 + 8 + 1 + 64;
+    pub const MAX_SIZE: usize = 8  + 32 + 32 + 8 + 1;
 }
 
 #[account]
@@ -96,4 +96,20 @@ pub struct EpochSequence {
 
 impl EpochSequence {
     pub const SEED_PREFIX: &'static [u8; 14] = b"epoch_sequence";
+}
+
+#[account]
+#[derive(InitSpace)]
+/// Un executed transaction pool account.
+pub struct UnExecutedTransactionPool {
+    /// Emitter chain.
+    pub chain: u16,
+    /// Emitter address. Cannot be zero address.
+    pub address: [u8; 32],
+    /// The sequence of messages processed so far.
+    pub current: u64,
+}
+
+impl UnExecutedTransactionPool {
+    pub const SEED_PREFIX: &'static [u8; 11] = b"un_executed";
 }
