@@ -36,6 +36,7 @@ import {
 } from "./utils";
 import { MessageStorage } from "./message_storage";
 import { encodeTokenTransfer } from "./encode_decode";
+import { MessageScan } from "./message_scan_worker";
 
 const chainTasks: number[] = [CHAIN_ID_SOLANA, CHAIN_ID_SEPOLIA, CHAIN_ID_BASE_SEPOLIA];
 interface WorkerData {
@@ -76,6 +77,7 @@ function runService(workerId: number) {
     });
     workers.push({ worker, workerId });
 }
+
 const defaultStdOpts = {
 	spyEndpoint: "localhost:7073",
 	workflows: {
@@ -112,6 +114,8 @@ const defaultStdOpts = {
 
 	msgStorage = new MessageStorage(app, options);
 	await msgStorage.clearAllMessageProcessing();
+	// Start message scan worker.
+	new MessageScan(app, options);
 
 	const relayerSolanaKeypair = Keypair.fromSecretKey(bs58.decode(RELAYER_SOLANA_SECRET));
 	const relayer = relayerSolanaKeypair.publicKey;
@@ -124,9 +128,9 @@ const defaultStdOpts = {
 
 	app.multiple(
 		{
-			[CHAIN_ID_SOLANA]: [RELAYER_SOLANA_PROGRAM],
-			[CHAIN_ID_SEPOLIA]: [RELAYER_SEPOLIA_PROGRAM],
-			[CHAIN_ID_BASE_SEPOLIA]: [RELAYER_BASE_SEPOLIA_PROGRAM],
+			[CHAIN_ID_SOLANA]: [TOKEN_BRIDGE_SOLANA_PID],
+			// [CHAIN_ID_SEPOLIA]: [RELAYER_SEPOLIA_PROGRAM],
+			// [CHAIN_ID_BASE_SEPOLIA]: [RELAYER_BASE_SEPOLIA_PROGRAM],
 		},
 		async (ctx, next) => {
 			// Get vaa and check whether it has been executed. If not, continue processing.
@@ -191,10 +195,7 @@ const defaultStdOpts = {
 				if (currentRelayer.toBase58() == relayer.toBase58()) {
 					console.log("==============Now it's your turn to relay======================");
 					// First store message to redis.
-					let vaaAndTokenBridge = JSON.stringify({
-						"vaa":vaa.bytes.toString('hex'),
-						"tb":encodeTokenTransfer(payload),
-					});
+					let vaaAndTokenBridge = vaa.bytes.toString('hex');
 					let emitterAddress = vaa.emitterAddress.toString('hex');
 					await msgStorage.pushVaaToMsgQueue(vaa.emitterChain, emitterAddress, String(vaa.sequence), vaaAndTokenBridge);
 				}

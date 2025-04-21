@@ -44,9 +44,9 @@ async function processQueue() {
             for(let i = 0; i < MAX_THREAD; i++) {
                 const item = queue.dequeue();
                 // Allocate a thread to perform message relay.
-                const { vaa, tokenBridge } = item.arg;
+                const { vaa } = item.arg;
                 try {
-                    await createNestedWorker({ taskId:i, vaa, vaaBytes:vaa.bytes,  tokenBridge});
+                    await createNestedWorker({ taskId:i, vaa});
                 } catch (error) {
                     console.error('Error processing task:', error);
                 }
@@ -60,10 +60,10 @@ async function processQueue() {
 }
 
 parentPort?.on('message', async (message) => {
-    const { vaa, tokenBridge } = message;
+    const { vaa } = message;
     const job: Job = {
         id: vaa.emitterChain,
-        arg: {vaa, tokenBridge},
+        arg: { vaa },
     };
     await mutex.lock();
     queue.enqueue(job);

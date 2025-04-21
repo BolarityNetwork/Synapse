@@ -26,6 +26,7 @@ import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 import { SOLANA_RPC } from "./consts";
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
 import { encodeTokenTransfer } from "./encode_decode";
+import { number } from "yargs";
 const anchor = require("@coral-xyz/anchor");
 
 export class SendIxError extends Error {
@@ -187,4 +188,22 @@ export function parseTokenTransferToString(
         };
     }
     return encodeTokenTransfer(payload);
+}
+
+export async function mapConcurrent(
+    arr: any[],
+    fn: (...args: any[]) => Promise<any>,
+    concurrency: number = 5,
+) {
+    const pendingArgs = [...arr];
+    async function evaluateNext() {
+        if (pendingArgs.length === 0) return;
+        const args = pendingArgs.shift();
+        await fn(args);
+        // If any pending promise is resolved, then evaluate next
+        await evaluateNext();
+    }
+    // Promises that will be executed parallely, with a maximum of `concurrency` at a time
+    const promises = new Array(concurrency).fill(0).map(evaluateNext);
+    await Promise.all(promises);
 }

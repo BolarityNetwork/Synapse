@@ -11,7 +11,7 @@ import { createPool, Pool } from "generic-pool";
 import { number } from "yargs";
 import { MissedVaaOpts } from "@wormhole-foundation/relayer-engine/lib/cjs/relayer/middleware/missedVaasV3/worker";
 import { workers } from "./app";
-import { hexStringToUint8Array } from "./utils";
+import { hexStringToUint8Array, mapConcurrent } from "./utils";
 import { decodeTokenTransfer, encodeTokenTransfer } from "./encode_decode";
 
 export class MessageStorage {
@@ -229,24 +229,6 @@ export class MessageStorage {
     }
 }
 
-
-export async function mapConcurrent(
-    arr: any[],
-    fn: (...args: any[]) => Promise<any>,
-    concurrency: number = 5,
-) {
-    const pendingArgs = [...arr];
-    async function evaluateNext() {
-        if (pendingArgs.length === 0) return;
-        const args = pendingArgs.shift();
-        await fn(args);
-        // If any pending promise is resolved, then evaluate next
-        await evaluateNext();
-    }
-    // Promises that will be executed parallely, with a maximum of `concurrency` at a time
-    const promises = new Array(concurrency).fill(0).map(evaluateNext);
-    await Promise.all(promises);
-}
 export async function spawnMsgStorageWorker(
     app: RelayerApp<any>,
     opts: MissedVaaOpts,
@@ -293,11 +275,9 @@ export async function spawnMsgStorageWorker(
                     console.log(value);
                     const workerData = workers.find(w => w.workerId === filter.emitterChain);
                     if(workerData != undefined) {
-                        let vaaAndTokenBridge = JSON.parse(value);
-                        let parsedVaa = hexStringToUint8Array(vaaAndTokenBridge.vaa);
+                        let parsedVaa = hexStringToUint8Array(value);
                         let vaa = parseVaaWithBytes(parsedVaa);
-                        let payload = decodeTokenTransfer(vaaAndTokenBridge.tb)
-                        workerData.worker.postMessage({vaa, tokenBridge:payload});
+                        workerData.worker.postMessage({vaa});
                     }
                 }
             },

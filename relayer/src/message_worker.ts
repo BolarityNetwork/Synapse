@@ -2,7 +2,7 @@ import { parentPort } from "worker_threads";
 import {
     CHAIN_ID_BASE_SEPOLIA,
     CHAIN_ID_SEPOLIA,
-    CHAIN_ID_SOLANA,
+    CHAIN_ID_SOLANA, parseTokenTransferPayload,
     TokenBridgePayload,
     tryNativeToHexString,
 } from "@certusone/wormhole-sdk";
@@ -15,7 +15,7 @@ import {
     TOKEN_BRIDGE_RELAYER_SEPOLIA_PID, TOKEN_BRIDGE_RELAYER_SOLANA_PID, TOKEN_BRIDGE_SEPOLIA_PID,
     TOKEN_BRIDGE_SOLANA_PID,
 } from "./consts";
-import { execute_transaction, init_execute_transaction, init_transaction } from "./relayer_hub";
+import { init_execute_transaction } from "./relayer_hub";
 import { ethers } from "ethers";
 import {
     getSolanaConnection,
@@ -33,11 +33,18 @@ import {
     processTokenBridgeTransferWithPayloadFromSepolia,
     processTokenBridgeTransferWithPayloadFromSolana,
 } from "./controller";
-import { encodeEmitterAddress } from "@wormhole-foundation/relayer-engine";
 
 if (parentPort) {
     parentPort?.on('message', async (message: any) => {
-        const { taskId, vaa, vaaBytes,  tokenBridge} = message;
+        const { taskId, vaa } = message;
+        const vaaBytes = vaa.bytes;
+        let tokenBridge;
+        try {
+            tokenBridge =  parseTokenTransferPayload(Buffer.from(vaa.payload));
+        } catch (error) {
+            console.log(error)
+        }
+
 
         const relayerSolanaKeypair = Keypair.fromSecretKey(bs58.decode(RELAYER_SOLANA_SECRET));
 
@@ -60,6 +67,7 @@ if (parentPort) {
         let success = false;
         let signature = "";
         let hash = "";
+        let hash_buffer;
         const tokenBridgeRelayerSolana = tryNativeToHexString(
             TOKEN_BRIDGE_RELAYER_SOLANA_PID,
             CHAIN_ID_SOLANA
@@ -81,6 +89,11 @@ if (parentPort) {
                         contract = TOKEN_BRIDGE_BASE_SEPOLIA_PID;
                     }
                     [success, hash] = await processTokenBridgeTransferFromSolana(signer, vaaBytes, contract);
+                    hash_buffer = Buffer.alloc(64);
+                    let sourceBuffer = Buffer.from(hexStringToUint8Array(hash));
+                    sourceBuffer.copy(hash_buffer, 32, 0, sourceBuffer.length);
+                    await init_execute_transaction(relayerHubProgram,
+                        vaa.emitterChain, Buffer.from(vaa.emitterAddress), vaa.sequence, success, hash_buffer);
                 }
             }
             break;
@@ -96,15 +109,25 @@ if (parentPort) {
                     `\tPayload: ${tokenBridge.tokenTransferPayload.toString("hex")}\n`,
                 );
                 if (vaa.emitterChain == CHAIN_ID_SOLANA) {
-                    if (tokenBridge.to == rightAlignBuffer(Buffer.from(hexStringToUint8Array(TOKEN_BRIDGE_RELAYER_SEPOLIA_PID)))) {
+                    if (Buffer.from(tokenBridge.to).equals(rightAlignBuffer(Buffer.from(hexStringToUint8Array(TOKEN_BRIDGE_RELAYER_SEPOLIA_PID))))) {
                         const contractAbi = JSON.parse(
                             require("fs").readFileSync(currentDirectory + "/idl/TokenBridgeRelayer.json", "utf8")
                         );
                         [success, hash] = await processTokenBridgeTransferWithPayloadFromSolana(signer, contractAbi, vaaBytes);
+                        hash_buffer = Buffer.alloc(64);
+                        let sourceBuffer = Buffer.from(hexStringToUint8Array(hash));
+                        sourceBuffer.copy(hash_buffer, 32, 0, sourceBuffer.length);
+                        await init_execute_transaction(relayerHubProgram,
+                            vaa.emitterChain, Buffer.from(vaa.emitterAddress), vaa.sequence, success, hash_buffer);
                     }
                 } else if(vaa.emitterChain == CHAIN_ID_SEPOLIA) {
                     if (Buffer.from(tokenBridge.to).toString("hex")==tokenBridgeRelayerSolana){
                         [success, signature] = await processTokenBridgeTransferWithPayloadFromSepolia(relayerSolanaProgram, vaa, vaaBytes);
+                        if (signature!= "") {
+                            hash_buffer = bs58.decode(signature);
+                        }
+                        await init_execute_transaction(relayerHubProgram,
+                            vaa.emitterChain, Buffer.from(vaa.emitterAddress), vaa.sequence, success, hash_buffer);
                     }
                 }
             }
@@ -121,9 +144,6 @@ if (parentPort) {
 
                 if((vaa.emitterChain == CHAIN_ID_SEPOLIA) || (vaa.emitterChain == CHAIN_ID_SOLANA) || (vaa.emitterChain == CHAIN_ID_BASE_SEPOLIA)) {
                     // record relay transaction
-                    // let sequence = await init_transaction(relayerHubProgram, Buffer.from(vaaBytes));
-
-                    let hash_buffer;
 
                     if ((fromChain == CHAIN_ID_SEPOLIA) && (toChain == CHAIN_ID_SOLANA)) {
 
@@ -155,8 +175,8 @@ if (parentPort) {
                         sourceBuffer.copy(hash_buffer, 32, 0, sourceBuffer.length);
                     }
 
-                    // await execute_transaction(relayerHubProgram, sequence, success, hash_buffer);
-                    await init_execute_transaction(relayerHubProgram, Buffer.alloc(1), success, hash_buffer);
+                    await init_execute_transaction(relayerHubProgram,
+                        vaa.emitterChain, Buffer.from(vaa.emitterAddress), vaa.sequence, success, hash_buffer);
                 }
             } catch (error) {
                 console.log(`Process cross chain message error:${error}`);
