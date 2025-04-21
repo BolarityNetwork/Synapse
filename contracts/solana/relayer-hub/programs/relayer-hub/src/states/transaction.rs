@@ -27,7 +27,7 @@ pub struct Transaction {
     pub epoch: u64,
     /// 254 failing 255 failed 1 pending 2 executed 3 finality
     pub status: Status,
-    pub hash: [u8;64],
+    // pub hash: [u8;64],
     // /// Transaction data.
     // pub data:Vec<u8>,
 }
@@ -35,10 +35,11 @@ pub struct Transaction {
 impl Transaction {
     pub const SEED_PREFIX: &'static [u8; 2] = b"tx";
     // TODO:change space
-    pub const MAX_SIZE: usize = 8  + 32 + 32 + 8 + 1 + 64;
+    pub const MAX_SIZE: usize = 8  + 32 + 32 + 8 + 1;
 }
 
 #[account]
+#[derive(InitSpace)]
 /// Extend transaction account.
 pub struct ExtendTransaction {
     /// The sequence number of the transaction pool.
@@ -46,12 +47,13 @@ pub struct ExtendTransaction {
     pub emitter_chain: u16,
     pub emitter_address: [u8;32],
     pub emitter_sequence: u64,
+    pub hash: [u8;64],
 }
 
 impl ExtendTransaction {
     pub const SEED_PREFIX: &'static [u8; 6] = b"ext_tx";
     // TODO:change space
-    pub const MAX_SIZE: usize = 8 + 2 + 32 + 8;
+    pub const MAX_SIZE: usize = 8 + 2 + 32 + 8 + 64;
 }
 
 #[account]

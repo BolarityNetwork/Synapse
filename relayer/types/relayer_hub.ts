@@ -1130,6 +1130,15 @@ export type RelayerHub = {
           {
             "name": "emitterSequence",
             "type": "u64"
+          },
+          {
+            "name": "hash",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
           }
         ]
       }
@@ -1312,15 +1321,6 @@ export type RelayerHub = {
               "defined": {
                 "name": "status"
               }
-            }
-          },
-          {
-            "name": "hash",
-            "type": {
-              "array": [
-                "u8",
-                64
-              ]
             }
           }
         ]

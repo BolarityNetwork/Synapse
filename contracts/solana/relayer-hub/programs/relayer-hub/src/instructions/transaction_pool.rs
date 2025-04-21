@@ -149,7 +149,7 @@ pub fn init_execute_transaction(ctx: Context<InitExecTransaction>,
     transaction.epoch = epoch;
     transaction.relayer = ctx.accounts.relayer.key.clone();
     // transaction.data = data;
-    transaction.hash = hash;
+    // transaction.hash = hash;
 
     transaction.status = if success {
         Status::Executed
@@ -162,6 +162,7 @@ pub fn init_execute_transaction(ctx: Context<InitExecTransaction>,
     ext_transaction.emitter_chain = chain;
     ext_transaction.emitter_address = address;
     ext_transaction.emitter_sequence = sequence;
+    ext_transaction.hash = hash;
 
     pool.total = pool.total + 1;
     let epoch_sequence = &mut ctx.accounts.epoch_sequence;

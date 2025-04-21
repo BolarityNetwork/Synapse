@@ -15,7 +15,7 @@ use relayer_hub_client::instructions::{FinalizeTransactionBuilder, InitExecuteTr
 use crate::fixtures::TestResult;
 use relayer_hub_client::programs::RELAYER_HUB_ID as relayer_hub_program;
 use relayer_hub_client::accounts::{EpochSequence, FinalTransaction, FinalTransactionPool, TransactionPool};
-use relayer_hub_client::accounts::Transaction as HubTransaction;
+use relayer_hub_client::accounts::{Transaction as HubTransaction, ExtendTransaction};
 use relayer_hub_client::types::Status;
 use relayer_hub_sdk::relayer_hub;
 
@@ -222,7 +222,6 @@ impl RelayerHubClient {
         success: bool,
         hash: [u8;64],
     ) -> TestResult<()> {
-        println!("====================================={}", ext_sequence);
         let (relayer_info, _) =relayer_hub_sdk::derive_relayer_info_account_address(&relayer_hub_program);
         let (pool, _) =relayer_hub_sdk::derive_pool_account_address(&relayer_hub_program);
         let system_program = solana_program::system_program::id();
@@ -365,6 +364,27 @@ impl RelayerHubClient {
             .unwrap();
         let mut pool_account_data = pool_account.data.as_slice();
         let tx = HubTransaction::from_bytes(&mut pool_account_data)?;
+
+        Ok(tx)
+    }
+
+    pub async fn get_ext_tx(
+        &mut self,
+        sequence: u64,
+    ) -> TestResult<ExtendTransaction> {
+        let (pool_address, _) =
+            relayer_hub_sdk::derive_ext_transaction_account_address(
+                &relayer_hub_program,
+                sequence
+            );
+
+        let pool_account = self
+            .banks_client
+            .get_account(pool_address)
+            .await?
+            .unwrap();
+        let mut pool_account_data = pool_account.data.as_slice();
+        let tx = ExtendTransaction::from_bytes(&mut pool_account_data)?;
 
         Ok(tx)
     }

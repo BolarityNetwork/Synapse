@@ -149,7 +149,7 @@ describe("relayer-hub", async() => {
         let chain_address = Buffer.alloc(32).fill(1);
         let epoch = (await  pg.connection.getEpochInfo()).epoch;
         let state_root = Buffer.alloc(32).fill(2);
-        let hash = Array.from(Buffer.alloc(64).fill(1));
+        let hash = Buffer.alloc(64).fill(1);
 
         let buf = Buffer.alloc(8);
         buf.writeBigUInt64LE(BigInt(epoch), 0);
@@ -180,7 +180,7 @@ describe("relayer-hub", async() => {
             [Buffer.from('ext_tx'), buf1],
             program.programId
         )
-        await program.methods.initExecuteTransaction(chain, Array.from(chain_address), new BN(sequence), new BN(ext_sequence),new BN(epoch), true, hash).accounts({
+        await program.methods.initExecuteTransaction(chain, Array.from(chain_address), new BN(sequence), new BN(ext_sequence),new BN(epoch), true, Array.from(hash)).accounts({
             config: configPDA,
             relayer_info: relayerInfoPDA,
             relayer: pg.wallet.publicKey,
@@ -196,6 +196,7 @@ describe("relayer-hub", async() => {
         assert((await program.account.transaction.fetch(txPDA)).status.executed);
         assert((await program.account.extendTransaction.fetch(extTxPDA)).sequence.eq(new BN(ext_sequence)));
         assert((await program.account.extendTransaction.fetch(extTxPDA)).emitterSequence.eq(new BN(sequence)));
+        assert(Buffer.from((await program.account.extendTransaction.fetch(extTxPDA)).hash).equals(hash));
 
         await program.methods.finalizeTransaction(chain, Array.from(chain_address), new BN(sequence), true, Array.from(state_root)).accounts({
             config: configPDA,

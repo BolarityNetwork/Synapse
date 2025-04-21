@@ -1124,6 +1124,15 @@
           {
             "name": "emitter_sequence",
             "type": "u64"
+          },
+          {
+            "name": "hash",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
           }
         ]
       }
@@ -1306,15 +1315,6 @@
               "defined": {
                 "name": "Status"
               }
-            }
-          },
-          {
-            "name": "hash",
-            "type": {
-              "array": [
-                "u8",
-                64
-              ]
             }
           }
         ]

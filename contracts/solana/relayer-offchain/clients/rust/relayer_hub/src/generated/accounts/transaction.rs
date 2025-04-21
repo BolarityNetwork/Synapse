@@ -26,8 +26,6 @@ pub state_root: [u8; 32],
 pub epoch: u64,
 /// 254 failing 255 failed 1 pending 2 executed 3 finality
 pub status: Status,
-#[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::Bytes>"))]
-pub hash: [u8; 64],
 }
 
 

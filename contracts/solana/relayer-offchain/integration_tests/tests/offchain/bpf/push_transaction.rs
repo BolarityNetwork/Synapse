@@ -94,7 +94,8 @@ mod push_transaction{
                 let tx = relayer_hub_client.get_tx(chain, chain_address, i).await?;
                 if tx.status == Status::Executed || tx.status == Status::Failing {
                     sequences.push(i);
-                    hashs.push(tx.hash);
+                    let ext_tx = relayer_hub_client.get_ext_tx(i).await?;
+                    hashs.push(ext_tx.hash);
                 }
             }
             let byte_vecs: Vec<Vec<u8>> = hashs

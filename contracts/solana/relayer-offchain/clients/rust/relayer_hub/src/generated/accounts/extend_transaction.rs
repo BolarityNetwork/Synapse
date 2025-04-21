@@ -18,6 +18,8 @@ pub sequence: u64,
 pub emitter_chain: u16,
 pub emitter_address: [u8; 32],
 pub emitter_sequence: u64,
+#[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::Bytes>"))]
+pub hash: [u8; 64],
 }
 
 
