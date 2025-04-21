@@ -57,6 +57,7 @@ pub mod relayer_hub {
                                     chain: u16,
                                     address: [u8; 32],
                                     sequence: u64,
+                                    ext_sequence: u64,
                                     epoch: Epoch,
                                     success: bool,
                                     hash: [u8; 64]) -> Result<()> {
@@ -65,7 +66,12 @@ pub mod relayer_hub {
 
         require!( get_epoch == epoch, ErrorCode::EpochError);
 
-        instructions::transaction_pool::init_execute_transaction(ctx, chain, address, sequence, epoch, success, hash)
+        let pool = &ctx.accounts.pool;
+        let exp_sequence = pool.total;
+
+        require!( exp_sequence == ext_sequence, ErrorCode::SequenceError);
+
+        instructions::transaction_pool::init_execute_transaction(ctx, chain, address, sequence, ext_sequence, epoch, success, hash)
     }
 
     pub fn finalize_transaction(ctx: Context<FinalizeTransaction>,

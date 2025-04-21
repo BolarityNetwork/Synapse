@@ -10,7 +10,7 @@ use crate::utils::message::*;
 use crate::states::transaction::Status;
 
 #[derive(Accounts)]
-#[instruction(chain: u16, address: [u8; 32], sequence: u64, epoch: u64)]
+#[instruction(chain: u16, address: [u8; 32], sequence: u64, ext_sequence: u64, epoch: u64)]
 /// Context used to push transaction to transaction pool.
 pub struct InitExecTransaction<'info> {
     #[account(mut)]
@@ -57,6 +57,19 @@ pub struct InitExecTransaction<'info> {
     pub transaction: Box<Account<'info, Transaction>>,
 
     #[account(
+    init,
+    seeds = [
+        ExtendTransaction::SEED_PREFIX,
+        &ext_sequence.to_le_bytes()[..]
+    ],
+    bump,
+    payer = relayer,
+    space = 8 + ExtendTransaction::MAX_SIZE
+    )]
+    /// Transaction account.
+    pub ext_transaction: Box<Account<'info, ExtendTransaction>>,
+
+    #[account(
     init_if_needed,
     seeds = [
         EpochSequence::SEED_PREFIX,
@@ -88,6 +101,7 @@ pub fn init_execute_transaction(ctx: Context<InitExecTransaction>,
                                 chain: u16,
                                 address: [u8; 32],
                                 sequence: u64,
+                                ext_sequence: u64,
                                 epoch: Epoch,
                                 success: bool,
                                 hash: [u8; 64]) -> Result<()> {
@@ -142,13 +156,19 @@ pub fn init_execute_transaction(ctx: Context<InitExecTransaction>,
     } else {
         Status::Failing
     };
+    let ext_transaction = &mut ctx.accounts.ext_transaction;
+    let ext_sequence = pool.total;
+    ext_transaction.sequence = ext_sequence;
+    ext_transaction.emitter_chain = chain;
+    ext_transaction.emitter_address = address;
+    ext_transaction.emitter_sequence = sequence;
 
     pool.total = pool.total + 1;
     let epoch_sequence = &mut ctx.accounts.epoch_sequence;
-    if epoch_sequence.begin_sequence ==0{
-        epoch_sequence.begin_sequence = sequence;
+    if epoch_sequence.begin_sequence ==0 {
+        epoch_sequence.begin_sequence = ext_sequence;
     }
-    epoch_sequence.current_sequence = sequence;
+    epoch_sequence.current_sequence = ext_sequence;
     epoch_sequence.epoch = epoch;
 
     Ok(())

@@ -60,7 +60,7 @@ mod push_transaction{
         let hash = [1u8;64];
 
         relayer_hub_client
-            .do_init_execute_transaction( current_relayer, chain, chain_address, sequence, epoch, true, hash)
+            .do_init_execute_transaction( current_relayer, chain, chain_address, sequence, sequence - 1, epoch, true, hash)
             .await?;
 
         let mut total = relayer_hub_client.get_pool_count().await?;
@@ -68,14 +68,14 @@ mod push_transaction{
 
         sequence += 1;
         relayer_hub_client
-            .do_init_execute_transaction(current_relayer, chain, chain_address, sequence, epoch, true, hash)
+            .do_init_execute_transaction(current_relayer, chain, chain_address, sequence, sequence - 1, epoch, true, hash)
             .await?;
         total = relayer_hub_client.get_pool_count().await?;
         assert_eq!(total, 2);
 
         sequence += 1;
         relayer_hub_client
-            .do_init_execute_transaction(current_relayer, chain, chain_address, sequence, epoch, true, hash)
+            .do_init_execute_transaction(current_relayer, chain, chain_address, sequence, sequence - 1, epoch, true, hash)
             .await?;
         total = relayer_hub_client.get_pool_count().await?;
         assert_eq!(total, 3);

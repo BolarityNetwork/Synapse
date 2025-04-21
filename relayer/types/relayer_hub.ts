@@ -210,6 +210,13 @@ export type RelayerHub = {
           "writable": true
         },
         {
+          "name": "extTransaction",
+          "docs": [
+            "Transaction account."
+          ],
+          "writable": true
+        },
+        {
           "name": "epochSequence",
           "docs": [
             "Transaction account."
@@ -247,6 +254,10 @@ export type RelayerHub = {
         },
         {
           "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "extSequence",
           "type": "u64"
         },
         {
@@ -884,6 +895,19 @@ export type RelayerHub = {
       ]
     },
     {
+      "name": "extendTransaction",
+      "discriminator": [
+        79,
+        163,
+        129,
+        19,
+        189,
+        125,
+        230,
+        166
+      ]
+    },
+    {
       "name": "finalTransaction",
       "discriminator": [
         89,
@@ -1015,6 +1039,11 @@ export type RelayerHub = {
       "code": 6007,
       "name": "epochError",
       "msg": "Wrong epoch"
+    },
+    {
+      "code": 6008,
+      "name": "sequenceError",
+      "msg": "Wrong sequence"
     }
   ],
   "types": [
@@ -1065,6 +1094,41 @@ export type RelayerHub = {
           },
           {
             "name": "currentSequence",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "extendTransaction",
+      "docs": [
+        "Extend transaction account."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sequence",
+            "docs": [
+              "The sequence number of the transaction pool."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "emitterChain",
+            "type": "u16"
+          },
+          {
+            "name": "emitterAddress",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "emitterSequence",
             "type": "u64"
           }
         ]

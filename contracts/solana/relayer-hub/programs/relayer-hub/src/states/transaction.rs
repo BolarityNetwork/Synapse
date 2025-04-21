@@ -39,6 +39,22 @@ impl Transaction {
 }
 
 #[account]
+/// Extend transaction account.
+pub struct ExtendTransaction {
+    /// The sequence number of the transaction pool.
+    pub sequence: u64,
+    pub emitter_chain: u16,
+    pub emitter_address: [u8;32],
+    pub emitter_sequence: u64,
+}
+
+impl ExtendTransaction {
+    pub const SEED_PREFIX: &'static [u8; 6] = b"ext_tx";
+    // TODO:change space
+    pub const MAX_SIZE: usize = 8 + 2 + 32 + 8;
+}
+
+#[account]
 #[derive(InitSpace)]
 /// Transaction pool account.
 pub struct TransactionPool {

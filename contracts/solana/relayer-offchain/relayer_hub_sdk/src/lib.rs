@@ -11,6 +11,7 @@ pub const RELAYER_INFO_SEED: &[u8] = b"relayer_info";
 pub const POOL_SEED: &[u8] = b"pool";
 pub const TRANSACTION_SEED: &[u8] = b"tx";
 
+pub const EXTEND_TRANSACTION_SEED: &[u8] = b"ext_tx";
 pub const FINAL_POOL_SEED: &[u8] = b"final_pool";
 pub const FINAL_TRANSACTION_SEED: &[u8] = b"final_tx";
 
@@ -68,6 +69,19 @@ pub fn derive_transaction_account_address(
             TRANSACTION_SEED,
             &chain.to_le_bytes()[..],
             &chain_address[..],
+            &sequence.to_le_bytes()[..],
+        ],
+        relayer_hub_program_id,
+    )
+}
+
+pub fn derive_ext_transaction_account_address(
+    relayer_hub_program_id: &Pubkey,
+    sequence: u64,
+) -> (Pubkey, u8) {
+    Pubkey::find_program_address(
+        &[
+            EXTEND_TRANSACTION_SEED,
             &sequence.to_le_bytes()[..],
         ],
         relayer_hub_program_id,

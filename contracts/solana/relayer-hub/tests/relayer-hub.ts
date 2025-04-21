@@ -143,7 +143,8 @@ describe("relayer-hub", async() => {
 
 
     it("Submit transaction", async () => {
-        let sequence = 1;
+        let ext_sequence = (await program.account.transactionPool.fetch(poolPDA)).total;
+        let sequence = 166;
         let chain = 1;
         let chain_address = Buffer.alloc(32).fill(1);
         let epoch = (await  pg.connection.getEpochInfo()).epoch;
@@ -174,13 +175,18 @@ describe("relayer-hub", async() => {
             [Buffer.from('tx'), chain_buf, chain_address, buf1],
             program.programId
         )
-
-        await program.methods.initExecuteTransaction(chain, Array.from(chain_address), new BN(sequence),new BN(epoch), true, hash).accounts({
+        buf1.writeBigUInt64LE(BigInt(ext_sequence), 0);
+        const [extTxPDA] = PublicKey.findProgramAddressSync(
+            [Buffer.from('ext_tx'), buf1],
+            program.programId
+        )
+        await program.methods.initExecuteTransaction(chain, Array.from(chain_address), new BN(sequence), new BN(ext_sequence),new BN(epoch), true, hash).accounts({
             config: configPDA,
             relayer_info: relayerInfoPDA,
             relayer: pg.wallet.publicKey,
             pool: poolPDA,
             transaction: txPDA,
+            extTransaction: extTxPDA,
             epochSequence: epochSequencePDA,
             finalTransaction: finalTxPDA,
             pool: poolPDA,
@@ -188,6 +194,8 @@ describe("relayer-hub", async() => {
         assert((await program.account.transactionPool.fetch(poolPDA)).total.eq(new BN(1)));
         assert((await program.account.transaction.fetch(txPDA)).sequence.eq(new BN(0)));
         assert((await program.account.transaction.fetch(txPDA)).status.executed);
+        assert((await program.account.extendTransaction.fetch(extTxPDA)).sequence.eq(new BN(ext_sequence)));
+        assert((await program.account.extendTransaction.fetch(extTxPDA)).emitterSequence.eq(new BN(sequence)));
 
         await program.methods.finalizeTransaction(chain, Array.from(chain_address), new BN(sequence), true, Array.from(state_root)).accounts({
             config: configPDA,

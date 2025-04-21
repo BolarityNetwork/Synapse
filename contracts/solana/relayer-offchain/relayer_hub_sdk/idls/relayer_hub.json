@@ -204,6 +204,13 @@
           "writable": true
         },
         {
+          "name": "ext_transaction",
+          "docs": [
+            "Transaction account."
+          ],
+          "writable": true
+        },
+        {
           "name": "epoch_sequence",
           "docs": [
             "Transaction account."
@@ -241,6 +248,10 @@
         },
         {
           "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "ext_sequence",
           "type": "u64"
         },
         {
@@ -878,6 +889,19 @@
       ]
     },
     {
+      "name": "ExtendTransaction",
+      "discriminator": [
+        79,
+        163,
+        129,
+        19,
+        189,
+        125,
+        230,
+        166
+      ]
+    },
+    {
       "name": "FinalTransaction",
       "discriminator": [
         89,
@@ -1009,6 +1033,11 @@
       "code": 6007,
       "name": "EpochError",
       "msg": "Wrong epoch"
+    },
+    {
+      "code": 6008,
+      "name": "SequenceError",
+      "msg": "Wrong sequence"
     }
   ],
   "types": [
@@ -1059,6 +1088,41 @@
           },
           {
             "name": "current_sequence",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ExtendTransaction",
+      "docs": [
+        "Extend transaction account."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sequence",
+            "docs": [
+              "The sequence number of the transaction pool."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "emitter_chain",
+            "type": "u16"
+          },
+          {
+            "name": "emitter_address",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "emitter_sequence",
             "type": "u64"
           }
         ]

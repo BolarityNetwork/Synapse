@@ -77,22 +77,21 @@ module.exports = async function (provider) {
   const NETWORK = "TESTNET";
   const WORMHOLE_CONTRACTS = CONTRACTS[NETWORK];
   const CORE_BRIDGE_PID = new PublicKey(WORMHOLE_CONTRACTS.solana.core);
-
-  const realForeignEmitterChain = CHAINS.sepolia;
-  const realForeignEmitterAddress = Buffer.alloc(32);
-  realForeignEmitterAddress.set(hexStringToUint8Array('0x232A9b207A1B91d527C300d5fD47778F60596Eb8'), 12);
   const realConfig = deriveAddress([Buffer.from("config")], HELLO_WORLD_PID);
-  const realForeignEmitter = deriveAddress(
-      [
-        Buffer.from("foreign_emitter"),
-        (() => {
-          const buf = Buffer.alloc(2);
-          buf.writeUInt16LE(realForeignEmitterChain);
-          return buf;
-        })(),
-      ],
-      HELLO_WORLD_PID
-  );
+  // const realForeignEmitterChain = CHAINS.base_sepolia;
+  // const realForeignEmitterAddress = Buffer.alloc(32);
+  // realForeignEmitterAddress.set(hexStringToUint8Array('0x232A9b207A1B91d527C300d5fD47778F60596Eb8'), 12);
+  // const realForeignEmitter = deriveAddress(
+  //     [
+  //       Buffer.from("foreign_emitter"),
+  //       (() => {
+  //         const buf = Buffer.alloc(2);
+  //         buf.writeUInt16LE(realForeignEmitterChain);
+  //         return buf;
+  //       })(),
+  //     ],
+  //     HELLO_WORLD_PID
+  // );
 
   // const message = deriveAddress(
   //     [
@@ -169,13 +168,14 @@ module.exports = async function (provider) {
       message2
   );
 
+    // const NFT_CONTRACT = "0x0753e3291FE2d6876f2Bb26E342D31445AEBEC78";
     let commitment: Commitment = 'confirmed';
-    const seeds = [Buffer.from("state")];
-    const [statePda, _bump] = anchor.web3.PublicKey.findProgramAddressSync(
-        seeds,
-        programVerification.programId);
-  // const helloMessage = hexStringToUint8Array("0xfe0100000001271200000000000000000000000000000000000000000000000057e7e02bc1a9d9b0df22583439844e903278aecd801bf6d8415984099a1be8b2000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000002400000000000000000000000007d3c4f0f2c0967e6a121e57bed4e2966237706200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000001a47737e87600000001000000000000000684d47d9942878b6b40519b665ca167828dc3b97500000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000fffe0100002712000112270000000000000000000000008ac04a8869daaea57b7c37452ff5255d6fd8c6c5503a911ef42bf340d0a8db9e156020a511f7cc4b9acb2c40e43d0c147eb774860202000000a8c08c265f9258de43c4c1bd49463d52cd4b17b59f0d36633e8e07201c5852360101d3dcbcbf502ecebbf407ed003bd0b46936534c559edc1214f51d5eb6e97fd84201005c000000a53e8f992ae26bca500000008ac04a8869daaea57b7c37452ff5255d6fd8c6c584d47d9942878b6b40519b665ca167828dc3b975000000000000000600000000000000000000000000000000000000000000000000000000000000000800000002000000010101000000000000000000000000000000000000000000000000000000000000");
-  //   const tokenID = 6;
+    // const seeds = [Buffer.from("state")];
+    // const [statePda, _bump] = anchor.web3.PublicKey.findProgramAddressSync(
+    //     seeds,
+    //     programVerification.programId);
+  const helloMessage = hexStringToUint8Array("0xfe0100000001271200000000000000000000000000000000000000000000000057e7e02bc1a9d9b0df22583439844e903278aecd801bf6d8415984099a1be8b200000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000080000000000000000000000000190a350e055f8713f18edf2d0bd3d79a548e02220000000000000000000000000000000000000000000000000000704892a14a0000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000");
+    // const tokenID = 1;
   //   let idBuf = Buffer.alloc(8);
   //   idBuf.writeBigUint64BE(BigInt(tokenID));
   //   const proxyAddressBuf = Buffer.from(hexStringToUint8Array('0x8aC04a8869DaaeA57b7C37452ff5255D6Fd8c6c5')); // your proxy evm address
@@ -183,7 +183,7 @@ module.exports = async function (provider) {
   //   chainIdBuf.writeUInt16LE(realForeignEmitterChain);
   //   const payloadBuf = Buffer.concat([
   //       proxyAddressBuf,
-  //       Buffer.from(hexStringToUint8Array("0x84D47d9942878B6b40519B665Ca167828DC3b975")),
+  //       Buffer.from(hexStringToUint8Array(NFT_CONTRACT)), // NFT_CONTRACT
   //       idBuf,
   //       Buffer.alloc(32),
   //       programID.toBuffer(),
@@ -205,35 +205,35 @@ module.exports = async function (provider) {
   //   catch (error: any) {
   //     console.log(error);
   //   }
-  // const ix3 = program.methods
-  //     .sendMessage(Buffer.from(helloMessage))
-  //     .accounts({
-  //       config: realConfig,
-  //       wormholeProgram: CORE_BRIDGE_PID,
-  //       ...wormholeAccounts2,
-  //     })
-  //     .instruction();
-  // const tx3 = new Transaction().add(await ix3);
-  // try {
-  //   await sendAndConfirmTransaction(provider.connection, tx3, [provider.wallet.payer], {commitment});
-  // }
-  // catch (error: any) {
-  //   console.log(error);
-  // }
+  const ix3 = program.methods
+      .sendMessage(Buffer.from(helloMessage))
+      .accounts({
+        config: realConfig,
+        wormholeProgram: CORE_BRIDGE_PID,
+        ...wormholeAccounts2,
+      })
+      .instruction();
+  const tx3 = new Transaction().add(await ix3);
+  try {
+    await sendAndConfirmTransaction(provider.connection, tx3, [provider.wallet.payer], {commitment});
+  }
+  catch (error: any) {
+    console.log(error);
+  }
 
 
-    const mint = new PublicKey("7XSrPHGyxhWvX5aD25twNu12jj2GVTJkPFTBfEhwkhEH");
-    const token_vault_ata = await getAssociatedTokenAddress(
-        mint,
-        statePda,
-        true
-    );
-    console.log("token_vault_ata:", token_vault_ata.toBase58());
-    const receiver_ata = await getAssociatedTokenAddress(
-        mint,
-        provider.wallet.publicKey,
-        false
-    );
+    // const mint = new PublicKey("7XSrPHGyxhWvX5aD25twNu12jj2GVTJkPFTBfEhwkhEH");
+    // const token_vault_ata = await getAssociatedTokenAddress(
+    //     mint,
+    //     statePda,
+    //     true
+    // );
+    // console.log("token_vault_ata:", token_vault_ata.toBase58());
+    // const receiver_ata = await getAssociatedTokenAddress(
+    //     mint,
+    //     provider.wallet.publicKey,
+    //     false
+    // );
     // let ix = createAssociatedTokenAccountInstruction(
     //     provider.wallet.publicKey,
     //     receiver_ata,
@@ -250,35 +250,35 @@ module.exports = async function (provider) {
     // }
     // console.log("receiver_ata:", receiver_ata.toBase58());
 
-    // =======================claim token===================================
-    const tokenID = 6;
-    let idBuf = Buffer.alloc(8);
-    idBuf.writeBigUint64BE(BigInt(tokenID));
-
-    const payloadBuf = Buffer.concat([
-        Buffer.alloc(20),
-        Buffer.from(hexStringToUint8Array("0x84D47d9942878B6b40519B665Ca167828DC3b975")), // nft contract
-        idBuf,
-        Buffer.alloc(32),
-    ]);
-    const [proofRecordPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("proof"), payloadBuf.slice(20,40), payloadBuf.slice(40,48)],
-        programVerification.programId);
-    let ix = await programVerification.methods.claimTokens().accounts({
-        receiver:provider.wallet.publicKey,
-        state: statePda,
-        tokenVault:token_vault_ata,
-        receiverTokenAccount:receiver_ata,
-        proofRecord:proofRecordPda,
-    }).instruction();
-    let tx = new Transaction().add(await ix);
-    try {
-      await sendAndConfirmTransaction(provider.connection, tx, [provider.wallet.payer], {commitment});
-        console.log("execute success");
-    }
-    catch (error: any) {
-      console.log(error);
-    }
+    // // =======================claim token===================================
+    // const tokenID = 1;
+    // let idBuf = Buffer.alloc(8);
+    // idBuf.writeBigUint64BE(BigInt(tokenID));
+    //
+    // const payloadBuf = Buffer.concat([
+    //     Buffer.alloc(20),
+    //     Buffer.from(hexStringToUint8Array(NFT_CONTRACT)), // nft contract
+    //     idBuf,
+    //     Buffer.alloc(32),
+    // ]);
+    // const [proofRecordPda] = PublicKey.findProgramAddressSync(
+    //     [Buffer.from("proof"), payloadBuf.slice(20,40), payloadBuf.slice(40,48)],
+    //     programVerification.programId);
+    // let ix = await programVerification.methods.claimTokens().accounts({
+    //     receiver:provider.wallet.publicKey,
+    //     state: statePda,
+    //     tokenVault:token_vault_ata,
+    //     receiverTokenAccount:receiver_ata,
+    //     proofRecord:proofRecordPda,
+    // }).instruction();
+    // let tx = new Transaction().add(await ix);
+    // try {
+    //   await sendAndConfirmTransaction(provider.connection, tx, [provider.wallet.payer], {commitment});
+    //     console.log("execute success");
+    // }
+    // catch (error: any) {
+    //   console.log(error);
+    // }
 
 
     // console.log(programVerification.programId);
@@ -297,12 +297,12 @@ module.exports = async function (provider) {
     // catch (error: any) {
     //   console.log(error);
     // }
-    // const nft_contract = Buffer.from(hexStringToUint8Array('0x84D47d9942878B6b40519B665Ca167828DC3b975'));
-    // ix = await programVerification.methods.setApprovedNft( [...nft_contract], true).accounts({
+    // const nft_contract = Buffer.from(hexStringToUint8Array(NFT_CONTRACT));
+    // let ix = await programVerification.methods.setApprovedNft( [...nft_contract], true).accounts({
     //     admin:provider.wallet.publicKey,
     //     state: statePda,
     // }).instruction();
-    // tx = new Transaction().add(await ix);
+    // let tx = new Transaction().add(await ix);
     // try {
     //     await sendAndConfirmTransaction(provider.connection, tx, [provider.wallet.payer], {commitment});
     //     console.log("execute success");
@@ -310,5 +310,12 @@ module.exports = async function (provider) {
     // catch (error: any) {
     //     console.log(error);
     // }
+    // const emitterAddress = PublicKey.findProgramAddressSync([Buffer.from("emitter")], new PublicKey("EYcqMLNRMUkHvDMg2Jpng8R5HMeJgt8uX7q372omPVsD"))[0].toBuffer().toString("hex");
+    // console.log(emitterAddress);
 
+    // const solAddress = tryNativeToHexString(
+    //     '5tFEXwUwpAzMXBWUSjQNWVfEh7gKbTc5hQMqBwi8jQ7k',
+    //     1
+    // );
+    // console.log(solAddress);
 };

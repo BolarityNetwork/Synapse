@@ -41,6 +41,8 @@ export const CONFIG_SEED="config";
 
 export const TX_SEED="tx";
 
+export const EXT_TX_SEED="ext_tx";
+
 export const EPOCH_SEQUENCE_SEED="epoch_sequence";
 
 export const FINAL_TX_SEED="final_tx";

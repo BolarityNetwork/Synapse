@@ -217,15 +217,18 @@ impl RelayerHubClient {
         chain: u16,
         chain_address: [u8;32],
         sequence: u64,
+        ext_sequence: u64,
         epoch: u64,
         success: bool,
         hash: [u8;64],
     ) -> TestResult<()> {
+        println!("====================================={}", ext_sequence);
         let (relayer_info, _) =relayer_hub_sdk::derive_relayer_info_account_address(&relayer_hub_program);
         let (pool, _) =relayer_hub_sdk::derive_pool_account_address(&relayer_hub_program);
         let system_program = solana_program::system_program::id();
         let (hub_config, _) =relayer_hub_sdk::derive_config_account_address(&relayer_hub_program);
         let (transaction, _) =relayer_hub_sdk::derive_transaction_account_address(&relayer_hub_program, chain, chain_address, sequence);
+        let (ext_transaction, _) =relayer_hub_sdk::derive_ext_transaction_account_address(&relayer_hub_program, ext_sequence);
         let (epoch_sequence, _) =relayer_hub_sdk::derive_epoch_sequence_address(&relayer_hub_program, epoch);
         let (final_transaction, _) =relayer_hub_sdk::derive_final_transaction_address(&relayer_hub_program, epoch);
         self.init_execute_transaction(
@@ -233,10 +236,12 @@ impl RelayerHubClient {
             relayer_info,
             pool,
             transaction,
+            ext_transaction,
             system_program,
             chain,
             chain_address,
             sequence,
+            ext_sequence,
             payer,
             epoch_sequence,
             epoch,
@@ -253,10 +258,12 @@ impl RelayerHubClient {
         relayer_info: Pubkey,
         pool: Pubkey,
         transaction: Pubkey,
+        ext_transaction: Pubkey,
         system_program: Pubkey,
         chain: u16,
         chain_address: [u8;32],
         sequence: u64,
+        ext_sequence: u64,
         payer: &Keypair,
         epoch_sequence:Pubkey,
         epoch: u64,
@@ -270,10 +277,12 @@ impl RelayerHubClient {
             .relayer(payer.pubkey())
             .relayer_info(relayer_info)
             .transaction(transaction)
+            .ext_transaction(ext_transaction)
             .epoch_sequence(epoch_sequence)
             .system_program(system_program)
             .final_transaction(final_transaction)
             .sequence(sequence)
+            .ext_sequence(ext_sequence)
             .chain(chain)
             .address(chain_address)
             .epoch(epoch)
