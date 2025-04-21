@@ -5,33 +5,24 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-use solana_program::pubkey::Pubkey;
-use crate::generated::types::Status;
 use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
 
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Transaction {
+pub struct UnExecutedTransactionPool {
 pub discriminator: [u8; 8],
-/// The sequence number of the transaction pool.
-pub sequence: u64,
-/// The sender of the transaction.
-#[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::DisplayFromStr>"))]
-pub relayer: Pubkey,
-/// Root of transaction's state.
-pub state_root: [u8; 32],
-/// Epoch for which this account was created.
-pub epoch: u64,
-/// 254 failing 255 failed 1 pending 2 executed 3 finality
-pub status: Status,
-#[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::Bytes>"))]
-pub hash: [u8; 64],
+/// Emitter chain.
+pub chain: u16,
+/// Emitter address. Cannot be zero address.
+pub address: [u8; 32],
+/// The sequence of messages processed so far.
+pub current: u64,
 }
 
 
-impl Transaction {
+impl UnExecutedTransactionPool {
   
   
   
@@ -42,7 +33,7 @@ impl Transaction {
   }
 }
 
-impl<'a> TryFrom<&solana_program::account_info::AccountInfo<'a>> for Transaction {
+impl<'a> TryFrom<&solana_program::account_info::AccountInfo<'a>> for UnExecutedTransactionPool {
   type Error = std::io::Error;
 
   fn try_from(account_info: &solana_program::account_info::AccountInfo<'a>) -> Result<Self, Self::Error> {
@@ -52,28 +43,28 @@ impl<'a> TryFrom<&solana_program::account_info::AccountInfo<'a>> for Transaction
 }
 
   #[cfg(feature = "anchor")]
-  impl anchor_lang::AccountDeserialize for Transaction {
+  impl anchor_lang::AccountDeserialize for UnExecutedTransactionPool {
       fn try_deserialize_unchecked(buf: &mut &[u8]) -> anchor_lang::Result<Self> {
         Ok(Self::deserialize(buf)?)
       }
   }
 
   #[cfg(feature = "anchor")]
-  impl anchor_lang::AccountSerialize for Transaction {}
+  impl anchor_lang::AccountSerialize for UnExecutedTransactionPool {}
 
   #[cfg(feature = "anchor")]
-  impl anchor_lang::Owner for Transaction {
+  impl anchor_lang::Owner for UnExecutedTransactionPool {
       fn owner() -> Pubkey {
         crate::RELAYER_HUB_ID
       }
   }
 
   #[cfg(feature = "anchor-idl-build")]
-  impl anchor_lang::IdlBuild for Transaction {}
+  impl anchor_lang::IdlBuild for UnExecutedTransactionPool {}
 
   
   #[cfg(feature = "anchor-idl-build")]
-  impl anchor_lang::Discriminator for Transaction {
+  impl anchor_lang::Discriminator for UnExecutedTransactionPool {
     const DISCRIMINATOR: [u8; 8] = [0; 8];
   }
 

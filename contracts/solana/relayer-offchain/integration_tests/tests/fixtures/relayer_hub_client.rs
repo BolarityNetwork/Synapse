@@ -11,7 +11,7 @@ use solana_sdk::{
         state::{VoteInit, VoteStateVersions},
     },
 };
-use relayer_hub_client::instructions::{ExecuteTransactionBuilder, FinalizeTransactionBuilder, InitTransactionBuilder, InitializeBuilder, RegisterRelayerBuilder, RegisterTxPoolBuilder, RollupTransactionBuilder};
+use relayer_hub_client::instructions::{FinalizeTransactionBuilder, InitExecuteTransactionBuilder, InitializeBuilder, RegisterRelayerBuilder, RegisterTxPoolBuilder, RollupTransactionBuilder};
 use crate::fixtures::TestResult;
 use relayer_hub_client::programs::RELAYER_HUB_ID as relayer_hub_program;
 use relayer_hub_client::accounts::{EpochSequence, FinalTransaction, FinalTransactionPool, TransactionPool};
@@ -211,51 +211,60 @@ impl RelayerHubClient {
         Ok(pool.total)
     }
 
-    pub async fn do_init_transaction(
+    pub async fn do_init_execute_transaction(
         &mut self,
-        sequence: u64,
         payer: &Keypair,
-        data: Vec<u8>,
+        chain: u16,
+        chain_address: [u8;32],
+        sequence: u64,
         epoch: u64,
+        success: bool,
+        hash: [u8;64],
     ) -> TestResult<()> {
         let (relayer_info, _) =relayer_hub_sdk::derive_relayer_info_account_address(&relayer_hub_program);
         let (pool, _) =relayer_hub_sdk::derive_pool_account_address(&relayer_hub_program);
         let system_program = solana_program::system_program::id();
         let (hub_config, _) =relayer_hub_sdk::derive_config_account_address(&relayer_hub_program);
-        let (transaction, _) =relayer_hub_sdk::derive_transaction_account_address(&relayer_hub_program, sequence);
+        let (transaction, _) =relayer_hub_sdk::derive_transaction_account_address(&relayer_hub_program, chain, chain_address, sequence);
         let (epoch_sequence, _) =relayer_hub_sdk::derive_epoch_sequence_address(&relayer_hub_program, epoch);
         let (final_transaction, _) =relayer_hub_sdk::derive_final_transaction_address(&relayer_hub_program, epoch);
-        self.init_transaction(
+        self.init_execute_transaction(
             hub_config,
             relayer_info,
             pool,
             transaction,
             system_program,
+            chain,
+            chain_address,
             sequence,
             payer,
-            data,
             epoch_sequence,
             epoch,
             final_transaction,
+            success,
+            hash,
         )
             .await
     }
 
-    pub async fn init_transaction(
+    pub async fn init_execute_transaction(
         &mut self,
         hub_config: Pubkey,
         relayer_info: Pubkey,
         pool: Pubkey,
         transaction: Pubkey,
         system_program: Pubkey,
+        chain: u16,
+        chain_address: [u8;32],
         sequence: u64,
         payer: &Keypair,
-        data: Vec<u8>,
         epoch_sequence:Pubkey,
         epoch: u64,
         final_transaction: Pubkey,
+        success: bool,
+        hash: [u8;64],
     ) -> TestResult<()> {
-        let ix = InitTransactionBuilder::new()
+        let ix = InitExecuteTransactionBuilder::new()
             .config(hub_config)
             .pool(pool)
             .relayer(payer.pubkey())
@@ -265,8 +274,11 @@ impl RelayerHubClient {
             .system_program(system_program)
             .final_transaction(final_transaction)
             .sequence(sequence)
-            .data(data)
+            .chain(chain)
+            .address(chain_address)
             .epoch(epoch)
+            .success(success)
+            .hash(hash)
             .instruction();
 
         let blockhash = self.banks_client.get_latest_blockhash().await?;
@@ -298,69 +310,17 @@ impl RelayerHubClient {
         Ok(pool.total)
     }
 
-    pub async fn do_execute_transaction(
-        &mut self,
-        sequence: u64,
-        payer: &Keypair,
-        success: bool,
-        hash: [u8;64],
-    ) -> TestResult<()> {
-        let (relayer_info, _) =relayer_hub_sdk::derive_relayer_info_account_address(&relayer_hub_program);
-        let system_program = solana_program::system_program::id();
-        let (hub_config, _) =relayer_hub_sdk::derive_config_account_address(&relayer_hub_program);
-        let (transaction, _) =relayer_hub_sdk::derive_transaction_account_address(&relayer_hub_program, sequence);
-        self.execute_transaction(
-            hub_config,
-            relayer_info,
-            transaction,
-            system_program,
-            sequence,
-            payer,
-            success,
-            hash,
-        )
-            .await
-    }
-
-    pub async fn execute_transaction(
-        &mut self,
-        hub_config: Pubkey,
-        relayer_info: Pubkey,
-        transaction: Pubkey,
-        system_program: Pubkey,
-        sequence: u64,
-        payer: &Keypair,
-        success: bool,
-        hash: [u8;64],
-    ) -> TestResult<()> {
-        let ix = ExecuteTransactionBuilder::new()
-            .config(hub_config)
-            .relayer(payer.pubkey())
-            .relayer_info(relayer_info)
-            .transaction(transaction)
-            .system_program(system_program)
-            .sequence(sequence)
-            .success(success)
-            .hash(hash)
-            .instruction();
-
-        let blockhash = self.banks_client.get_latest_blockhash().await?;
-        self.process_transaction(&Transaction::new_signed_with_payer(
-            &[ix],
-            Some(&payer.pubkey()),
-            &[&payer],
-            blockhash,
-        ))
-            .await
-    }
-
     pub async fn get_tx_status(
         &mut self,
+        chain: u16,
+        chain_address: [u8;32],
         sequence: u64,
     ) -> TestResult<Status> {
         let (pool_address, _) =
             relayer_hub_sdk::derive_transaction_account_address(
                 &relayer_hub_program,
+                chain,
+                chain_address,
                 sequence
             );
 
@@ -377,11 +337,15 @@ impl RelayerHubClient {
 
     pub async fn get_tx(
         &mut self,
+        chain: u16,
+        chain_address: [u8;32],
         sequence: u64,
     ) -> TestResult<HubTransaction> {
         let (pool_address, _) =
             relayer_hub_sdk::derive_transaction_account_address(
                 &relayer_hub_program,
+                chain,
+                chain_address,
                 sequence
             );
 
@@ -398,6 +362,8 @@ impl RelayerHubClient {
 
     pub async fn do_finalize_transaction(
         &mut self,
+        chain: u16,
+        chain_address: [u8;32],
         sequence: u64,
         payer: &Keypair,
         finalize: bool,
@@ -405,12 +371,14 @@ impl RelayerHubClient {
     ) -> TestResult<()> {
         let system_program = solana_program::system_program::id();
         let (hub_config, _) =relayer_hub_sdk::derive_config_account_address(&relayer_hub_program);
-        let (transaction, _) =relayer_hub_sdk::derive_transaction_account_address(&relayer_hub_program, sequence);
+        let (transaction, _) =relayer_hub_sdk::derive_transaction_account_address(&relayer_hub_program, chain, chain_address, sequence);
 
         self.finalize_transaction(
             hub_config,
             transaction,
             system_program,
+            chain,
+            chain_address,
             sequence,
             payer,
             finalize,
@@ -424,6 +392,8 @@ impl RelayerHubClient {
         hub_config: Pubkey,
         transaction: Pubkey,
         system_program: Pubkey,
+        chain: u16,
+        chain_address: [u8;32],
         sequence: u64,
         payer: &Keypair,
         finalize: bool,
@@ -434,6 +404,8 @@ impl RelayerHubClient {
             .operator(payer.pubkey())
             .transaction(transaction)
             .system_program(system_program)
+            .chain(chain)
+            .address(chain_address)
             .sequence(sequence)
             .finalize(finalize)
             .state_root(state_root)

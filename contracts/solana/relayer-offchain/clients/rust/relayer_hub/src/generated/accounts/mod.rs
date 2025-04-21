@@ -13,6 +13,7 @@
   pub(crate) mod r#relayer_info;
   pub(crate) mod r#transaction;
   pub(crate) mod r#transaction_pool;
+  pub(crate) mod r#un_executed_transaction_pool;
 
   pub use self::r#config::*;
   pub use self::r#epoch_sequence::*;
@@ -22,4 +23,5 @@
   pub use self::r#relayer_info::*;
   pub use self::r#transaction::*;
   pub use self::r#transaction_pool::*;
+  pub use self::r#un_executed_transaction_pool::*;
 

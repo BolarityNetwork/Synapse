@@ -59,11 +59,15 @@ pub fn derive_final_pool_account_address(
 }
 pub fn derive_transaction_account_address(
     relayer_hub_program_id: &Pubkey,
+    chain: u16,
+    chain_address: [u8;32],
     sequence: u64,
 ) -> (Pubkey, u8) {
     Pubkey::find_program_address(
         &[
             TRANSACTION_SEED,
+            &chain.to_le_bytes()[..],
+            &chain_address[..],
             &sequence.to_le_bytes()[..],
         ],
         relayer_hub_program_id,
