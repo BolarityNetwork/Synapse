@@ -58,13 +58,14 @@ pub mod relayer_hub {
                                     address: [u8; 32],
                                     sequence: u64,
                                     epoch: Epoch,
-                                    success: bool) -> Result<()> {
+                                    success: bool,
+                                    hash: [u8; 64]) -> Result<()> {
         let clock = Clock::get()?;
         let get_epoch = clock.epoch;
 
         require!( get_epoch == epoch, ErrorCode::EpochError);
 
-        instructions::transaction_pool::init_execute_transaction(ctx, chain, address, sequence, epoch, success)
+        instructions::transaction_pool::init_execute_transaction(ctx, chain, address, sequence, epoch, success, hash)
     }
 
     pub fn finalize_transaction(ctx: Context<FinalizeTransaction>,

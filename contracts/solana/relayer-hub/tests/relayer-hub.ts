@@ -145,9 +145,10 @@ describe("relayer-hub", async() => {
     it("Submit transaction", async () => {
         let sequence = 1;
         let chain = 1;
-        let chain_address = Buffer.from([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]);
+        let chain_address = Buffer.alloc(32).fill(1);
         let epoch = (await  pg.connection.getEpochInfo()).epoch;
-        let state_root = Buffer.from([2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]);
+        let state_root = Buffer.alloc(32).fill(2);
+        let hash = Array.from(Buffer.alloc(64).fill(1));
 
         let buf = Buffer.alloc(8);
         buf.writeBigUInt64LE(BigInt(epoch), 0);
@@ -173,7 +174,8 @@ describe("relayer-hub", async() => {
             [Buffer.from('tx'), chain_buf, chain_address, buf1],
             program.programId
         )
-        await program.methods.initExecuteTransaction(chain, chain_address, new BN(sequence),new BN(epoch), true).accounts({
+
+        await program.methods.initExecuteTransaction(chain, Array.from(chain_address), new BN(sequence),new BN(epoch), true, hash).accounts({
             config: configPDA,
             relayer_info: relayerInfoPDA,
             relayer: pg.wallet.publicKey,
@@ -187,7 +189,7 @@ describe("relayer-hub", async() => {
         assert((await program.account.transaction.fetch(txPDA)).sequence.eq(new BN(0)));
         assert((await program.account.transaction.fetch(txPDA)).status.executed);
 
-        await program.methods.finalizeTransaction(chain, chain_address, new BN(sequence), true, state_root).accounts({
+        await program.methods.finalizeTransaction(chain, Array.from(chain_address), new BN(sequence), true, Array.from(state_root)).accounts({
             config: configPDA,
             operator: pg.wallet.publicKey,
             transaction: txPDA,
@@ -199,7 +201,7 @@ describe("relayer-hub", async() => {
             [Buffer.from('un_executed'), chain_buf, chain_address],
             program.programId
         )
-        await program.methods.pushToUnExecuted(chain, chain_address, new BN(sequence)).accounts({
+        await program.methods.pushToUnExecuted(chain, Array.from(chain_address), new BN(sequence)).accounts({
             config: configPDA,
             relayer: pg.wallet.publicKey,
             relayer_info: relayerInfoPDA,

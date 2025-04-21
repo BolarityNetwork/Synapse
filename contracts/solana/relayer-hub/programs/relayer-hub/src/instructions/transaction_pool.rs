@@ -89,7 +89,8 @@ pub fn init_execute_transaction(ctx: Context<InitExecTransaction>,
                                 address: [u8; 32],
                                 sequence: u64,
                                 epoch: Epoch,
-                                success: bool) -> Result<()> {
+                                success: bool,
+                                hash: [u8; 64]) -> Result<()> {
     let config_state = &mut ctx.accounts.config;
     // To initialize first.
     if !config_state.initialized {
@@ -134,7 +135,7 @@ pub fn init_execute_transaction(ctx: Context<InitExecTransaction>,
     transaction.epoch = epoch;
     transaction.relayer = ctx.accounts.relayer.key.clone();
     // transaction.data = data;
-    // transaction.hash = hash;
+    transaction.hash = hash;
 
     transaction.status = if success {
         Status::Executed

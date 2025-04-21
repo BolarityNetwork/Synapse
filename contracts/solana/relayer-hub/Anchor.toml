@@ -21,7 +21,7 @@ relayer_hub = "39djqgS6KR6SWb3T39bTj8QMX3iuMMLP41PVjk89ieJh"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "./target/deploy/owner.json"
 
 [scripts]
