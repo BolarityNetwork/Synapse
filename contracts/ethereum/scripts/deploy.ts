@@ -3,11 +3,13 @@ import fs from 'fs';
 import {
     PublicKey,
     PublicKeyInitData,
-    Connection,
+    Connection, Commitment, Keypair, SystemProgram, LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
 import { createHash } from 'crypto';
+import {TOKEN_PROGRAM_ID} from "@solana/spl-token";
 const borsh = require('borsh');
-
+import axios from 'axios';
+import BN from 'bn.js';
 
 function deriveAddress(
     seeds: (Buffer | Uint8Array)[],
@@ -101,13 +103,72 @@ const RawDataSchema = {
         acc_meta: {array: {type:'u8'}},
     }
 };
+function getUserStatsAccountPublicKey(
+    programId: PublicKey,
+    authority: PublicKey
+): PublicKey {
+    const encoder = new TextEncoder();
+    const encodedBytes = encoder.encode('user_stats');
+    return PublicKey.findProgramAddressSync(
+        [
+            Buffer.from(encodedBytes),
+            authority.toBuffer(),
+        ],
+        programId
+    )[0];
+}
+
+function getStateAccountPublicKey(
+    programId: PublicKey
+): PublicKey {
+    const encoder = new TextEncoder();
+    const encodedBytes = encoder.encode('drift_state');
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from(encodedBytes)],
+        programId
+    )[0];
+}
+
+async function fetchData(url: string, jsonData: Record<string, any>) {
+    let payload = "";
+    try {
+        const response = await axios.post(url, jsonData, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+        payload = response.data.data.payload;
+    } catch (error) {
+        console.error('Error fetching data:', error);
+    }
+    return payload;
+}
+function getUserAccountPublicKey(
+    programId: PublicKey,
+    authority: PublicKey,
+    subAccountId = 0,
+): PublicKey {
+    const encoder = new TextEncoder();
+    const encodedBytes = encoder.encode('user');
+    const subAccountIdBuffer = Buffer.alloc(2);
+    subAccountIdBuffer.writeUInt16BE(subAccountId);
+    return PublicKey.findProgramAddressSync(
+        [
+            Buffer.from(encodedBytes),
+            authority.toBuffer(),
+            subAccountIdBuffer,
+        ],
+        programId
+    )[0];
+}
 async function main() {
     const RELAYER_SOLANA_CONTRACT = "5tFEXwUwpAzMXBWUSjQNWVfEh7gKbTc5hQMqBwi8jQ7k";
     const RELAYER_SEPOLIA_CONTRACT = "0x232A9b207A1B91d527C300d5fD47778F60596Eb8";
     const SOLANA_CHAIN_ID = 1; //wormhole solana chain id
     const SEPOLIA_CHAIN_ID = 10002; //wormhole sepolia chain id
     const USER_SOLANA_ADDRESS = "6v9YRMJbiXSjwco3evS2XdNuqPbwzKf3ykmn5iQJ4UyF";
-    const USER_SEPOLIA_ADDRESS = "0x842aDB7084103E3Ff258dA808A1107f4358ec5c1";
+    // const USER_SEPOLIA_ADDRESS = "0x842aDB7084103E3Ff258dA808A1107f4358ec5c1";
+    const USER_SEPOLIA_ADDRESS = "0x99268C322A601695c5b581c5bFA946752b2C652A";
     const NFT_CONTRACT = "0x84D47d9942878B6b40519B665Ca167828DC3b975";
     const Bolarity_NFT_CONTRACT = "0x9198A303ac94DDf8a74aF0352147A8C1097cba5a";
     const Wormhole_NFT_CONTRACT = "0x8a952A532B52bf611a7E3D574B09E37798CEe107";
@@ -421,12 +482,118 @@ async function main() {
 
 
     //=================================Ethereum Account Control Solana Contract============================================================
-    // // Get the address and calculate the Solana address corresponding to ETH
-    // const HELLO_WORLD_PID = new PublicKey(RELAYER_SOLANA_CONTRACT);
-    // const realForeignEmitterChain = SEPOLIA_CHAIN_ID;
-    // const ethAddress = rightAlignBuffer(Buffer.from(hexStringToUint8Array(USER_SEPOLIA_ADDRESS)));
-    // const addressKey = await deriveEthAddressKey(HELLO_WORLD_PID, realForeignEmitterChain, new PublicKey(ethAddress));
-    // console.log(addressKey.toBase58())
+    // Get the address and calculate the Solana address corresponding to ETH
+    const HELLO_WORLD_PID = new PublicKey(RELAYER_SOLANA_CONTRACT);
+    const realForeignEmitterChain = SEPOLIA_CHAIN_ID;
+    const ethAddress = rightAlignBuffer(Buffer.from(hexStringToUint8Array(USER_SEPOLIA_ADDRESS)));
+    const addressKey = await deriveEthAddressKey(HELLO_WORLD_PID, realForeignEmitterChain, new PublicKey(ethAddress));
+    console.log(addressKey.toBase58())
+
+    // ===============================drift stake========================================================
+    const driftProgram=new PublicKey("dRiftyHA39MWEi3m9aunc5MzRF1JYuBsbn6VPcn33UH")
+    const api_domain = "https://apptest.bolarity.xyz/api";
+    let sub_account_id = 0;
+    let market_index = 1;
+    let rawPayload;
+    // should check account exist or not
+    const driftUserStats = getUserStatsAccountPublicKey(driftProgram, addressKey);
+    // initializeUserStats if not exist
+    rawPayload = await fetchData(api_domain + "/v1/payload/initialize_user_stats",{
+        "address": USER_SEPOLIA_ADDRESS,
+        "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
+        "emitter_chain":SEPOLIA_CHAIN_ID
+    });
+
+
+    // should check account exist or not
+    const userAccount = getUserAccountPublicKey(driftProgram, addressKey, sub_account_id);
+    // initializeUser if not exist
+    rawPayload = await fetchData(api_domain + "/v1/payload/initialize_user",{
+        "address": USER_SEPOLIA_ADDRESS,
+        "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
+        "emitter_chain":SEPOLIA_CHAIN_ID,
+        "sub_account_id": sub_account_id,
+        "name":"Main Account"
+    });
+    // // ===============================deposit======================================================
+    let seed = Keypair.generate().publicKey.toBase58().slice(0, 32);
+    let amount = new BN(0.1 * 10 ** 9);
+    let rentSpaceLamports = new BN(LAMPORTS_PER_SOL / 100);
+    let createAmount = amount.add(rentSpaceLamports)
+    // 1.create_account_with_seed
+    rawPayload = await fetchData(api_domain + "/v1/payload/create_account_with_seed",{
+        "address": USER_SEPOLIA_ADDRESS,
+        "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
+        "emitter_chain":SEPOLIA_CHAIN_ID,
+        "seed": seed,
+        "amount": createAmount.toString()
+    });
+    // 2.initialize_account
+    rawPayload = await fetchData(api_domain + "/v1/payload/initialize_account",{
+        "address": USER_SEPOLIA_ADDRESS,
+        "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
+        "emitter_chain":SEPOLIA_CHAIN_ID,
+        "seed": seed
+    });
+    // 3.deposit
+    rawPayload = await fetchData(api_domain + "/v1/payload/deposit",{
+        "address": USER_SEPOLIA_ADDRESS,
+        "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
+        "emitter_chain":SEPOLIA_CHAIN_ID,
+        "seed": seed,
+        "sub_account_id":sub_account_id,
+        "market_index": market_index,
+        "amount": amount.toString()
+    });
+    // 4.close account
+    rawPayload = await fetchData(api_domain + "/v1/payload/close_account",{
+        "address": USER_SEPOLIA_ADDRESS,
+        "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
+        "emitter_chain":SEPOLIA_CHAIN_ID,
+        "seed": seed,
+    });
+    // ===============================withdraw======================================================
+    seed = Keypair.generate().publicKey.toBase58().slice(0, 32);
+    amount = new BN(0.05 * 10 ** 9);
+    rentSpaceLamports = new BN(LAMPORTS_PER_SOL / 100);
+    createAmount = rentSpaceLamports
+    // 1.create_account_with_seed
+    rawPayload = await fetchData(api_domain + "/v1/payload/create_account_with_seed",{
+        "address": USER_SEPOLIA_ADDRESS,
+        "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
+        "emitter_chain":SEPOLIA_CHAIN_ID,
+        "seed": seed,
+        "amount": createAmount.toString()
+    });
+    // 2.initialize_account
+    rawPayload = await fetchData(api_domain + "/v1/payload/initialize_account",{
+        "address": USER_SEPOLIA_ADDRESS,
+        "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
+        "emitter_chain":SEPOLIA_CHAIN_ID,
+        "seed": seed,
+    });
+    // 3.withdraw
+    rawPayload = await fetchData(api_domain + "/v1/payload/withdraw",{
+        "address": USER_SEPOLIA_ADDRESS,
+        "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
+        "emitter_chain":SEPOLIA_CHAIN_ID,
+        "seed": seed,
+        "sub_account_id":sub_account_id,
+        "market_index": market_index,
+        "amount": amount.toString()
+    });
+    // 4.close account
+    rawPayload = await fetchData(api_domain + "/v1/payload/close_account",{
+        "address": USER_SEPOLIA_ADDRESS,
+        "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
+        "emitter_chain":SEPOLIA_CHAIN_ID,
+        "seed": seed,
+    });
+    // send message...
+    const uniProxy_factory = await ethers.getContractFactory("UniProxy");
+    const UniProxy = await uniProxy_factory.attach(RELAYER_SEPOLIA_CONTRACT);
+    const receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, Buffer.from(hexStringToUint8Array(rawPayload))]));
+    console.log(receipt.hash)
 
 //     //Activation Address
 //     const paras = sha256("active").slice(0, 8);
@@ -570,7 +737,7 @@ async function main() {
     // console.log(receipt.hash)
 
   // =============Solana account control eth contract Intent-centric transaction=========================================
-   const coder = ethers.AbiCoder.defaultAbiCoder();
+  //  const coder = ethers.AbiCoder.defaultAbiCoder();
   // // Query address
   // const uniProxy_factory = await ethers.getContractFactory("UniProxy");
   // const UniProxy = await uniProxy_factory.attach(RELAYER_SEPOLIA_CONTRACT);
@@ -579,16 +746,16 @@ async function main() {
   // const proxyAddress = await UniProxy.proxys(sourceChain, userPadAddress);// Corresponding eth address
   // console.log(proxyAddress);
   // ================Using RBT to transfer SOL to an address on Solana devnet==================
-    const TOKEN_BRIDGE_RELAYER_CONTRACT = "0x7Fb0D63258caF51D8A35130d3f7A7fd1EE893969";
+  //   const TOKEN_BRIDGE_RELAYER_CONTRACT = "0x7Fb0D63258caF51D8A35130d3f7A7fd1EE893969";
     // Query the balance of the wrapped token WSOL on Ethereum
-    const WSOL_CONTRACT_ADDRESS = "0x824cb8fc742f8d3300d29f16ca8bee94471169f5";
+    // const WSOL_CONTRACT_ADDRESS = "0x824cb8fc742f8d3300d29f16ca8bee94471169f5";
     // const ERC20_ABI = [
     //     "function balanceOf(address owner) view returns (uint256)",
     //     "function transfer(address to, uint256 value) returns (bool)",
     //     "function approve(address spender,uint256 amount)",
     //     "function allowance(address owner, address spender) view returns (uint256)",
     // ];
-    const signer = await ethers.provider.getSigner();
+    // const signer = await ethers.provider.getSigner();
     // const wsolContract = new ethers.Contract(WSOL_CONTRACT_ADDRESS, ERC20_ABI, signer);
   //   const wsolBalance = await wsolContract.balanceOf(proxyAddress); // Precision is 9
   //   // const wsolBalance = await wsolContract.allowance("0x4b9C51891e816F98F7c907c1340891aA12A8902F", TOKEN_BRIDGE_RELAYER_CONTRACT)
@@ -613,7 +780,7 @@ async function main() {
   //     '6v9YRMJbiXSjwco3evS2XdNuqPbwzKf3ykmn5iQJ4UyF', // Address on Solana
   //     1
   // );
-const targetRecipient = coder.encode(["bytes32"],[Buffer.from(hexStringToUint8Array('f0d2355406cfc953e64d44f046262a2e5639cea31d940e840347820218eb6437'))]);//HD4ktk6LUewd5vMePdQF6ZtvKi3mC41AD3ZM3qJW8N8e
+// const targetRecipient = coder.encode(["bytes32"],[Buffer.from(hexStringToUint8Array('f0d2355406cfc953e64d44f046262a2e5639cea31d940e840347820218eb6437'))]);//HD4ktk6LUewd5vMePdQF6ZtvKi3mC41AD3ZM3qJW8N8e
 //   let ABI = ["function transferTokensWithRelay(\
 //         address token,\
 //         uint256 amount,\
@@ -636,29 +803,29 @@ const targetRecipient = coder.encode(["bytes32"],[Buffer.from(hexStringToUint8Ar
 
   // transfer SOL
 
-  const TOKEN_BRIDGE_RELAYER_ABI = [
-    // {"type":"function","name":"transferTokensWithRelay","inputs":[{"name":"token","type":"address","internalType":"address"},{"name":"amount","type":"uint256","internalType":"uint256"},{"name":"toNativeTokenAmount","type":"uint256","internalType":"uint256"},{"name":"targetChain","type":"uint16","internalType":"uint16"},{"name":"targetRecipient","type":"bytes32","internalType":"bytes32"},{"name":"batchId","type":"uint32","internalType":"uint32"}],"outputs":[{"name":"messageSequence","type":"uint64","internalType":"uint64"}],"stateMutability":"payable"}
-  "function transferTokensWithRelay(\
-        address token,\
-        uint256 amount,\
-        uint256 toNativeTokenAmount,\
-        uint16 targetChain,\
-        bytes32 targetRecipient,\
-        uint32 batchId\
-    ) public payable returns (uint64 messageSequence)"
-  ];
-
-  const tokenBridgeRelayerContract = new ethers.Contract(TOKEN_BRIDGE_RELAYER_CONTRACT, TOKEN_BRIDGE_RELAYER_ABI, signer);
-  const transferTokensWithRelayTx = await tokenBridgeRelayerContract.transferTokensWithRelay(
-    WSOL_CONTRACT_ADDRESS,
-    100000000,   //wsol precision is 9,100000000=0.1sol
-    0,
-    1,
-    targetRecipient,
-    0,
-  );
-  console.log(transferTokensWithRelayTx.hash)
-
+  // const TOKEN_BRIDGE_RELAYER_ABI = [
+  //   // {"type":"function","name":"transferTokensWithRelay","inputs":[{"name":"token","type":"address","internalType":"address"},{"name":"amount","type":"uint256","internalType":"uint256"},{"name":"toNativeTokenAmount","type":"uint256","internalType":"uint256"},{"name":"targetChain","type":"uint16","internalType":"uint16"},{"name":"targetRecipient","type":"bytes32","internalType":"bytes32"},{"name":"batchId","type":"uint32","internalType":"uint32"}],"outputs":[{"name":"messageSequence","type":"uint64","internalType":"uint64"}],"stateMutability":"payable"}
+  // "function transferTokensWithRelay(\
+  //       address token,\
+  //       uint256 amount,\
+  //       uint256 toNativeTokenAmount,\
+  //       uint16 targetChain,\
+  //       bytes32 targetRecipient,\
+  //       uint32 batchId\
+  //   ) public payable returns (uint64 messageSequence)"
+  // ];
+  //
+  // const tokenBridgeRelayerContract = new ethers.Contract(TOKEN_BRIDGE_RELAYER_CONTRACT, TOKEN_BRIDGE_RELAYER_ABI, signer);
+  // const transferTokensWithRelayTx = await tokenBridgeRelayerContract.transferTokensWithRelay(
+  //   WSOL_CONTRACT_ADDRESS,
+  //   100000000,   //wsol precision is 9,100000000=0.1sol
+  //   0,
+  //   1,
+  //   targetRecipient,
+  //   0,
+  // );
+  // console.log(transferTokensWithRelayTx.hash)
+  //
 
   // // Transfer wsol
   // const contract_address = coder.encode(["bytes32"],[ethers.zeroPadValue(Buffer.from(hexStringToUint8Array('0x824cb8fc742f8d3300d29f16ca8bee94471169f5')), 32)])//wsol contract address
