@@ -419,89 +419,277 @@ pub mod relayer_solana {
         Ok(())
     }
 
+
     pub fn receive_message2<'a, 'b, 'c, 'info>(ctx: Context<'a, 'b, 'c, 'info, ReceiveMessage2<'info>>, data:Vec<u8>, bump:u8, chain: u16, address:[u8;32]) -> Result<()> {
 
         let seeds = b"pda";
         let signer_seeds: &[&[&[u8]]] = &[&[seeds,&chain.to_le_bytes(), address.as_slice(), &[bump]]];
         let payload = &data[8..];
-        let account_list = RawData::deserialize(&mut &*payload)?;
+        let account_list = RawDataV2::deserialize(&mut &*payload)?;
         msg!("{:?}", account_list);
         let transfer_buf:[u8;8] = [0x27, 0xf5 ,0x76, 0xca, 0xfb, 0xb2, 0x63, 0xed];
         let active_buf:[u8;8]=[0x96 , 0x87 , 0x96 , 0x11 , 0x65 , 0x0f , 0x80 , 0xa8];
+        let cross_tsf_buf:[u8;8] = [99, 114, 111, 115, 115, 116, 115, 102];
         let transfer_ins = transfer_buf.to_vec();
         let active_ins = active_buf.to_vec();
+        let mut first_process = false;
+        let remain_ins = account_list.remains.len();
+        let mut remain_cur = 0;
+        let mut process_account = 0;
+        loop {
+            let mut accounts:Vec<AccountMeta>=vec![];
+            let mut acc_infos = vec![];
+            let mut paras;
+            let ins:Vec<u8>;
+            let mut i  = 0;
+            let mut program_id;
+            if !first_process{
+                for account in ctx.remaining_accounts {
+                    let is_signer = account_list.accounts[i].is_signer;
+                    let writeable = account_list.accounts[i].writeable;
+                    if writeable {
+                        accounts.push(AccountMeta::new(account.key(), is_signer));
+                    } else {
+                        accounts.push(AccountMeta::new_readonly(account.key(), is_signer));
+                    }
+                    acc_infos.push(account.to_account_info());
+                    i+=1;
+                    process_account+=1;
+                    if i == account_list.acc_count as usize{
+                        break
+                    }
+                }
+                paras = account_list.paras.clone();
+                ins = account_list.paras.iter().take(8).cloned().collect();
+                program_id = account_list.programId;
+                first_process = true;
+            } else {
+                if remain_cur == remain_ins{
+                    break
+                }
+                i  = 0;
+                let remain_process = account_list.remains[remain_cur].clone();
+
+                for (index, account) in ctx.remaining_accounts.iter().enumerate() {
+                    if index < process_account {
+                        continue
+                    }
+                    let is_signer = remain_process.accounts[i].is_signer;
+                    let writeable = remain_process.accounts[i].writeable;
+                    if writeable {
+                        accounts.push(AccountMeta::new(account.key(), is_signer));
+                    } else {
+                        accounts.push(AccountMeta::new_readonly(account.key(), is_signer));
+                    }
+                    acc_infos.push(account.to_account_info());
+                    i+=1;
+                    process_account+=1;
+                    if i == remain_process.acc_count as usize{
+                        break
+                    }
+                }
+                paras = remain_process.paras.clone();
+                ins = remain_process.paras.iter().take(8).cloned().collect();
+                program_id = remain_process.programId;
+                remain_cur += 1;
+            }
+            if ins == transfer_ins || ins == cross_tsf_buf {
+                // transer
+                let bytes:[u8;8] = (paras.clone())[8..16].try_into().expect("Slice length must be 8");
+                let amount = u64::from_le_bytes(bytes);
+                let from_pubkey = acc_infos[0].to_account_info();
+                let to_pubkey = acc_infos[1].to_account_info();
+                msg!("from_pubkey:{:?}", from_pubkey);
+                msg!("to_pubkey:{:?}", to_pubkey);
+                // **from_pubkey.try_borrow_mut_lamports()? -= amount;
+                // **to_pubkey.try_borrow_mut_lamports()? += amount;
+                let transfer_instruction = system_instruction::transfer(
+                    &from_pubkey.key(),
+                    &to_pubkey.key(),
+                    amount,
+                );
+                invoke_signed(
+                    &transfer_instruction,
+                    &[
+                        from_pubkey.to_account_info(),
+                        to_pubkey.to_account_info(),
+                    ],
+                    signer_seeds
+                )?;
+            } else if ins == active_ins {
+                let (pda, bump) = Pubkey::find_program_address(&[seeds,&chain.to_le_bytes(), address.as_slice()], ctx.program_id);
+
+                let lamports = (Rent::get()?).minimum_balance(0);
+
+                let create_account_ix = system_instruction::create_account(
+                    &ctx.accounts.payer.key,
+                    &pda,
+                    lamports,
+                    0,
+                    &ctx.accounts.system_program.key,
+                );
+
+                invoke_signed(
+                    &create_account_ix,
+                    &[
+                        ctx.accounts.payer.to_account_info(),
+                        ctx.accounts.system_program.to_account_info(),
+                        acc_infos[0].to_account_info(),
+                    ],
+                    signer_seeds,
+                )?;
+            } else {
+                let instruction: Instruction = Instruction {
+                    program_id: program_id,
+                    accounts,
+                    data:paras.clone(),
+                };
+                invoke_signed(&instruction, &acc_infos, signer_seeds)?;
+            }
+        }
+
+        // Done
+        Ok(())
+    }
+
+
+    pub fn receive_message3<'a, 'b, 'c, 'info>(ctx: Context<'a, 'b, 'c, 'info, ReceiveMessage3<'info>>, vaa_hash: [u8; 32], bump:u8, chain: u16, address:[u8;32]) -> Result<()> {
+        let posted_message = &ctx.accounts.posted;
+        // Save batch ID, keccak256 hash and message payload.
+        let received = &mut ctx.accounts.received;
+        received.batch_id = posted_message.batch_id();
+        received.wormhole_message_hash = vaa_hash;
+        received.message = vec![];
+
+        let seeds = b"pda";
+        let signer_seeds: &[&[&[u8]]] = &[&[seeds,&chain.to_le_bytes(), address.as_slice(), &[bump]]];
+        // let account_list = RawData::deserialize(&mut &*data)?;
+        let account_list = posted_message.data().raw_data.clone();
+        msg!("{:?}", account_list);
+        let transfer_buf:[u8;8] = [0x27, 0xf5 ,0x76, 0xca, 0xfb, 0xb2, 0x63, 0xed];
+        let active_buf:[u8;8]=[0x96 , 0x87 , 0x96 , 0x11 , 0x65 , 0x0f , 0x80 , 0xa8];
+        let cross_tsf_buf:[u8;8] = [99, 114, 111, 115, 115, 116, 115, 102];
+        let transfer_ins = transfer_buf.to_vec();
+        let active_ins = active_buf.to_vec();
+        let mut first_process = false;
+        let remain_ins = account_list.remains.len();
+        let mut remain_cur = 0;
+        let mut process_account = 0;
         let mut accounts:Vec<AccountMeta>=vec![];
         let mut acc_infos = vec![];
-        let mut i  = 0;
-        for account in ctx.remaining_accounts {
-            let is_signer = account_list.accounts[i].is_signer;
-            let writeable = account_list.accounts[i].writeable;
-            if writeable {
-                accounts.push(AccountMeta::new(account.key(), is_signer));
+        loop {
+            let mut paras;
+            let ins:Vec<u8>;
+            let mut i  = 0;
+            let mut program_id;
+            if !first_process{
+                for account in ctx.remaining_accounts {
+                    let is_signer = account_list.accounts[i].is_signer;
+                    let writeable = account_list.accounts[i].writeable;
+                    if writeable {
+                        accounts.push(AccountMeta::new(account.key(), is_signer));
+                    } else {
+                        accounts.push(AccountMeta::new_readonly(account.key(), is_signer));
+                    }
+                    acc_infos.push(account.to_account_info());
+                    i+=1;
+                    process_account+=1;
+                    if i == account_list.acc_count as usize{
+                        break
+                    }
+                }
+                paras = account_list.paras.clone();
+                ins = account_list.paras.iter().take(8).cloned().collect();
+                program_id = account_list.programId;
+                first_process = true;
             } else {
-                accounts.push(AccountMeta::new_readonly(account.key(), is_signer));
+                if remain_cur == remain_ins{
+                    break
+                }
+                i  = 0;
+                let remain_process = account_list.remains[remain_cur].clone();
+                if remain_process.accounts.len() != 0 {
+                    accounts  =vec![];
+                    acc_infos = vec![];
+                }
+                for (index, account) in ctx.remaining_accounts.iter().enumerate() {
+                    if index < process_account {
+                        continue
+                    }
+                    let is_signer = remain_process.accounts[i].is_signer;
+                    let writeable = remain_process.accounts[i].writeable;
+                    if writeable {
+                        accounts.push(AccountMeta::new(account.key(), is_signer));
+                    } else {
+                        accounts.push(AccountMeta::new_readonly(account.key(), is_signer));
+                    }
+                    acc_infos.push(account.to_account_info());
+                    i+=1;
+                    process_account+=1;
+                    if i == remain_process.acc_count as usize{
+                        break
+                    }
+                }
+                paras = remain_process.paras.clone();
+                ins = remain_process.paras.iter().take(8).cloned().collect();
+                program_id = remain_process.programId;
+                remain_cur += 1;
             }
-            acc_infos.push(account.to_account_info());
-            i+=1;
-            if i == account_list.acc_count as usize{
-                break
+            if ins == transfer_ins || ins == cross_tsf_buf {
+                // transer
+                let bytes:[u8;8] = (paras.clone())[8..16].try_into().expect("Slice length must be 8");
+                let amount = u64::from_le_bytes(bytes);
+                let from_pubkey = acc_infos[0].to_account_info();
+                let to_pubkey = acc_infos[1].to_account_info();
+                msg!("from_pubkey:{:?}", from_pubkey);
+                msg!("to_pubkey:{:?}", to_pubkey);
+                // **from_pubkey.try_borrow_mut_lamports()? -= amount;
+                // **to_pubkey.try_borrow_mut_lamports()? += amount;
+                let transfer_instruction = system_instruction::transfer(
+                    &from_pubkey.key(),
+                    &to_pubkey.key(),
+                    amount,
+                );
+                invoke_signed(
+                    &transfer_instruction,
+                    &[
+                        from_pubkey.to_account_info(),
+                        to_pubkey.to_account_info(),
+                    ],
+                    signer_seeds
+                )?;
+            } else if ins == active_ins {
+                let (pda, bump) = Pubkey::find_program_address(&[seeds,&chain.to_le_bytes(), address.as_slice()], ctx.program_id);
+
+                let lamports = (Rent::get()?).minimum_balance(0);
+
+                let create_account_ix = system_instruction::create_account(
+                    &ctx.accounts.payer.key,
+                    &pda,
+                    lamports,
+                    0,
+                    &ctx.accounts.system_program.key,
+                );
+
+                invoke_signed(
+                    &create_account_ix,
+                    &[
+                        ctx.accounts.payer.to_account_info(),
+                        ctx.accounts.system_program.to_account_info(),
+                        acc_infos[0].to_account_info(),
+                    ],
+                    signer_seeds,
+                )?;
+            } else {
+                let instruction: Instruction = Instruction {
+                    program_id: program_id,
+                    accounts: accounts.clone(),
+                    data:paras,
+                };
+                invoke_signed(&instruction, &acc_infos, signer_seeds)?;
             }
         }
 
-        let ins: Vec<u8> = account_list.paras.iter().take(8).cloned().collect();
-        if ins == transfer_ins {
-            // transer
-            let bytes:[u8;8] = account_list.paras[8..].try_into().expect("Slice length must be 8");
-            let amount = u64::from_le_bytes(bytes);
-            let from_pubkey = acc_infos[0].to_account_info();
-            let to_pubkey = acc_infos[1].to_account_info();
-            msg!("from_pubkey:{:?}", from_pubkey);
-            msg!("to_pubkey:{:?}", to_pubkey);
-            // **from_pubkey.try_borrow_mut_lamports()? -= amount;
-            // **to_pubkey.try_borrow_mut_lamports()? += amount;
-            let transfer_instruction = system_instruction::transfer(
-                &from_pubkey.key(),
-                &to_pubkey.key(),
-                amount,
-            );
-            invoke_signed(
-                &transfer_instruction,
-                &[
-                    from_pubkey.to_account_info(),
-                    to_pubkey.to_account_info(),
-                ],
-                signer_seeds
-            )?;
-        } else if ins == active_ins {
-            let (pda, bump) = Pubkey::find_program_address(&[seeds,&chain.to_le_bytes(), address.as_slice()], ctx.program_id);
-
-            let lamports = (Rent::get()?).minimum_balance(0);
-
-            let create_account_ix = system_instruction::create_account(
-                &ctx.accounts.payer.key,
-                &pda,
-                lamports,
-                0,
-                &ctx.accounts.system_program.key,
-            );
-
-            invoke_signed(
-                &create_account_ix,
-                &[
-                    ctx.accounts.payer.to_account_info(),
-                    ctx.accounts.system_program.to_account_info(),
-                    acc_infos[0].to_account_info(),
-                ],
-                signer_seeds,
-            )?;
-        } else {
-            let instruction: Instruction = Instruction {
-                program_id: ctx.accounts.program_account.key(),
-                accounts,
-                data:account_list.paras.clone(),
-            };
-            invoke_signed(&instruction, &acc_infos, signer_seeds)?;
-        }
         // Done
         Ok(())
     }

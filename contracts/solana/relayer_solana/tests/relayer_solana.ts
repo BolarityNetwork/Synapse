@@ -191,6 +191,27 @@ describe("relayer_solana", () => {
         const myStorageStruct = await programTest.account.myStorage.fetch(myStorage);
         console.log(myStorageStruct.data);
     });
+    const OldRawDataSchema = {
+        struct:{
+            chain_id:'u16',
+            caller:{array: {type:'u8', len:32}},
+            programId:{array: {type:'u8', len:32}},
+            acc_count:'u8',
+            accounts:{
+                array: {
+                    type: {
+                        struct:{
+                            key:{array: {type:'u8', len:32}},
+                            isWritable:'bool',
+                            isSigner:'bool'
+                        }
+                    },
+                }
+            },
+            paras: {array: {type:'u8'}},
+            acc_meta: {array: {type:'u8'}},
+        }
+    };
     const RawDataSchema = {
         struct:{
             chain_id:'u16',
@@ -210,6 +231,24 @@ describe("relayer_solana", () => {
             },
             paras: {array: {type:'u8'}},
             acc_meta: {array: {type:'u8'}},
+            remains: {array: {type: {struct:{
+                programId:{array: {type:'u8', len:32}},
+                acc_count:'u8',
+                    accounts:{
+                    array: {
+                        type: {
+                            struct:{
+                                key:{array: {type:'u8', len:32}},
+                                isWritable:'bool',
+                                    isSigner:'bool'
+                            }
+                        },
+                    }
+                },
+                paras: {array: {type:'u8'}},
+                acc_meta: {array: {type:'u8'}},
+                }}
+            }},
         }
     };
     it("Test2", async () => {
@@ -233,13 +272,18 @@ describe("relayer_solana", () => {
         paras:encodedParams,
         acc_meta:Buffer.from(encodeMeta),
     };
-    const RawDataEncoded = borsh.serialize(RawDataSchema, RawData);
-    const exp_RawData = borsh.deserialize(RawDataSchema, RawDataEncoded);
-    console.log(exp_RawData);
-
+    let RawDataEncoded;
+    let exp_RawData;
+    try {
+        RawDataEncoded = borsh.serialize(RawDataSchema, RawData);
+        exp_RawData = borsh.deserialize(RawDataSchema, RawDataEncoded);
+    } catch (error) {
+        RawDataEncoded = borsh.serialize(OldRawDataSchema, RawData);
+        exp_RawData = borsh.deserialize(OldRawDataSchema, RawDataEncoded);
+    }
     const meta1 = exp_RawData.accounts[0];
     const accountMeta1 = {pubkey: new PublicKey(meta1.key), isWritable: meta1.isWritable, isSigner: meta1.isSigner};
-    console.log(accountMeta1)
+
     const accountMeta2 = {pubkey: Keypair.generate().publicKey, isWritable: true, isSigner: false};
     const accountMeta3 = {pubkey: Keypair.generate().publicKey, isWritable: true, isSigner: false};
     await programProxy.methods.proxyCall(Buffer.from(exp_RawData.paras), Buffer.from(exp_RawData.acc_meta), exp_RawData.acc_count).accounts({programAccount: new PublicKey(exp_RawData.programId)}).remainingAccounts([accountMeta1, accountMeta2, accountMeta3]).rpc();
@@ -267,9 +311,9 @@ describe("relayer_solana", () => {
             ],
             paras:encodedParams,
             acc_meta:Buffer.from(encodeMeta),
+            remains:[],
         };
         const RawDataEncoded = borsh.serialize(RawDataSchema, RawData);
-        console.log(RawDataEncoded.toString())
         const exp_RawData = borsh.deserialize(RawDataSchema, RawDataEncoded);
 
         const meta1 = exp_RawData.accounts[0];
@@ -281,27 +325,6 @@ describe("relayer_solana", () => {
 
 
     it("Test4", async () => {
-        const RawDataSchema = {
-            struct:{
-                chain_id:'u16',
-                caller:{array: {type:'u8', len:32}},
-                programId:{array: {type:'u8', len:32}},
-                acc_count:'u8',
-                accounts:{
-                    array: {
-                        type: {
-                            struct:{
-                                key:{array: {type:'u8', len:32}},
-                                isWritable:'bool',
-                                isSigner:'bool'
-                            }
-                        },
-                    }
-                },
-                paras: {array: {type:'u8'}},
-                acc_meta: {array: {type:'u8'}},
-            }
-        };
         const TestKeypair = Keypair.generate()
         await requestAirdrop(TestKeypair)
         // await programTest.methods.initialize().accounts({signer:TestKeypair.publicKey, myStorage: myStorage}).signers([TestKeypair]).rpc();
@@ -348,9 +371,11 @@ describe("relayer_solana", () => {
             ],
             paras:encodedParams,
             acc_meta:Buffer.from(encodeMeta),
+            remains:[],
         };
         let RawDataEncoded = borsh.serialize(RawDataSchema, RawData);
         let exp_RawData = borsh.deserialize(RawDataSchema, RawDataEncoded);
+        console.log(exp_RawData);
 
         let meta1 = exp_RawData.accounts[0];
         let accountMeta1 = {pubkey: new PublicKey(meta1.key), isWritable: meta1.isWritable, isSigner: false};
@@ -371,8 +396,13 @@ describe("relayer_solana", () => {
         await printAccountBalance(realForeignEmitter);
         await requestAirdrop2(realForeignEmitter)
         await printAccountBalance(realForeignEmitter);
+        const TestKeypair1 = Keypair.generate()
+        console.log("TestKeypair1 before:");
+        await printAccountBalance(TestKeypair1.publicKey);
 
-        encodeMeta = borsh.serialize(AccountMeta, [{writeable:true, is_signer:true}, {writeable:true, is_signer:false}]);
+        encodeMeta = borsh.serialize(AccountMeta, [
+            {writeable:true, is_signer:true}, {writeable:true, is_signer:false}
+        ]);
         paras = sha256("transfer").slice(0, 8);
         let buf = Buffer.alloc(8);
         buf.writeBigUint64LE(BigInt(1000000000),0);
@@ -396,15 +426,38 @@ describe("relayer_solana", () => {
             ],
             paras:encodedParams,
             acc_meta:Buffer.from(encodeMeta),
+            remains:[{
+                programId: programHackathon.programId.toBuffer(),
+                acc_count:2,
+                accounts:[
+                    {
+                        key: realForeignEmitter.toBuffer(),
+                        isWritable:true,
+                        isSigner: true,
+                    },
+                    {
+                        key: TestKeypair1.publicKey.toBuffer(),
+                        isWritable:true,
+                        isSigner: false,
+                    }
+                ],
+                paras:encodedParams,
+                acc_meta:Buffer.from(encodeMeta),
+            }],
         };
         RawDataEncoded = borsh.serialize(RawDataSchema, RawData);
         exp_RawData = borsh.deserialize(RawDataSchema, RawDataEncoded);
+
         meta1 = exp_RawData.accounts[0];
         let meta2 = exp_RawData.accounts[1];
         accountMeta1 = {pubkey: new PublicKey(meta1.key), isWritable: meta1.isWritable, isSigner: false};
         accountMeta2 = {pubkey: new PublicKey(meta2.key), isWritable: meta2.isWritable, isSigner: false};
-        await programHackathon.methods.receiveMessage2(Buffer.concat([payloadHead, Buffer.from(RawDataEncoded)]), bump, realForeignEmitterChain, realForeignEmitterAddress).accounts({payer:TestKeypair.publicKey, programAccount: new PublicKey(exp_RawData.programId)}).remainingAccounts([accountMeta1, accountMeta2]).signers([TestKeypair]).rpc();
+        let accountMeta1x = {pubkey: new PublicKey(meta1.key), isWritable: meta1.isWritable, isSigner: false};
+        let accountMeta2x = {pubkey: new PublicKey(TestKeypair1.publicKey), isWritable: meta2.isWritable, isSigner: false};
+        await programHackathon.methods.receiveMessage2(Buffer.concat([payloadHead, Buffer.from(RawDataEncoded)]), bump, realForeignEmitterChain, realForeignEmitterAddress).accounts({payer:TestKeypair.publicKey, programAccount: new PublicKey(exp_RawData.programId)}).remainingAccounts([accountMeta1, accountMeta2, accountMeta1x, accountMeta2x]).signers([TestKeypair]).rpc();
         await printAccountBalance(realForeignEmitter);
+        console.log("TestKeypair1 after:");
+        await printAccountBalance(TestKeypair1.publicKey);
 
         const mint_keypair = Keypair.generate();
         await requestAirdrop2(mint_keypair.publicKey);
@@ -520,6 +573,7 @@ describe("relayer_solana", () => {
             ],
             paras:encodedParams,
             acc_meta:Buffer.from(encodeMeta),
+            remains:[],
         };
         RawDataEncoded = borsh.serialize(RawDataSchema, RawData);
         exp_RawData = borsh.deserialize(RawDataSchema, RawDataEncoded);
