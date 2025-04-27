@@ -495,17 +495,12 @@ async function main() {
     let sub_account_id = 0;
     let market_index = 1;
     let rawPayload;
+    const uniProxy_factory = await ethers.getContractFactory("UniProxy");
+    const UniProxy = await uniProxy_factory.attach(RELAYER_SEPOLIA_CONTRACT);
+    let receipt;
+    // // // ===============================init user======================================================
     // should check account exist or not
     const driftUserStats = getUserStatsAccountPublicKey(driftProgram, addressKey);
-    // initializeUserStats if not exist
-    rawPayload = await fetchData(api_domain + "/v1/payload/initialize_user_stats",{
-        "address": USER_SEPOLIA_ADDRESS,
-        "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
-        "emitter_chain":SEPOLIA_CHAIN_ID
-    });
-
-
-    // should check account exist or not
     const userAccount = getUserAccountPublicKey(driftProgram, addressKey, sub_account_id);
     // initializeUser if not exist
     rawPayload = await fetchData(api_domain + "/v1/payload/initialize_user",{
@@ -515,27 +510,23 @@ async function main() {
         "sub_account_id": sub_account_id,
         "name":"Main Account"
     });
-    // // ===============================deposit======================================================
+    receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, Buffer.from(hexStringToUint8Array(rawPayload))]));
+    console.log(receipt.hash)
+    // // // ===============================deposit======================================================
     let seed = Keypair.generate().publicKey.toBase58().slice(0, 32);
     let amount = new BN(0.1 * 10 ** 9);
-    let rentSpaceLamports = new BN(LAMPORTS_PER_SOL / 100);
-    let createAmount = amount.add(rentSpaceLamports)
-    // 1.create_account_with_seed
-    rawPayload = await fetchData(api_domain + "/v1/payload/create_account_with_seed",{
+    // 1.create_account_and_init
+    rawPayload = await fetchData(api_domain + "/v1/payload/create_account_and_init",{
         "address": USER_SEPOLIA_ADDRESS,
         "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
         "emitter_chain":SEPOLIA_CHAIN_ID,
         "seed": seed,
-        "amount": createAmount.toString()
+        "amount": amount.toString(),
+        "include_rent": true
     });
-    // 2.initialize_account
-    rawPayload = await fetchData(api_domain + "/v1/payload/initialize_account",{
-        "address": USER_SEPOLIA_ADDRESS,
-        "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
-        "emitter_chain":SEPOLIA_CHAIN_ID,
-        "seed": seed
-    });
-    // 3.deposit
+    receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, Buffer.from(hexStringToUint8Array(rawPayload))]));
+    console.log(receipt.hash)
+    // 2.deposit
     rawPayload = await fetchData(api_domain + "/v1/payload/deposit",{
         "address": USER_SEPOLIA_ADDRESS,
         "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
@@ -545,34 +536,23 @@ async function main() {
         "market_index": market_index,
         "amount": amount.toString()
     });
-    // 4.close account
-    rawPayload = await fetchData(api_domain + "/v1/payload/close_account",{
-        "address": USER_SEPOLIA_ADDRESS,
-        "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
-        "emitter_chain":SEPOLIA_CHAIN_ID,
-        "seed": seed,
-    });
+    receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, Buffer.from(hexStringToUint8Array(rawPayload))]));
+    console.log(receipt.hash)
     // ===============================withdraw======================================================
     seed = Keypair.generate().publicKey.toBase58().slice(0, 32);
     amount = new BN(0.05 * 10 ** 9);
-    rentSpaceLamports = new BN(LAMPORTS_PER_SOL / 100);
-    createAmount = rentSpaceLamports
-    // 1.create_account_with_seed
-    rawPayload = await fetchData(api_domain + "/v1/payload/create_account_with_seed",{
+    // 1.create_account_and_init
+    rawPayload = await fetchData(api_domain + "/v1/payload/create_account_and_init",{
         "address": USER_SEPOLIA_ADDRESS,
         "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
         "emitter_chain":SEPOLIA_CHAIN_ID,
         "seed": seed,
-        "amount": createAmount.toString()
+        "amount": amount.toString(),
+        "include_rent": false
     });
-    // 2.initialize_account
-    rawPayload = await fetchData(api_domain + "/v1/payload/initialize_account",{
-        "address": USER_SEPOLIA_ADDRESS,
-        "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
-        "emitter_chain":SEPOLIA_CHAIN_ID,
-        "seed": seed,
-    });
-    // 3.withdraw
+    receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, Buffer.from(hexStringToUint8Array(rawPayload))]));
+    console.log(receipt.hash)
+    // 2.withdraw
     rawPayload = await fetchData(api_domain + "/v1/payload/withdraw",{
         "address": USER_SEPOLIA_ADDRESS,
         "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
@@ -582,17 +562,9 @@ async function main() {
         "market_index": market_index,
         "amount": amount.toString()
     });
-    // 4.close account
-    rawPayload = await fetchData(api_domain + "/v1/payload/close_account",{
-        "address": USER_SEPOLIA_ADDRESS,
-        "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
-        "emitter_chain":SEPOLIA_CHAIN_ID,
-        "seed": seed,
-    });
     // send message...
-    const uniProxy_factory = await ethers.getContractFactory("UniProxy");
-    const UniProxy = await uniProxy_factory.attach(RELAYER_SEPOLIA_CONTRACT);
-    const receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, Buffer.from(hexStringToUint8Array(rawPayload))]));
+
+    receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, Buffer.from(hexStringToUint8Array(rawPayload))]));
     console.log(receipt.hash)
 
 //     //Activation Address
