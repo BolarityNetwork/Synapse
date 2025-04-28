@@ -6,7 +6,7 @@ import {
     Connection, Commitment, Keypair, SystemProgram, LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
 import { createHash } from 'crypto';
-import {TOKEN_PROGRAM_ID} from "@solana/spl-token";
+import {getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID} from "@solana/spl-token";
 const borsh = require('borsh');
 import axios from 'axios';
 import BN from 'bn.js';
@@ -489,11 +489,14 @@ async function main() {
     const addressKey = await deriveEthAddressKey(HELLO_WORLD_PID, realForeignEmitterChain, new PublicKey(ethAddress));
     console.log(addressKey.toBase58())
 
+
     // ===============================drift stake========================================================
     const driftProgram=new PublicKey("dRiftyHA39MWEi3m9aunc5MzRF1JYuBsbn6VPcn33UH")
     const api_domain = "https://apptest.bolarity.xyz/api";
     let sub_account_id = 0;
-    let market_index = 1;
+    let sol_market_index = 1; // sol
+    let usdc_market_index = 0; // usdc
+    let btc_market_index = 2; // btc
     let rawPayload;
     const uniProxy_factory = await ethers.getContractFactory("UniProxy");
     const UniProxy = await uniProxy_factory.attach(RELAYER_SEPOLIA_CONTRACT);
@@ -512,7 +515,7 @@ async function main() {
     });
     receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, Buffer.from(hexStringToUint8Array(rawPayload))]));
     console.log(receipt.hash)
-    // // // ===============================deposit======================================================
+    // // // ===============================deposit sol======================================================
     let seed = Keypair.generate().publicKey.toBase58().slice(0, 32);
     let amount = new BN(0.1 * 10 ** 9);
     // 1.create_account_and_init
@@ -527,18 +530,18 @@ async function main() {
     receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, Buffer.from(hexStringToUint8Array(rawPayload))]));
     console.log(receipt.hash)
     // 2.deposit
-    rawPayload = await fetchData(api_domain + "/v1/payload/deposit",{
+    rawPayload = await fetchData(api_domain + "/v1/payload/deposit_sol_and_close",{
         "address": USER_SEPOLIA_ADDRESS,
         "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
         "emitter_chain":SEPOLIA_CHAIN_ID,
         "seed": seed,
         "sub_account_id":sub_account_id,
-        "market_index": market_index,
+        "market_index": sol_market_index,
         "amount": amount.toString()
     });
     receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, Buffer.from(hexStringToUint8Array(rawPayload))]));
     console.log(receipt.hash)
-    // ===============================withdraw======================================================
+    // ===============================withdraw sol======================================================
     seed = Keypair.generate().publicKey.toBase58().slice(0, 32);
     amount = new BN(0.05 * 10 ** 9);
     // 1.create_account_and_init
@@ -553,20 +556,60 @@ async function main() {
     receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, Buffer.from(hexStringToUint8Array(rawPayload))]));
     console.log(receipt.hash)
     // 2.withdraw
-    rawPayload = await fetchData(api_domain + "/v1/payload/withdraw",{
+    rawPayload = await fetchData(api_domain + "/v1/payload/withdraw_sol_and_close",{
         "address": USER_SEPOLIA_ADDRESS,
         "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
         "emitter_chain":SEPOLIA_CHAIN_ID,
         "seed": seed,
         "sub_account_id":sub_account_id,
-        "market_index": market_index,
+        "market_index": sol_market_index,
         "amount": amount.toString()
     });
     // send message...
-
     receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, Buffer.from(hexStringToUint8Array(rawPayload))]));
     console.log(receipt.hash)
-
+    // ===============================deposit token(usdc, btc)======================================================
+    seed = Keypair.generate().publicKey.toBase58().slice(0, 32);
+    amount = new BN(0.1 * 10 ** 6);
+    // Need check account exist or not
+    const btcTokenAta = getAssociatedTokenAddressSync(
+        new PublicKey("3BZPwbcqB5kKScF3TEXxwNfx5ipV13kbRVDvfVp5c6fv"), // btc mint
+        addressKey,
+        true,
+    );
+    const usdcTokenAta = getAssociatedTokenAddressSync(
+        new PublicKey("8zGuJQqwhZafTah7Uc7Z4tXRnguqkn5KLFAP8oV6PHe2"), // usdc mint
+        addressKey,
+        true,
+    );
+    let tokenAta = usdcTokenAta; // btcTokenAta
+    // 1.deposit
+    rawPayload = await fetchData(api_domain + "/v1/payload/deposit_token",{
+        "address": USER_SEPOLIA_ADDRESS,
+        "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
+        "emitter_chain":SEPOLIA_CHAIN_ID,
+        "seed": seed,
+        "sub_account_id":sub_account_id,
+        "market_index": usdc_market_index, // or btc_market_index
+        "amount": amount.toString(),
+        "associated_token_account": tokenAta.toBase58()
+    });
+    receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, Buffer.from(hexStringToUint8Array(rawPayload))]));
+    console.log(receipt.hash)
+    // ===============================withdraw token(usdc, btc)======================================================
+    // 1.withdraw
+    rawPayload = await fetchData(api_domain + "/v1/payload/withdraw_token",{
+        "address": USER_SEPOLIA_ADDRESS,
+        "relayer_solana_contract":RELAYER_SOLANA_CONTRACT,
+        "emitter_chain":SEPOLIA_CHAIN_ID,
+        "seed": seed,
+        "sub_account_id":sub_account_id,
+        "market_index": usdc_market_index, // or btc_market_index
+        "amount": amount.toString(),
+        "associated_token_account": tokenAta.toBase58()
+    });
+    receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, Buffer.from(hexStringToUint8Array(rawPayload))]));
+    console.log(receipt.hash)
 //     //Activation Address
 //     const paras = sha256("active").slice(0, 8);
 //     const encodedParams = Buffer.concat([paras]);
