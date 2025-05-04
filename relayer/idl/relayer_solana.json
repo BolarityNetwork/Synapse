@@ -484,6 +484,140 @@
       ]
     },
     {
+      "name": "receive_message3",
+      "discriminator": [
+        103,
+        145,
+        130,
+        205,
+        42,
+        229,
+        63,
+        190
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "docs": [
+            "Payer will initialize an account that tracks his own message IDs."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "docs": [
+            "Config account. Wormhole PDAs specified in the config are checked",
+            "against the Wormhole accounts in this context. Read-only."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "wormhole_program",
+          "address": "3u8hJUVTA4jH1wYAyUur7FFZVQ8H635K3tSHHF4ssjQ5"
+        },
+        {
+          "name": "posted",
+          "docs": [
+            "Verified Wormhole message account. The Wormhole program verified",
+            "signatures and posted the account data here. Read-only."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  80,
+                  111,
+                  115,
+                  116,
+                  101,
+                  100,
+                  86,
+                  65,
+                  65
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "vaa_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "foreign_emitter",
+          "docs": [
+            "Foreign emitter account. The posted message's `emitter_address` must",
+            "agree with the one we have registered for this message's `emitter_chain`",
+            "(chain ID). Read-only."
+          ]
+        },
+        {
+          "name": "received",
+          "docs": [
+            "Received account. [`receive_message`](crate::receive_message) will",
+            "deserialize the Wormhole message's payload and save it to this account.",
+            "This account cannot be overwritten, and will prevent Wormhole message",
+            "replay with the same sequence."
+          ],
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "docs": [
+            "System program."
+          ],
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "program_account"
+        }
+      ],
+      "args": [
+        {
+          "name": "vaa_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "bump",
+          "type": "u8"
+        },
+        {
+          "name": "chain",
+          "type": "u16"
+        },
+        {
+          "name": "address",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "register_emitter",
       "docs": [
         "This instruction registers a new foreign emitter (from another network)",

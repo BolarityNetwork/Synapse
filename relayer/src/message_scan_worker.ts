@@ -4,22 +4,31 @@ import { getSolanaConnection, getSolanaProgram, getSolanaProvider, mapConcurrent
 import { Program } from "@coral-xyz/anchor";
 import { RelayerHub } from "../types/relayer_hub";
 import { number } from "yargs";
-import { check_tx_exist } from "./relayer_hub";
+import { check_tx_exist, get_un_executed_sequence } from "./relayer_hub";
 import { Keypair } from "@solana/web3.js";
 import * as bs58 from "bs58";
 import { RELAYER_SOLANA_SECRET } from "./consts";
 import { decodeTokenTransfer } from "./encode_decode";
 import { workers } from "./app";
 import { parseTokenTransferPayload } from "@certusone/wormhole-sdk";
+import { MessageStorage } from "./message_storage";
 
 
 export class MessageScan {
 
+    private readonly storage: MessageStorage;
+
     constructor(
         app: RelayerApp<any>,
-        opts: StandardRelayerAppOpts
+        opts: StandardRelayerAppOpts,
+        storage: MessageStorage,
     ) {
+        this.storage = storage;
         spawnMsgScanWorker(app, opts, this);
+    }
+
+    get getStorage() {
+        return this.storage;
     }
 }
 
@@ -53,20 +62,23 @@ export async function spawnMsgScanWorker(
     while (true) {
         console.log(`======================Message scan process ...===========================`);
         await mapConcurrent(filters, async filter => {
-                // TODO:Get sequence
-                const sequence = BigInt(31124);
                 const emitterChain = filter.emitterChain;
                 const emitterAddress = filter.emitterAddress;
+                // Get not executed sequence
+                const sequence = await get_un_executed_sequence(relayerHubProgram, emitterChain, Buffer.from(emitterAddress));
+                // End sequence.
+                const end_sequence = await msgScan.getStorage.tryGetLastSafeSequence(emitterChain, Buffer.from(emitterAddress).toString(`hex`));
                 console.log(`Emitter chain:${emitterChain}, Emitter address: ${emitterAddress}`);
                 console.log(`Process sequence: ${sequence}`);
                 // Check if the transaction exists.
                 const exist = await check_tx_exist(relayerHubProgram, emitterChain, Buffer.from(emitterAddress),Number(sequence));
                 if(exist) {
+                    // TODO:
                     return;
                 }
                 // Get raw vaa through wormhole api.
                 try {
-                    let vaa = await app.fetchVaa(emitterChain, emitterAddress, sequence);
+                    let vaa = await app.fetchVaa(emitterChain, emitterAddress, BigInt(sequence));
 
                     const workerData = workers.find(w => w.workerId === filter.emitterChain);
                     if(workerData != undefined) {

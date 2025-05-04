@@ -1,4 +1,11 @@
-import { Commitment, Keypair, PublicKey, sendAndConfirmTransaction, Transaction } from "@solana/web3.js";
+import {
+    Commitment,
+    ComputeBudgetProgram,
+    Keypair,
+    PublicKey,
+    sendAndConfirmTransaction,
+    Transaction,
+} from "@solana/web3.js";
 import {
     CONTRACTS,
     postVaaSolana,
@@ -72,7 +79,44 @@ const RawDataSchema = {
         acc_meta: {array: {type:'u8'}},
     }
 };
-
+const RawDataSchemaV2 = {
+    struct:{
+        chain_id:'u16',
+        caller:{array: {type:'u8', len:32}},
+        programId:{array: {type:'u8', len:32}},
+        acc_count:'u8',
+        accounts:{
+            array: {
+                type: {
+                    struct:{
+                        key:{array: {type:'u8', len:32}},
+                        isWritable:'bool',
+                        isSigner:'bool'
+                    }
+                },
+            }
+        },
+        paras: {array: {type:'u8'}},
+        acc_meta: {array: {type:'u8'}},
+        remains: {array: {type: {struct:{
+                        acc_count:'u8',
+                        accounts:{
+                            array: {
+                                type: {
+                                    struct:{
+                                        key:{array: {type:'u8', len:32}},
+                                        isWritable:'bool',
+                                        isSigner:'bool'
+                                    }
+                                },
+                            }
+                        },
+                        paras: {array: {type:'u8'}},
+                        acc_meta: {array: {type:'u8'}},
+                    }}
+            }},
+    }
+};
 export async function processSepoliaToSolana(program:Program, vaa:ParsedVaaWithBytes, vaaBytes:SignedVaa):Promise<[boolean, string]>  {
     const provider = program.provider as anchor.AnchorProvider;
     const wallet = provider.wallet as unknown as NodeWallet;
@@ -120,7 +164,12 @@ export async function processSepoliaToSolana(program:Program, vaa:ParsedVaaWithB
         ],
         program.programId
     );
-    const exp_RawData = borsh.deserialize(RawDataSchema, Buffer.from(vaa.payload).slice(8));
+    let exp_RawData;
+    try{
+        exp_RawData = borsh.deserialize(RawDataSchemaV2, Buffer.from(vaa.payload).slice(8));
+    }catch(error) {
+        exp_RawData = borsh.deserialize(RawDataSchema, Buffer.from(vaa.payload).slice(8));
+    }
     console.log(exp_RawData)
     if (Buffer.from(exp_RawData.paras).slice(0, 8).equals(Buffer.from("crosstsf"))){
         let balanceBuf = Buffer.from(exp_RawData.paras).slice(8, 16)
@@ -180,6 +229,16 @@ export async function processSepoliaToSolana(program:Program, vaa:ParsedVaaWithB
     for (const meta_account of meta_accounts) {
         remainingAccounts.push({pubkey: new PublicKey(meta_account.key), isWritable: meta_account.isWritable, isSigner: false})
     }
+    let v2 = false;
+    if("remains" in exp_RawData) {
+        const remains = exp_RawData.remains;
+        for(const remain of remains) {
+            for (const meta_account of remain.accounts) {
+                remainingAccounts.push({pubkey: new PublicKey(meta_account.key), isWritable: meta_account.isWritable, isSigner: false})
+            }
+            v2 = true;
+        }
+    }
     console.log(remainingAccounts)
     const caller = exp_RawData.caller
     const chain_id = exp_RawData.chain_id
@@ -194,20 +253,46 @@ export async function processSepoliaToSolana(program:Program, vaa:ParsedVaaWithB
         ],
         new PublicKey(program.programId));
     console.log(tempKey.toBase58(), bump)
-    const ix = program.methods
-        .receiveMessage([...vaa.hash], bump, chain_id, new PublicKey(caller).toBuffer())
-        .accounts({
-            payer: wallet.publicKey(),
-            config: realConfig,
-            wormholeProgram: CORE_BRIDGE_PID,
-            posted: posted,
-            foreignEmitter: fe,
-            received: received,
-            programAccount: contract_pbkey,
-        }).remainingAccounts(remainingAccounts)
-        .instruction();
+    let ix;
+    if(v2) {
+        ix = program.methods
+            .receiveMessage3([...vaa.hash], bump, chain_id, new PublicKey(caller).toBuffer())
+            .accounts({
+                payer: wallet.publicKey(),
+                config: realConfig,
+                wormholeProgram: CORE_BRIDGE_PID,
+                posted: posted,
+                foreignEmitter: fe,
+                received: received,
+                programAccount: contract_pbkey,
+            }).remainingAccounts(remainingAccounts)
+            .instruction();
+    } else {
+        ix = program.methods
+            .receiveMessage([...vaa.hash], bump, chain_id, new PublicKey(caller).toBuffer())
+            .accounts({
+                payer: wallet.publicKey(),
+                config: realConfig,
+                wormholeProgram: CORE_BRIDGE_PID,
+                posted: posted,
+                foreignEmitter: fe,
+                received: received,
+                programAccount: contract_pbkey,
+            }).remainingAccounts(remainingAccounts)
+            .instruction();
+    }
 
-    const tx3 = new Transaction().add(await ix);
+    const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
+        units: 1000000
+    });
+
+    const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: 1
+    });
+    const tx3 = new Transaction()
+        .add(modifyComputeUnits)
+        .add(addPriorityFee)
+        .add(await ix);
     let signature ="";
     try {
         let commitment: Commitment = 'confirmed';

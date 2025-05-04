@@ -7,7 +7,7 @@ import {
     CONFIG_SEED,
     TX_SEED,
     EPOCH_SEQUENCE_SEED,
-    FINAL_TX_SEED, EXT_TX_SEED,
+    FINAL_TX_SEED, EXT_TX_SEED, UN_EXECUTED_SEED,
 } from "./consts";
 import { BN } from 'bn.js';
 import {RelayerHub} from "../types/relayer_hub";
@@ -44,6 +44,19 @@ const genTxPDAAccount = async (program:Program<RelayerHub>, chain:number, chain_
         Buffer.from(TX_SEED), chainBuf, address,  buf,
       ],
       program.programId
+    );
+}
+
+const genUnExecutedPDAAccount = async (program:Program<RelayerHub>, chain:number, chain_address:Buffer)=> {
+    const chainBuf = Buffer.alloc(2);
+    chainBuf.writeUint16LE(chain);
+    const address = Buffer.alloc(32);
+    chain_address.copy(address);
+    return PublicKey.findProgramAddressSync(
+        [
+            Buffer.from(UN_EXECUTED_SEED), chainBuf, address,
+        ],
+        program.programId
     );
 }
 
@@ -116,6 +129,15 @@ async function get_sequence(program:Program<RelayerHub>) {
     const [poolPDA] = await genPDAAccount(program, POOL_SEED)
 
     let sequence = (await program.account.transactionPool.fetch(poolPDA)).total;
+
+    return sequence.toNumber();
+}
+
+export async function get_un_executed_sequence(program:Program<RelayerHub>, chain:number, chain_address:Buffer) {
+
+    const [poolPDA] = await genUnExecutedPDAAccount(program, chain, chain_address)
+
+    let sequence = (await program.account.unExecutedTransactionPool.fetch(poolPDA)).current;
 
     return sequence.toNumber();
 }

@@ -115,7 +115,7 @@ const defaultStdOpts = {
 	msgStorage = new MessageStorage(app, options);
 	await msgStorage.clearAllMessageProcessing();
 	// Start message scan worker.
-	new MessageScan(app, options);
+	// new MessageScan(app, options, msgStorage);
 
 	const relayerSolanaKeypair = Keypair.fromSecretKey(bs58.decode(RELAYER_SOLANA_SECRET));
 	const relayer = relayerSolanaKeypair.publicKey;
@@ -128,9 +128,9 @@ const defaultStdOpts = {
 
 	app.multiple(
 		{
-			[CHAIN_ID_SOLANA]: [TOKEN_BRIDGE_SOLANA_PID],
-			// [CHAIN_ID_SEPOLIA]: [RELAYER_SEPOLIA_PROGRAM],
-			// [CHAIN_ID_BASE_SEPOLIA]: [RELAYER_BASE_SEPOLIA_PROGRAM],
+			[CHAIN_ID_SOLANA]: [RELAYER_SOLANA_PROGRAM, TOKEN_BRIDGE_SOLANA_PID],
+			[CHAIN_ID_SEPOLIA]: [RELAYER_SEPOLIA_PROGRAM, RELAYER_SEPOLIA_PROGRAM],
+			[CHAIN_ID_BASE_SEPOLIA]: [RELAYER_BASE_SEPOLIA_PROGRAM],
 		},
 		async (ctx, next) => {
 			// Get vaa and check whether it has been executed. If not, continue processing.

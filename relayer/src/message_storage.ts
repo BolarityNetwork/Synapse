@@ -10,6 +10,7 @@ import { Cluster, Redis } from "ioredis";
 import { createPool, Pool } from "generic-pool";
 import { number } from "yargs";
 import { MissedVaaOpts } from "@wormhole-foundation/relayer-engine/lib/cjs/relayer/middleware/missedVaasV3/worker";
+import { tryGetLastSafeSequence } from "@wormhole-foundation/relayer-engine/lib/cjs/relayer/middleware/missedVaasV3/storage";
 import { workers } from "./app";
 import { hexStringToUint8Array, mapConcurrent } from "./utils";
 import { decodeTokenTransfer, encodeTokenTransfer } from "./encode_decode";
@@ -226,6 +227,23 @@ export class MessageStorage {
             }
         );
         return vaaBytes
+    }
+
+    async tryGetLastSafeSequence(
+        emitterChain: number,
+        emitterAddress: string,
+    ): Promise<bigint | undefined> {
+        let sequence = BigInt(0);
+        await this.redisPool.use(
+            async redis => {
+                try {
+                    sequence = await tryGetLastSafeSequence(redis, this.prefix, emitterChain, emitterAddress);
+                } catch (error) {
+                    console.log(`Got last safe sequence error: ${error}`);
+                }
+            }
+        );
+        return sequence;
     }
 }
 
