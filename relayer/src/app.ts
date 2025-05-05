@@ -61,8 +61,13 @@ function runService(workerId: number) {
 			let emitterChain = Number(message[1]);
 			let emitterAddress = message[2];
 			let sequence = message[3];
+			let metrics_tx_hash = message[4];
+			let metrics_timestamp = message[5];
+			let metrics_intent_tx_hash = message[6];
+			let metrics_intent_timestamp = message[7];
 			msgStorage.discardVaaFromMsgQueue(emitterChain, emitterAddress, sequence);
 			msgStorage.clearMessageProcessing(emitterChain, emitterAddress, sequence);
+			msgStorage.pushLogMsg(metrics_tx_hash, metrics_timestamp, metrics_intent_tx_hash, metrics_intent_timestamp);
 		}
     });
 

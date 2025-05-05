@@ -44,6 +44,12 @@ if (parentPort) {
         } catch (error) {
             console.log(error)
         }
+        // metrics variable
+        let metrics_tx_hash = vaa.hash.toString('hex');
+        let metrics_timestamp = vaa.timestamp.toString();
+        let metrics_intent_tx_hash = "";
+        let metrics_intent_timestamp = "";
+
 
 
         const relayerSolanaKeypair = Keypair.fromSecretKey(bs58.decode(RELAYER_SOLANA_SECRET));
@@ -89,6 +95,8 @@ if (parentPort) {
                         contract = TOKEN_BRIDGE_BASE_SEPOLIA_PID;
                     }
                     [success, hash] = await processTokenBridgeTransferFromSolana(signer, vaaBytes, contract);
+                    metrics_intent_tx_hash = hash;
+                    metrics_intent_timestamp = Date.now().toString();
                     hash_buffer = Buffer.alloc(64);
                     let sourceBuffer = Buffer.from(hexStringToUint8Array(hash));
                     sourceBuffer.copy(hash_buffer, 32, 0, sourceBuffer.length);
@@ -114,6 +122,8 @@ if (parentPort) {
                             require("fs").readFileSync(currentDirectory + "/idl/TokenBridgeRelayer.json", "utf8")
                         );
                         [success, hash] = await processTokenBridgeTransferWithPayloadFromSolana(signer, contractAbi, vaaBytes);
+                        metrics_intent_tx_hash = hash;
+                        metrics_intent_timestamp = Date.now().toString();
                         hash_buffer = Buffer.alloc(64);
                         let sourceBuffer = Buffer.from(hexStringToUint8Array(hash));
                         sourceBuffer.copy(hash_buffer, 32, 0, sourceBuffer.length);
@@ -123,6 +133,8 @@ if (parentPort) {
                 } else if(vaa.emitterChain == CHAIN_ID_SEPOLIA) {
                     if (Buffer.from(tokenBridge.to).toString("hex")==tokenBridgeRelayerSolana){
                         [success, signature] = await processTokenBridgeTransferWithPayloadFromSepolia(relayerSolanaProgram, vaa, vaaBytes);
+                        metrics_intent_tx_hash = signature;
+                        metrics_intent_timestamp = Date.now().toString();
                         if (signature!= "") {
                             hash_buffer = bs58.decode(signature);
                         }
@@ -148,6 +160,7 @@ if (parentPort) {
                     if ((fromChain == CHAIN_ID_SEPOLIA) && (toChain == CHAIN_ID_SOLANA)) {
 
                         [success, signature] = await processSepoliaToSolana(relayerSolanaProgram, vaa, vaaBytes);
+                        metrics_intent_tx_hash = signature;
                         if (signature!= "") {
                             hash_buffer = bs58.decode(signature);
                         }
@@ -156,12 +169,14 @@ if (parentPort) {
                             require("fs").readFileSync(currentDirectory + "/idl/UniProxy.json", "utf8")
                         );
                         [success, hash] = await processSolanaToSepolia(signer, contractAbi, vaaBytes);
+                        metrics_intent_tx_hash = hash;
                         hash_buffer = Buffer.alloc(64);
                         let sourceBuffer = Buffer.from(hexStringToUint8Array(hash));
                         sourceBuffer.copy(hash_buffer, 32, 0, sourceBuffer.length);
                     } else if ((fromChain == CHAIN_ID_BASE_SEPOLIA) && (toChain == CHAIN_ID_SOLANA)) {
 
                         [success, signature] = await processSepoliaToSolana(relayerSolanaProgram, vaa, vaaBytes);
+                        metrics_intent_tx_hash = signature;
                         if (signature!= "") {
                             hash_buffer = bs58.decode(signature);
                         }
@@ -170,11 +185,12 @@ if (parentPort) {
                             require("fs").readFileSync(currentDirectory + "/idl/UniProxy.json", "utf8")
                         );
                         [success, hash] = await processSolanaToBaseSepolia(baseSigner, contractAbi, vaaBytes);
+                        metrics_intent_tx_hash = hash;
                         hash_buffer = Buffer.alloc(64);
                         let sourceBuffer = Buffer.from(hexStringToUint8Array(hash));
                         sourceBuffer.copy(hash_buffer, 32, 0, sourceBuffer.length);
                     }
-
+                    metrics_intent_timestamp = Date.now().toString();
                     await init_execute_transaction(relayerHubProgram,
                         vaa.emitterChain, Buffer.from(vaa.emitterAddress), vaa.sequence, success, hash_buffer);
                 }
@@ -185,7 +201,7 @@ if (parentPort) {
         }
         await new Promise(resolve => setTimeout(resolve, 2000));
         let emitterAddress = Buffer.from(vaa.emitterAddress).toString('hex');
-        let doneMessage = `done:${vaa.emitterChain}:${emitterAddress}:${String(vaa.sequence)}`
+        let doneMessage = `done:${vaa.emitterChain}:${emitterAddress}:${String(vaa.sequence)}:${metrics_tx_hash}:${metrics_timestamp}:${metrics_intent_tx_hash}:${metrics_intent_timestamp}`
         parentPort?.postMessage(doneMessage);
         process.exit(0)
     });

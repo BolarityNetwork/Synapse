@@ -245,6 +245,36 @@ export class MessageStorage {
         );
         return sequence;
     }
+
+    getLogMsgKey(
+    ): string {
+        return `relayer-metrics:message`;
+    }
+
+    async pushLogMsg(
+        tx_hash: string,
+        timestamp: string,
+        intent_tx_hash: string,
+        intent_timestamp: string,
+    ): Promise<void> {
+        const logMsgKey = this.getLogMsgKey();
+
+        await this.redisPool.use(
+            async redis => {
+                try {
+                    const msgLog = JSON.stringify({
+                        'tx_hash': tx_hash,
+                        'timestamp': timestamp,
+                        'intent_tx_hash': intent_tx_hash,
+                        'intent_timestamp': intent_timestamp,
+                    });
+                    redis.rpush(logMsgKey, msgLog)
+                } catch (error) {
+                    console.error(`record error: ${error}`);
+                }
+            }
+        );
+    }
 }
 
 export async function spawnMsgStorageWorker(
