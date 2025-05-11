@@ -53,24 +53,41 @@ pub mod relayer_hub {
     /// * `chain`   - Chain ID
     /// * `sequence`   - Trasaction sequence
     /// * `data`   - Transaction data pushed to the transaction pool.
-    pub fn init_transaction(ctx: Context<InitTransaction>, sequence: u64, epoch: Epoch, data: Vec<u8>) -> Result<()> {
+    pub fn init_execute_transaction(ctx: Context<InitExecTransaction>,
+                                    chain: u16,
+                                    address: [u8; 32],
+                                    sequence: u64,
+                                    ext_sequence: u64,
+                                    epoch: Epoch,
+                                    success: bool,
+                                    hash: [u8; 64]) -> Result<()> {
         let clock = Clock::get()?;
         let get_epoch = clock.epoch;
 
         require!( get_epoch == epoch, ErrorCode::EpochError);
 
-        instructions::transaction_pool::init_transaction(ctx, sequence, epoch, data)
+        let pool = &ctx.accounts.pool;
+        let exp_sequence = pool.total;
+
+        require!( exp_sequence == ext_sequence, ErrorCode::SequenceError);
+
+        instructions::transaction_pool::init_execute_transaction(ctx, chain, address, sequence, ext_sequence, epoch, success, hash)
     }
 
-    pub fn execute_transaction(ctx: Context<ExecTransaction>, sequence: u64, success: bool, hash: [u8;64]) -> Result<()> {
-        instructions::transaction_pool::execute_transaction(ctx, sequence, success, hash)
-    }
-
-    pub fn finalize_transaction(ctx: Context<FinalizeTransaction>, sequence: u64, finalize: bool, state_root: [u8;32]) -> Result<()> {
-        instructions::transaction_pool::finalize_transaction(ctx, sequence, finalize, state_root)
+    pub fn finalize_transaction(ctx: Context<FinalizeTransaction>,
+                                chain: u16,
+                                address: [u8; 32],
+                                sequence: u64,
+                                finalize: bool,
+                                state_root: [u8;32]) -> Result<()> {
+        instructions::transaction_pool::finalize_transaction(ctx, chain, address, sequence, finalize, state_root)
     }
 
     pub fn rollup_transaction(ctx: Context<RollupTransaction>, accept: bool, state_root: [u8;32], vote: u8, epoch: u64) -> Result<()> {
         instructions::transaction_pool::rollup_transaction(ctx, accept, state_root, vote, epoch)
+    }
+
+    pub fn push_to_un_executed(ctx: Context<PushToUnExecuted>, chain: u16, chain_address: [u8;32], sequence: u64) -> Result<()> {
+        instructions::transaction_pool::push_to_un_executed(ctx, chain, chain_address, sequence)
     }
 }

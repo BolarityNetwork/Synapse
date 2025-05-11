@@ -1,16 +1,18 @@
-import { Connection, Keypair, PublicKey,Transaction, sendAndConfirmTransaction, Commitment, SystemProgram } from '@solana/web3.js';
-import { Program } from '@coral-xyz/anchor';
+import { PublicKey,Transaction, sendAndConfirmTransaction, Commitment } from '@solana/web3.js';
+import anchor, { Program } from "@coral-xyz/anchor";
 import {
-	RELAYER_INFO_SEED,
-  RELAYER_SEED,
-  POOL_SEED,
-  CONFIG_SEED,
-  TX_SEED,
-  EPOCH_SEQUENCE_SEED,
-  FINAL_TX_SEED,
-} from "./consts"
+    RELAYER_INFO_SEED,
+    RELAYER_SEED,
+    POOL_SEED,
+    CONFIG_SEED,
+    TX_SEED,
+    EPOCH_SEQUENCE_SEED,
+    FINAL_TX_SEED, EXT_TX_SEED, UN_EXECUTED_SEED,
+} from "./consts";
 import { BN } from 'bn.js';
 import {RelayerHub} from "../types/relayer_hub";
+import { NodeWallet } from "@certusone/wormhole-sdk/lib/cjs/solana";
+import { number } from "yargs";
 
 const genPDAAccount = async (program:Program<RelayerHub>, seed:string)=> {
     return PublicKey.findProgramAddressSync(
@@ -22,51 +24,95 @@ const genPDAAccount = async (program:Program<RelayerHub>, seed:string)=> {
 }
 
 const genRelayerPDAAccount = async (program:Program<RelayerHub>, relayer:PublicKey)=> {
-  return PublicKey.findProgramAddressSync(
+    return PublicKey.findProgramAddressSync(
       [
         Buffer.from(RELAYER_SEED), relayer.toBuffer(),
       ],
       program.programId
-  );
+    );
 }
 
-const genTxPDAAccount = async (program:Program<RelayerHub>, sequence:number)=> {
-  const buf = Buffer.alloc(8);
-  buf.writeBigUInt64LE(BigInt(sequence), 0);
-  return PublicKey.findProgramAddressSync(
+const genTxPDAAccount = async (program:Program<RelayerHub>, chain:number, chain_address:Buffer, sequence:number)=> {
+    const buf = Buffer.alloc(8);
+    buf.writeBigUInt64LE(BigInt(sequence), 0);
+    const chainBuf = Buffer.alloc(2);
+    chainBuf.writeUint16LE(chain);
+    const address = Buffer.alloc(32);
+    chain_address.copy(address);
+    return PublicKey.findProgramAddressSync(
       [
-        Buffer.from(TX_SEED), buf,
+        Buffer.from(TX_SEED), chainBuf, address,  buf,
       ],
       program.programId
-  );
+    );
+}
+
+const genUnExecutedPDAAccount = async (program:Program<RelayerHub>, chain:number, chain_address:Buffer)=> {
+    const chainBuf = Buffer.alloc(2);
+    chainBuf.writeUint16LE(chain);
+    const address = Buffer.alloc(32);
+    chain_address.copy(address);
+    return PublicKey.findProgramAddressSync(
+        [
+            Buffer.from(UN_EXECUTED_SEED), chainBuf, address,
+        ],
+        program.programId
+    );
+}
+
+const genExtTxPDAAccount = async (program:Program<RelayerHub>, ext_sequence:number)=> {
+    const buf = Buffer.alloc(8);
+    buf.writeBigUInt64LE(BigInt(ext_sequence), 0);
+    return PublicKey.findProgramAddressSync(
+        [
+            Buffer.from(EXT_TX_SEED),buf,
+        ],
+        program.programId
+    );
 }
 
 const genEpochSequencePDAAccount = async (program:Program<RelayerHub>, epoch:number)=> {
-  const buf = Buffer.alloc(8);
-  buf.writeBigUInt64LE(BigInt(epoch), 0);
-  return PublicKey.findProgramAddressSync(
+    const buf = Buffer.alloc(8);
+    buf.writeBigUInt64LE(BigInt(epoch), 0);
+    return PublicKey.findProgramAddressSync(
       [
         Buffer.from(EPOCH_SEQUENCE_SEED), buf,
       ],
       program.programId
-  );
+    );
 }
 
 
 const genFinalTxPDAAccount = async (program:Program<RelayerHub>, epoch:number)=> {
-  const buf = Buffer.alloc(8);
-  buf.writeBigUInt64LE(BigInt(epoch), 0);
-  return PublicKey.findProgramAddressSync(
+    const buf = Buffer.alloc(8);
+    buf.writeBigUInt64LE(BigInt(epoch), 0);
+    return PublicKey.findProgramAddressSync(
       [
         Buffer.from(FINAL_TX_SEED), buf,
       ],
       program.programId
-  );
+    );
 }
 
-export async function get_relayer_of_current_epoch(connection:Connection, program:Program<RelayerHub>) {
+export async function check_tx_exist(program:Program<RelayerHub>, chain:number, chain_address:Buffer, sequence:number) {
+    const [txPDA] = await genTxPDAAccount(program, chain, chain_address, sequence);
+    let epoch = 0;
+    try {
+        epoch = (await program.account.transaction.fetch(txPDA)).epoch.toNumber();
+    } catch (error) {
+
+    }
+    return epoch != 0;
+}
+
+
+export async function get_relayer_of_current_epoch(program:Program<RelayerHub>) {
     // const slotInfo = await connection.getSlot();
     // console.log(`current slot: ${slotInfo}`);
+    const provider = program.provider as anchor.AnchorProvider;
+
+    const connection = provider.connection;
+
     const epochInfo = await connection.getEpochInfo();
     const epoch = epochInfo.epoch;
     console.log(`current epoch: ${epochInfo.epoch}`);
@@ -80,80 +126,67 @@ export async function get_relayer_of_current_epoch(connection:Connection, progra
 
 async function get_sequence(program:Program<RelayerHub>) {
 
-  const [poolPDA] = await genPDAAccount(program, POOL_SEED)
+    const [poolPDA] = await genPDAAccount(program, POOL_SEED)
 
-  let sequence = (await program.account.transactionPool.fetch(poolPDA)).total;
+    let sequence = (await program.account.transactionPool.fetch(poolPDA)).total;
 
-  return sequence.toNumber();
+    return sequence.toNumber();
 }
 
-export async function init_transaction(connection:Connection, program:Program<RelayerHub>, data:Buffer, relayer_keypair:Keypair) {
+export async function get_un_executed_sequence(program:Program<RelayerHub>, chain:number, chain_address:Buffer) {
 
-  let sequence = await get_sequence(program);
+    const [poolPDA] = await genUnExecutedPDAAccount(program, chain, chain_address)
 
-  const [configPDA] = await genPDAAccount(program, CONFIG_SEED);
+    let sequence = (await program.account.unExecutedTransactionPool.fetch(poolPDA)).current;
 
-  const [relayerInfoPDA] = await genPDAAccount(program, RELAYER_INFO_SEED);
-
-  const [poolPDA] = await genPDAAccount(program, POOL_SEED);
-
-  const [txPDA] = await genTxPDAAccount(program, sequence);
-
-  const epochInfo = await connection.getEpochInfo();
-  const epoch = epochInfo.epoch;
-
-  const [epochSequencePDA] = await genEpochSequencePDAAccount(program, epoch);
-
-  const [finalTxPDA] = await genFinalTxPDAAccount(program, epoch);
-
-  const ix = program.methods
-      .initTransaction(new BN(sequence), new BN(epoch), data)
-      .accountsPartial({
-        relayer:relayer_keypair.publicKey,
-        config: configPDA,
-        relayerInfo: relayerInfoPDA,
-        pool: poolPDA,
-        transaction: txPDA,
-        epochSequence: epochSequencePDA,
-        finalTransaction: finalTxPDA,
-      })
-      .instruction();
-    const tx = new Transaction().add(await ix);
-    try {
-      let commitment: Commitment = 'confirmed';
-      let signature = await sendAndConfirmTransaction(connection, tx, [relayer_keypair], {commitment});
-      console.log("Excute successfully! tx:" + signature);
-    }
-    catch (error: any) {
-      console.log("Excute failed:" + error);
-    }
-    return sequence;
+    return sequence.toNumber();
 }
 
-export async function execute_transaction(connection:Connection, program:Program<RelayerHub>, sequence:number, success:boolean, relayer_keypair:Keypair, hash:Buffer) {
+export async function init_execute_transaction(program:Program<RelayerHub>, chain:number, chain_address:Buffer, sequence:number, success:boolean, hash:Buffer) {
+    const provider = program.provider as anchor.AnchorProvider;
+    const wallet = provider.wallet as unknown as NodeWallet;
 
-  const [configPDA] = await genPDAAccount(program, CONFIG_SEED);
+    const connection = provider.connection;
 
-  const [relayerInfoPDA] = await genPDAAccount(program, RELAYER_INFO_SEED);
+    let ext_sequence = await get_sequence(program);
 
-  const [txPDA] = await genTxPDAAccount(program, sequence);
+    const [configPDA] = await genPDAAccount(program, CONFIG_SEED);
 
-  const ix = program.methods
-      .executeTransaction(new BN(sequence), success, Array.from(hash))
-      .accountsPartial({
-        relayer:relayer_keypair.publicKey,
-        config: configPDA,
-        relayerInfo: relayerInfoPDA,
-        transaction: txPDA,
-      })
-      .instruction();
+    const [relayerInfoPDA] = await genPDAAccount(program, RELAYER_INFO_SEED);
+
+    const [poolPDA] = await genPDAAccount(program, POOL_SEED);
+
+    const [txPDA] = await genTxPDAAccount(program, chain, chain_address, sequence);
+
+    const [extTxPDA] = await genExtTxPDAAccount(program, ext_sequence);
+
+    const epochInfo = await connection.getEpochInfo();
+    const epoch = epochInfo.epoch;
+
+    const [epochSequencePDA] = await genEpochSequencePDAAccount(program, epoch);
+
+    const [finalTxPDA] = await genFinalTxPDAAccount(program, epoch);
+
+    const ix = program.methods
+        .initExecuteTransaction(chain, Array.from(chain_address), new BN(sequence), new BN(ext_sequence), new BN(epoch), success, Array.from(hash))
+        .accountsPartial({
+            relayer: wallet.publicKey(),
+            config: configPDA,
+            relayerInfo: relayerInfoPDA,
+            pool: poolPDA,
+            transaction: txPDA,
+            extTransaction: extTxPDA,
+            epochSequence: epochSequencePDA,
+            finalTransaction: finalTxPDA,
+        })
+        .instruction();
     const tx = new Transaction().add(await ix);
     try {
-      let commitment: Commitment = 'confirmed';
-      let signature = await sendAndConfirmTransaction(connection, tx, [relayer_keypair], {commitment});
-      console.log("Excute successfully! tx:" + signature);
+        let commitment: Commitment = 'confirmed';
+        let signature = await sendAndConfirmTransaction(connection, tx, [wallet.payer], {commitment});
+        console.log("Init execute transaction instruction execute successfully! tx:" + signature);
     }
     catch (error: any) {
-      console.log(error);
+        console.log("Init execute transaction instruction execute failed:" + error);
     }
 }

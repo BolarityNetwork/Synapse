@@ -34,4 +34,8 @@ pub enum ErrorCode {
     #[msg("Wrong epoch")]
     /// Wrong epoch.
     EpochError,
+
+    #[msg("Wrong sequence")]
+    /// Wrong sequence.
+    SequenceError,
 }

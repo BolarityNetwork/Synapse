@@ -34,6 +34,9 @@ pub enum RelayerHubError {
     /// 6007 - Wrong epoch
     #[error("Wrong epoch")]
     EpochError = 0x1777,
+    /// 6008 - Wrong sequence
+    #[error("Wrong sequence")]
+    SequenceError = 0x1778,
 }
 
 impl solana_program::program_error::PrintProgramError for RelayerHubError {

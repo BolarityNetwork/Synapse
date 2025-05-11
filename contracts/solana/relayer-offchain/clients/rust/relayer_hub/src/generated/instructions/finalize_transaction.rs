@@ -72,13 +72,13 @@ impl FinalizeTransaction {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
  pub struct FinalizeTransactionInstructionData {
             discriminator: [u8; 8],
-                        }
+                                    }
 
 impl FinalizeTransactionInstructionData {
   pub fn new() -> Self {
     Self {
                         discriminator: [60, 244, 109, 218, 61, 102, 51, 116],
-                                                            }
+                                                                                        }
   }
 }
 
@@ -91,7 +91,9 @@ impl Default for FinalizeTransactionInstructionData {
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
  pub struct FinalizeTransactionInstructionArgs {
-                  pub sequence: u64,
+                  pub chain: u16,
+                pub address: [u8; 32],
+                pub sequence: u64,
                 pub finalize: bool,
                 pub state_root: [u8; 32],
       }
@@ -111,7 +113,9 @@ pub struct FinalizeTransactionBuilder {
                 config: Option<solana_program::pubkey::Pubkey>,
                 transaction: Option<solana_program::pubkey::Pubkey>,
                 system_program: Option<solana_program::pubkey::Pubkey>,
-                        sequence: Option<u64>,
+                        chain: Option<u16>,
+                address: Option<[u8; 32]>,
+                sequence: Option<u64>,
                 finalize: Option<bool>,
                 state_root: Option<[u8; 32]>,
         __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
@@ -147,6 +151,16 @@ impl FinalizeTransactionBuilder {
                     self
     }
                     #[inline(always)]
+      pub fn chain(&mut self, chain: u16) -> &mut Self {
+        self.chain = Some(chain);
+        self
+      }
+                #[inline(always)]
+      pub fn address(&mut self, address: [u8; 32]) -> &mut Self {
+        self.address = Some(address);
+        self
+      }
+                #[inline(always)]
       pub fn sequence(&mut self, sequence: u64) -> &mut Self {
         self.sequence = Some(sequence);
         self
@@ -182,7 +196,9 @@ impl FinalizeTransactionBuilder {
                                         system_program: self.system_program.unwrap_or(solana_program::pubkey!("11111111111111111111111111111111")),
                       };
           let args = FinalizeTransactionInstructionArgs {
-                                                              sequence: self.sequence.clone().expect("sequence is not set"),
+                                                              chain: self.chain.clone().expect("chain is not set"),
+                                                                  address: self.address.clone().expect("address is not set"),
+                                                                  sequence: self.sequence.clone().expect("sequence is not set"),
                                                                   finalize: self.finalize.clone().expect("finalize is not set"),
                                                                   state_root: self.state_root.clone().expect("state_root is not set"),
                                     };
@@ -347,7 +363,9 @@ impl<'a, 'b> FinalizeTransactionCpiBuilder<'a, 'b> {
               config: None,
               transaction: None,
               system_program: None,
-                                            sequence: None,
+                                            chain: None,
+                                address: None,
+                                sequence: None,
                                 finalize: None,
                                 state_root: None,
                     __remaining_accounts: Vec::new(),
@@ -379,6 +397,16 @@ impl<'a, 'b> FinalizeTransactionCpiBuilder<'a, 'b> {
                     self
     }
                     #[inline(always)]
+      pub fn chain(&mut self, chain: u16) -> &mut Self {
+        self.instruction.chain = Some(chain);
+        self
+      }
+                #[inline(always)]
+      pub fn address(&mut self, address: [u8; 32]) -> &mut Self {
+        self.instruction.address = Some(address);
+        self
+      }
+                #[inline(always)]
       pub fn sequence(&mut self, sequence: u64) -> &mut Self {
         self.instruction.sequence = Some(sequence);
         self
@@ -416,7 +444,9 @@ impl<'a, 'b> FinalizeTransactionCpiBuilder<'a, 'b> {
   #[allow(clippy::vec_init_then_push)]
   pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program::entrypoint::ProgramResult {
           let args = FinalizeTransactionInstructionArgs {
-                                                              sequence: self.instruction.sequence.clone().expect("sequence is not set"),
+                                                              chain: self.instruction.chain.clone().expect("chain is not set"),
+                                                                  address: self.instruction.address.clone().expect("address is not set"),
+                                                                  sequence: self.instruction.sequence.clone().expect("sequence is not set"),
                                                                   finalize: self.instruction.finalize.clone().expect("finalize is not set"),
                                                                   state_root: self.instruction.state_root.clone().expect("state_root is not set"),
                                     };
@@ -443,7 +473,9 @@ struct FinalizeTransactionCpiBuilderInstruction<'a, 'b> {
                 config: Option<&'b solana_program::account_info::AccountInfo<'a>>,
                 transaction: Option<&'b solana_program::account_info::AccountInfo<'a>>,
                 system_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-                        sequence: Option<u64>,
+                        chain: Option<u16>,
+                address: Option<[u8; 32]>,
+                sequence: Option<u64>,
                 finalize: Option<bool>,
                 state_root: Option<[u8; 32]>,
         /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.

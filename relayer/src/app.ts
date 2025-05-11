@@ -1,126 +1,209 @@
 import {
-	Environment,
-	StandardRelayerApp,
+	defaultLogger,
+	Environment, mergeDeep, parseVaaWithBytes,
+	StandardRelayerApp, StandardRelayerAppOpts,
 	StandardRelayerContext,
 } from "@wormhole-foundation/relayer-engine";
 import {
-    Connection,
-    Keypair,
-    Commitment,
+	Keypair, PublicKey,
 } from "@solana/web3.js";
 import {
-	CHAIN_ID_SOLANA ,CHAIN_ID_SEPOLIA
+	CHAIN_ID_SOLANA, CHAIN_ID_SEPOLIA, tryNativeToHexString, TokenBridgePayload, CHAIN_ID_BASE_SEPOLIA, parseVaa,
 } from "@certusone/wormhole-sdk";
 import {
-	SOLANA_RPC,
 	RELAYER_SOLANA_SECRET,
 	RELAYER_SOLANA_PROGRAM,
-	RELAYER_SEPOLIA_PROGRAM, RELAYER_SEPOLIA_SECRET, SEPOLIA_RPC,
+	RELAYER_SEPOLIA_PROGRAM,
+	CHAIN_WORKER_FILE,
+	WORMHOLE_ENVIRONMENT,
+	TOKEN_BRIDGE_SOLANA_PID,
+	TOKEN_BRIDGE_SEPOLIA_PID,
+	TOKEN_BRIDGE_RELAYER_SOLANA_PID,
+	TOKEN_BRIDGE_RELAYER_SEPOLIA_PID,
+	RELAYER_BASE_SEPOLIA_PROGRAM,
 } from "./consts";
 import {
 	get_relayer_of_current_epoch,
-	init_transaction,
-	execute_transaction,
 } from "./relayer_hub"
-import {Program, Provider} from "@coral-xyz/anchor";
-const anchor = require("@coral-xyz/anchor");
 import * as bs58 from  "bs58";
-import { processSepoliaToSolana, processSolanaToSepolia } from "./controller";
-import { ethers } from "ethers";
+import { parentPort, Worker } from "worker_threads";
+import {
+	getSolanaConnection,
+	getSolanaProgram,
+	getSolanaProvider,
+	hexStringToUint8Array,
+	rightAlignBuffer,
+} from "./utils";
+import { MessageStorage } from "./message_storage";
+import { encodeTokenTransfer } from "./encode_decode";
+import { MessageScan } from "./message_scan_worker";
 
-
-function hexStringToUint8Array(hexString: string): Uint8Array {
-    if (hexString.startsWith("0x")) {
-        hexString = hexString.slice(2);
-    }
-
-    if (hexString.length % 2 !== 0) {
-        throw new Error("Invalid hex string length");
-    }
-
-    const byteArray = new Uint8Array(hexString.length / 2);
-
-    for (let i = 0; i < hexString.length; i += 2) {
-        const hexPair = hexString.slice(i, i + 2);
-        byteArray[i / 2] = parseInt(hexPair, 16);
-    }
-
-    return byteArray;
+const chainTasks: number[] = [CHAIN_ID_SOLANA, CHAIN_ID_SEPOLIA, CHAIN_ID_BASE_SEPOLIA];
+interface WorkerData {
+    worker: Worker;
+    workerId: number;
 }
 
+// One worker per chain.
+export const workers: WorkerData[] = [];
+
+let msgStorage:MessageStorage;
+
+function runService(workerId: number) {
+    const worker = new Worker(CHAIN_WORKER_FILE, {
+        workerData: { workerId },
+    });
+
+    worker.on('message', (result) => {
+        console.log(`Result from worker ${workerId}: ${result}`);
+		if (result.startsWith("done:")) {
+			let message = result.split(":");
+			let emitterChain = Number(message[1]);
+			let emitterAddress = message[2];
+			let sequence = message[3];
+			let metrics_tx_hash = message[4];
+			let metrics_timestamp = message[5];
+			let metrics_intent_tx_hash = message[6];
+			let metrics_intent_timestamp = message[7];
+			msgStorage.discardVaaFromMsgQueue(emitterChain, emitterAddress, sequence);
+			msgStorage.clearMessageProcessing(emitterChain, emitterAddress, sequence);
+			msgStorage.pushLogMsg(metrics_tx_hash, metrics_timestamp, metrics_intent_tx_hash, metrics_intent_timestamp);
+		}
+    });
+
+    worker.on('error', (error) => {
+        console.error(`Worker ${workerId} error: ${error}`);
+    });
+
+    worker.on('exit', (code) => {
+        if (code !== 0) {
+            console.error(`Worker ${workerId} stopped with exit code ${code}`);
+        }
+    });
+    workers.push({ worker, workerId });
+}
+
+const defaultStdOpts = {
+	spyEndpoint: "localhost:7073",
+	workflows: {
+		retries: 3,
+	},
+	fetchSourceTxhash: true,
+	logger: defaultLogger,
+} satisfies Partial<StandardRelayerAppOpts>;
+
 (async function main() {
-  // initialize relayer engine app, pass relevant config options
+	const appName = `BolarityRelayer`;
+    chainTasks.forEach(task => runService(task));
+    // initialize relayer engine app, pass relevant config options
 	const app = new StandardRelayerApp<StandardRelayerContext>(
-		Environment.TESTNET,
+		WORMHOLE_ENVIRONMENT as Environment,
 		{
-			name: `BolarityRelayer`,
+			name: appName,
+			// missedVaaOptions: {
+			// 	startingSequenceConfig: {
+			// 		[CHAIN_ID_SOLANA]:BigInt(31140),
+			// 		[CHAIN_ID_SEPOLIA]:BigInt(318676),
+			// 	},
+			// 	vaasFetchConcurrency:10,
+			// },
 		},
 	);
+
+	const options = mergeDeep<StandardRelayerAppOpts>({}, [
+		defaultStdOpts,
+		{
+			name: appName,
+		},
+	]);
+
+	msgStorage = new MessageStorage(app, options);
+	await msgStorage.clearAllMessageProcessing();
+	// Start message scan worker.
+	// new MessageScan(app, options, msgStorage);
 
 	const relayerSolanaKeypair = Keypair.fromSecretKey(bs58.decode(RELAYER_SOLANA_SECRET));
 	const relayer = relayerSolanaKeypair.publicKey;
 	// init connection
-	const commitment: Commitment = "confirmed";
-	const connection = new Connection(
-		SOLANA_RPC,
-        {
-            commitment,
-            confirmTransactionInitialTimeout: 60 * 10 * 1000,
-        }
-    );
-    const options = anchor.AnchorProvider.defaultOptions();
-    const provider = new anchor.AnchorProvider(connection, options);
-    anchor.setProvider(provider);
-	const currentDirectory = process.cwd();
-	const idl = JSON.parse(
-		require("fs").readFileSync(currentDirectory + "/idl/relayer_hub.json", "utf8")
-	);
-	const program = new Program(idl as any, provider);
-	const relayerSolanaIdl = JSON.parse(
-		require("fs").readFileSync(currentDirectory + "/idl/solana.json", "utf8")
-	);
-	const relayerSolanaProgram = new Program(relayerSolanaIdl as any, provider);
-	// init sepolia connection
-	const signer = new ethers.Wallet(RELAYER_SEPOLIA_SECRET, new ethers.providers.JsonRpcProvider(SEPOLIA_RPC));
-	const contractAbi = JSON.parse(
-		require("fs").readFileSync(currentDirectory + "/idl/UniProxy.json", "utf8")
-	);
+    const connection = getSolanaConnection();
+	const provider = getSolanaProvider(connection, relayerSolanaKeypair);
+    const currentDirectory = process.cwd();
+    const idlPath = currentDirectory + "/idl/relayer_hub.json";
+	const relayerHubProgram = getSolanaProgram(idlPath, provider);
 
 	app.multiple(
 		{
-			[CHAIN_ID_SOLANA]: [RELAYER_SOLANA_PROGRAM],
-			[CHAIN_ID_SEPOLIA]: [RELAYER_SEPOLIA_PROGRAM],
+			[CHAIN_ID_SOLANA]: [RELAYER_SOLANA_PROGRAM, TOKEN_BRIDGE_SOLANA_PID],
+			[CHAIN_ID_SEPOLIA]: [RELAYER_SEPOLIA_PROGRAM, RELAYER_SEPOLIA_PROGRAM],
+			[CHAIN_ID_BASE_SEPOLIA]: [RELAYER_BASE_SEPOLIA_PROGRAM],
 		},
 		async (ctx, next) => {
 			// Get vaa and check whether it has been executed. If not, continue processing.
 			const vaa = ctx.vaa;
+			const {payload} = ctx.tokenBridge;
 			let hash = ctx.sourceTxHash;
 			const now: Date = new Date();
 			console.log(
 			  `=====${now}==========Got a VAA with sequence: ${vaa.sequence} from with txhash: ${hash}=========================`,
 			);
 			console.log(
-			  `===============Got a VAA: ${Buffer.from(ctx.vaaBytes).toString('hex')}=========================`,
+				`===============Got a VAA: ${Buffer.from(ctx.vaaBytes).toString('hex')}=========================`,
 			);
-			let currentRelayer = await get_relayer_of_current_epoch(connection, program);
-			console.log("================current:" + currentRelayer.toBase58());
-			if (currentRelayer.toBase58() == relayer.toBase58()) {
-				console.log("==============Now you======================");
-				// record relay transaction
-				let sequence = await init_transaction(connection, program, Buffer.from(ctx.vaaBytes), relayerSolanaKeypair);
-				let success = false;
-				let hash_buffer;
-				if (vaa.emitterChain == CHAIN_ID_SEPOLIA) {
-					let signature;
-					[success, signature] = await processSepoliaToSolana(connection, relayerSolanaProgram, relayerSolanaKeypair, vaa, ctx);
-					if (signature!= "") {
-						hash_buffer = bs58.decode(signature);
+			// Filter out messages that do not need to be processed.
+			const tkBrgSolanaEmitter = PublicKey.findProgramAddressSync(
+				[Buffer.from("emitter")],
+				new PublicKey(TOKEN_BRIDGE_SOLANA_PID))[0].toBuffer();
+
+			const tkBrgSepoliaEmitter = rightAlignBuffer(Buffer.from(hexStringToUint8Array(TOKEN_BRIDGE_SEPOLIA_PID)));
+
+			console.log(`===============emitterAddress: ${Buffer.from(vaa.emitterAddress).toString('hex')}=========================`);
+			let skipProcess = false;
+			// Token bridge message.
+			if( ((vaa.emitterChain == CHAIN_ID_SOLANA) && (vaa.emitterAddress == tkBrgSolanaEmitter)) ||
+				((vaa.emitterChain == CHAIN_ID_SEPOLIA) && (vaa.emitterAddress == tkBrgSepoliaEmitter))) {
+				console.log(`=====emitterChain:${vaa.emitterChain}==========tkBrgSolanaEmitter: ${tkBrgSolanaEmitter.toString('hex')}=========================`);
+				console.log(`======emitterChain:${vaa.emitterChain}=========tkBrgSepoliaEmitter: ${tkBrgSepoliaEmitter.toString('hex')}=========================`);
+				switch (payload?.payloadType) {
+					case TokenBridgePayload.Transfer: {
+						// Only redeem solana's cross-chain transfer.
+						if (vaa.emitterChain != CHAIN_ID_SOLANA) {
+							skipProcess = true;
+						}
 					}
-				} else if (vaa.emitterChain == CHAIN_ID_SOLANA) {
-					[success, hash] = await processSolanaToSepolia(signer, contractAbi, ctx);
-					hash_buffer = Buffer.from(hexStringToUint8Array(hash));
+					break;
+					case TokenBridgePayload.TransferWithPayload: {
+						if (vaa.emitterChain == CHAIN_ID_SOLANA) {
+							if (payload.to != rightAlignBuffer(
+								Buffer.from(hexStringToUint8Array(TOKEN_BRIDGE_RELAYER_SEPOLIA_PID)))) {
+								skipProcess = true;
+							}
+						} else if(vaa.emitterChain == CHAIN_ID_SEPOLIA) {
+							if (payload.to.toString("hex") != tryNativeToHexString(
+								TOKEN_BRIDGE_RELAYER_SOLANA_PID,
+								CHAIN_ID_SOLANA
+							)) {
+								skipProcess = true;
+							}
+						}
+					}
+					break;
+					default:{
+						skipProcess = true;
+					}
 				}
-				await execute_transaction(connection, program, sequence, success, relayerSolanaKeypair, hash_buffer);
+			}
+
+			if(!skipProcess) {
+				let currentRelayer = await get_relayer_of_current_epoch(relayerHubProgram);
+				console.log(`================current relayer:${currentRelayer.toBase58()}, your relayer:${relayer.toBase58()}`);
+
+				if (currentRelayer.toBase58() == relayer.toBase58()) {
+					console.log("==============Now it's your turn to relay======================");
+					// First store message to redis.
+					let vaaAndTokenBridge = vaa.bytes.toString('hex');
+					let emitterAddress = vaa.emitterAddress.toString('hex');
+					await msgStorage.pushVaaToMsgQueue(vaa.emitterChain, emitterAddress, String(vaa.sequence), vaaAndTokenBridge);
+				}
 			}
 			next();
 		},

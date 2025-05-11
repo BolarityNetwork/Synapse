@@ -15,11 +15,8 @@ use borsh::BorshDeserialize;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Transaction {
 pub discriminator: [u8; 8],
-/// The sequence number of the transaction.
+/// The sequence number of the transaction pool.
 pub sequence: u64,
-pub timestamp: u32,
-pub from_chain: u16,
-pub to_chain: u16,
 /// The sender of the transaction.
 #[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::DisplayFromStr>"))]
 pub relayer: Pubkey,
@@ -27,10 +24,8 @@ pub relayer: Pubkey,
 pub state_root: [u8; 32],
 /// Epoch for which this account was created.
 pub epoch: u64,
-/// 254 failing 255 failed 0 pending 1 executed 2 finality
+/// 254 failing 255 failed 1 pending 2 executed 3 finality
 pub status: Status,
-#[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::Bytes>"))]
-pub hash: [u8; 64],
 }
 
 

@@ -6,8 +6,9 @@
 pragma solidity ^0.8.0;
 
 import './interfaces/IEvmProxy.sol';
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-contract EvmProxy is IEvmProxy {
+contract EvmProxy is IEvmProxy, IERC721Receiver {
 	address public factory;
 	uint16 public sourceChain;
 	bytes32 public sourceAddress;
@@ -37,4 +38,8 @@ contract EvmProxy is IEvmProxy {
 		}
 	}
 	receive() external payable {}
+
+	function onERC721Received(address, address, uint256, bytes calldata) external pure returns (bytes4) {
+		return IERC721Receiver.onERC721Received.selector;
+	}
 }

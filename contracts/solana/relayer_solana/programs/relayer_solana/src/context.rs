@@ -224,8 +224,40 @@ pub struct RawData {
     pub paras: Vec<u8>,
     pub acc_meta: Vec<u8>,
 }
-type HelloWorldVaa = wormhole::PostedVaa<RawData>;
 
+#[derive(AnchorSerialize, AnchorDeserialize, Debug, Clone)]
+pub struct Payload {
+    pub head: [u8;8],
+    pub raw_data: RawData,
+}
+type HelloWorldVaa = wormhole::PostedVaa<Payload>;
+
+#[derive(AnchorSerialize, AnchorDeserialize, Debug, Clone)]
+pub struct RemainInstruct {
+    pub programId: Pubkey,
+    pub acc_count: u8,
+    pub accounts: Vec<AccountMetaType>,
+    pub paras: Vec<u8>,
+    pub acc_meta: Vec<u8>,
+}
+#[derive(AnchorSerialize, AnchorDeserialize, Debug, Clone)]
+pub struct RawDataV2 {
+    pub chain_id: u16,
+    pub caller: Pubkey,
+    pub programId: Pubkey,
+    pub acc_count: u8,
+    pub accounts: Vec<AccountMetaType>,
+    pub paras: Vec<u8>,
+    pub acc_meta: Vec<u8>,
+    pub remains: Vec<RemainInstruct>,
+}
+#[derive(AnchorSerialize, AnchorDeserialize, Debug, Clone)]
+pub struct PayloadV2 {
+    pub head: [u8;8],
+    pub raw_data: RawDataV2,
+}
+
+type MultiVaa = wormhole::PostedVaa<PayloadV2>;
 #[derive(Accounts)]
 #[instruction(vaa_hash: [u8; 32])]
 pub struct ReceiveMessage<'info> {
@@ -298,6 +330,73 @@ pub struct ReceiveMessage2<'info> {
     #[account(mut)]
     /// Payer will initialize an account that tracks his own message IDs.
     pub payer: Signer<'info>,
+
+    /// System program.
+    pub system_program: Program<'info, System>,
+
+    /// CHECK: This is not dangerous because we don't read or write from this account
+    pub program_account: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(vaa_hash: [u8; 32])]
+pub struct ReceiveMessage3<'info> {
+    #[account(mut)]
+    /// Payer will initialize an account that tracks his own message IDs.
+    pub payer: Signer<'info>,
+
+    #[account(
+    seeds = [Config::SEED_PREFIX],
+    bump,
+    )]
+    /// Config account. Wormhole PDAs specified in the config are checked
+    /// against the Wormhole accounts in this context. Read-only.
+    pub config: Account<'info, Config>,
+
+    // Wormhole program.
+    pub wormhole_program: Program<'info, Wormhole>,
+
+    #[account(
+    seeds = [
+    wormhole::SEED_PREFIX_POSTED_VAA,
+    &vaa_hash
+    ],
+    bump,
+    seeds::program = wormhole_program.key
+    )]
+    /// Verified Wormhole message account. The Wormhole program verified
+    /// signatures and posted the account data here. Read-only.
+    pub posted: Account<'info, MultiVaa>,
+
+    #[account(
+    seeds = [
+    ForeignEmitter::SEED_PREFIX,
+    &posted.emitter_chain().to_le_bytes()[..]
+    ],
+    bump,
+    constraint = foreign_emitter.verify(posted.emitter_address()) @ HelloWorldError::InvalidForeignEmitter
+    )]
+    /// Foreign emitter account. The posted message's `emitter_address` must
+    /// agree with the one we have registered for this message's `emitter_chain`
+    /// (chain ID). Read-only.
+    pub foreign_emitter: Account<'info, ForeignEmitter>,
+
+    #[account(
+    init,
+    payer = payer,
+    seeds = [
+    Received::SEED_PREFIX,
+    &posted.emitter_chain().to_le_bytes()[..],
+    &posted.sequence().to_le_bytes()[..]
+    ],
+    bump,
+    space = Received::MAXIMUM_SIZE
+    )]
+    /// Received account. [`receive_message`](crate::receive_message) will
+    /// deserialize the Wormhole message's payload and save it to this account.
+    /// This account cannot be overwritten, and will prevent Wormhole message
+    /// replay with the same sequence.
+    pub received: Account<'info, Received>,
 
     /// System program.
     pub system_program: Program<'info, System>,

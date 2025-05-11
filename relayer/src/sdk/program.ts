@@ -13,13 +13,13 @@ export function createTokenBridgeRelayerProgramInterface(
     connection,
     publicKey: payer == undefined ? undefined : new PublicKey(payer),
   };
-    //   const idl = JSON.parse(
-    //     require("fs").readFileSync("../../idl/token_bridge_relayer.json", "utf8")
-    // );
+  const currentDirectory = process.cwd();
+
+  const idl = JSON.parse(
+      require("fs").readFileSync(currentDirectory + "/target/idl/token_bridge_relayer.json", "utf8")
+  );
   return new Program<TokenBridgeRelayer>(
-      IDL as any,
-    // idl as any,
-    // new PublicKey(programId),
-    // provider
+    idl as any,
+    provider
   );
 }

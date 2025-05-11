@@ -21,13 +21,19 @@ pub async fn wait_for_next_epoch(rpc_client: &RpcClient) -> Result<()> {
     let current_epoch = rpc_client.get_epoch_info()?.epoch;
 
     loop {
-        tokio::time::sleep(Duration::from_secs(10)).await; // Check every 10 seconds
-        let new_epoch = rpc_client.get_epoch_info()?.epoch;
+        tokio::time::sleep(Duration::from_secs(20)).await; // Check every 20 seconds
 
-        if new_epoch > current_epoch {
-            info!("New epoch detected: {} -> {}", current_epoch, new_epoch);
-            return Ok(());
+        let epoch_info = rpc_client.get_epoch_info();
+
+        if let Ok(epoch_info) = epoch_info {
+            let new_epoch = epoch_info.epoch;
+
+            if new_epoch > current_epoch {
+                info!("New epoch detected: {} -> {}", current_epoch, new_epoch);
+                return Ok(());
+            }
         }
+
     }
 }
 
@@ -66,6 +72,7 @@ pub async fn process_epoch(
     // Find transactions that are in the Executed or Failing state in a certain epoch.
     let mut state_root = [0u8;32];
     let mut hashs = vec![];
+
     if let Ok((begin_sequence, current_sequence))= get_all_can_finalize_tx(client, previous_epoch).await {
         for i in begin_sequence..=current_sequence {
             let tx = get_tx(client, i).await?;
@@ -84,7 +91,8 @@ pub async fn process_epoch(
             let mt = MerkleTree::new(&byte_vecs, false);
             let root = mt.get_root().unwrap().to_bytes();
             for sequence in sequences{
-                do_finalize_transaction(client, sequence, payer, true, state_root)
+                let tx = get_tx(client, sequence).await?;
+                do_finalize_transaction(client, tx.emitter_chain, tx.emitter_address, tx.emitter_sequence, payer, true, state_root)
                     .await?;
                 // let status = get_tx_status(client, sequence).await?;
                 // assert_eq!(status, Status::Finality);

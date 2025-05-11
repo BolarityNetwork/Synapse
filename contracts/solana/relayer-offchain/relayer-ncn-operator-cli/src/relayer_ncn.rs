@@ -13,7 +13,7 @@ use solana_sdk::{
     signer::Signer,
     transaction::Transaction,
 };
-use relayer_hub_client::accounts::{EpochSequence, FinalTransaction};
+use relayer_hub_client::accounts::{EpochSequence, ExtendTransaction, FinalTransaction};
 use relayer_hub_client::programs::RELAYER_HUB_ID as relayer_hub_program_id;
 use relayer_hub_client::types::Status;
 use relayer_hub_client::accounts::Transaction as HubTransaction;
@@ -93,11 +93,15 @@ pub async fn get_all_can_finalize_tx(
 
 pub async fn get_tx_status(
     client: &EllipsisClient,
+    chain: u16,
+    chain_address: [u8;32],
     sequence: u64,
 ) -> EllipsisClientResult<Status> {
     let (pool_address, _) =
         relayer_hub_sdk::derive_transaction_account_address(
             &relayer_hub_program_id,
+            chain,
+            chain_address,
             sequence
         );
 
@@ -113,9 +117,9 @@ pub async fn get_tx_status(
 pub async fn get_tx(
     client: &EllipsisClient,
     sequence: u64,
-) -> EllipsisClientResult<HubTransaction> {
+) -> EllipsisClientResult<ExtendTransaction> {
     let (pool_address, _) =
-        relayer_hub_sdk::derive_transaction_account_address(
+        relayer_hub_sdk::derive_ext_transaction_account_address(
             &relayer_hub_program_id,
             sequence
         );
@@ -124,13 +128,15 @@ pub async fn get_tx(
         .get_account(&pool_address)
         .await?;
     let mut pool_account_data = pool_account.data.as_slice();
-    let tx = HubTransaction::from_bytes(&mut pool_account_data)?;
+    let tx = ExtendTransaction::from_bytes(&mut pool_account_data)?;
 
     Ok(tx)
 }
 
 pub async fn do_finalize_transaction(
     client: &EllipsisClient,
+    chain: u16,
+    chain_address: [u8;32],
     sequence: u64,
     payer: &Keypair,
     finalize: bool,
@@ -138,7 +144,7 @@ pub async fn do_finalize_transaction(
 ) -> EllipsisClientResult<Signature> {
     let system_program = solana_program::system_program::id();
     let (hub_config, _) =relayer_hub_sdk::derive_config_account_address(&relayer_hub_program_id);
-    let (transaction, _) =relayer_hub_sdk::derive_transaction_account_address(&relayer_hub_program_id, sequence);
+    let (transaction, _) =relayer_hub_sdk::derive_transaction_account_address(&relayer_hub_program_id, chain, chain_address, sequence);
 
     finalize_transaction(
         client,
