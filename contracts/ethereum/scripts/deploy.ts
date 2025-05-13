@@ -577,8 +577,9 @@ async function main() {
     //     addressKey,
     //     true,
     // );
+    const USDC_Mint = new PublicKey("8zGuJQqwhZafTah7Uc7Z4tXRnguqkn5KLFAP8oV6PHe2");
     const usdcTokenAta = getAssociatedTokenAddressSync(
-        new PublicKey("8zGuJQqwhZafTah7Uc7Z4tXRnguqkn5KLFAP8oV6PHe2"), // usdc mint
+        USDC_Mint, // usdc mint
         addressKey,
         true,
     );
@@ -610,75 +611,134 @@ async function main() {
     // });
     // receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, Buffer.from(hexStringToUint8Array(rawPayload))]));
     // console.log(receipt.hash)
-    // ============================create ata account=========================================
-    const encodedParams = Buffer.from([1]);
-
+//     // ============================create ata account=========================================
+//     const encodedParams = Buffer.from([1]);
+//
+//     let accountMetaList = [
+//         {writeable:true, is_signer:true}, // payer
+//         {writeable:true, is_signer:false}, // associatedToken
+//         {writeable:false, is_signer:false}, // owner
+//         {writeable:false, is_signer:false}, // mint
+//         {writeable:false, is_signer:false}, // SystemProgram
+//         {writeable:false, is_signer:false}, // token programId
+//     ]
+//   const encodeMeta = borsh.serialize(AccountMeta, accountMetaList);
+//   const realForeignEmitter = deriveAddress(
+//     [
+//         Buffer.from("pda"),
+//         (() => {
+//             const buf = Buffer.alloc(2);
+//             buf.writeUInt16LE(realForeignEmitterChain);
+//             return buf;
+//         })(),
+//         ethAddress,
+//     ],
+//     HELLO_WORLD_PID
+// );
+//   const RawData = {
+//       chain_id: realForeignEmitterChain,
+//       caller: ethAddress,
+//       programId:new PublicKey(ASSOCIATED_TOKEN_PROGRAM_ID).toBuffer(),
+//       acc_count:6,
+//       accounts:[
+//           {
+//               key: realForeignEmitter.toBuffer(),  // payer
+//               isWritable:accountMetaList[0].writeable,
+//               isSigner: accountMetaList[0].is_signer,
+//           },
+//           {
+//               key: new PublicKey(usdcTokenAta).toBuffer(), // associatedToken
+//               isWritable:accountMetaList[1].writeable,
+//               isSigner: accountMetaList[1].is_signer,
+//           },
+//           {
+//               key: realForeignEmitter.toBuffer(),  //owner
+//               isWritable:accountMetaList[2].writeable,
+//               isSigner: accountMetaList[2].is_signer,
+//           },
+//           {
+//               key: new PublicKey("8zGuJQqwhZafTah7Uc7Z4tXRnguqkn5KLFAP8oV6PHe2").toBuffer(), // usdc mint
+//               isWritable:accountMetaList[3].writeable,
+//               isSigner: accountMetaList[3].is_signer,
+//           },
+//           {
+//               key: new PublicKey("11111111111111111111111111111111").toBuffer(), // SYSTEM_PROGRAM_ID
+//               isWritable:accountMetaList[4].writeable,
+//               isSigner: accountMetaList[4].is_signer,
+//           },
+//           {
+//               key: new PublicKey(TOKEN_PROGRAM_ID).toBuffer(),
+//               isWritable:accountMetaList[5].writeable,
+//               isSigner: accountMetaList[5].is_signer,
+//           },
+//       ],
+//       paras:encodedParams,
+//       acc_meta:Buffer.from(encodeMeta),
+//   };
+//   const RawDataEncoded = Buffer.from(borsh.serialize(RawDataSchema, RawData));
+//   const uniProxy_factory = await ethers.getContractFactory("UniProxy");
+//   const UniProxy = await uniProxy_factory.attach(RELAYER_SEPOLIA_CONTRACT);
+//   const receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, RawDataEncoded]));
+//   console.log(receipt.hash)
+    // ===============================transfer usdc====================================================
+    const paras = Buffer.from([0x0c]);
+    const amountBuf = Buffer.alloc(8);
+    amountBuf.writeBigUint64LE(BigInt(1000000),0);  // transfer 1 udsc
+    const decimalBuf = Buffer.alloc(1);
+    decimalBuf.writeUint8(6);  // udsc 6 decimals
+    const encodedParams = Buffer.concat([paras, amountBuf, decimalBuf]);
     let accountMetaList = [
-        {writeable:true, is_signer:true}, // payer
-        {writeable:true, is_signer:false}, // associatedToken
-        {writeable:false, is_signer:false}, // owner
+        {writeable:true, is_signer:false}, // ata
         {writeable:false, is_signer:false}, // mint
-        {writeable:false, is_signer:false}, // SystemProgram
-        {writeable:false, is_signer:false}, // token programId
-    ]
-  const encodeMeta = borsh.serialize(AccountMeta, accountMetaList);
-  const realForeignEmitter = deriveAddress(
-    [
-        Buffer.from("pda"),
-        (() => {
-            const buf = Buffer.alloc(2);
-            buf.writeUInt16LE(realForeignEmitterChain);
-            return buf;
-        })(),
-        ethAddress,
-    ],
-    HELLO_WORLD_PID
-);
-  const RawData = {
-      chain_id: realForeignEmitterChain,
-      caller: ethAddress,
-      programId:new PublicKey(ASSOCIATED_TOKEN_PROGRAM_ID).toBuffer(),
-      acc_count:6,
-      accounts:[
-          {
-              key: realForeignEmitter.toBuffer(),  // payer
-              isWritable:accountMetaList[0].writeable,
-              isSigner: accountMetaList[0].is_signer,
-          },
-          {
-              key: new PublicKey(usdcTokenAta).toBuffer(), // associatedToken
-              isWritable:accountMetaList[1].writeable,
-              isSigner: accountMetaList[1].is_signer,
-          },
-          {
-              key: realForeignEmitter.toBuffer(),  //owner
-              isWritable:accountMetaList[2].writeable,
-              isSigner: accountMetaList[2].is_signer,
-          },
-          {
-              key: new PublicKey("8zGuJQqwhZafTah7Uc7Z4tXRnguqkn5KLFAP8oV6PHe2").toBuffer(), // usdc mint
-              isWritable:accountMetaList[3].writeable,
-              isSigner: accountMetaList[3].is_signer,
-          },
-          {
-              key: new PublicKey("11111111111111111111111111111111").toBuffer(), // SYSTEM_PROGRAM_ID
-              isWritable:accountMetaList[4].writeable,
-              isSigner: accountMetaList[4].is_signer,
-          },
-          {
-              key: new PublicKey(TOKEN_PROGRAM_ID).toBuffer(),
-              isWritable:accountMetaList[5].writeable,
-              isSigner: accountMetaList[5].is_signer,
-          },
-      ],
-      paras:encodedParams,
-      acc_meta:Buffer.from(encodeMeta),
-  };
-  const RawDataEncoded = Buffer.from(borsh.serialize(RawDataSchema, RawData));
-  const uniProxy_factory = await ethers.getContractFactory("UniProxy");
-  const UniProxy = await uniProxy_factory.attach(RELAYER_SEPOLIA_CONTRACT);
-  const receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, RawDataEncoded]));
-  console.log(receipt.hash)
+        {writeable:true, is_signer:false}, // dst
+        {writeable:true, is_signer:true}, // signer
+        {writeable:true, is_signer:true}  // signer
+    ];
+    const encodeMeta = borsh.serialize(AccountMeta, accountMetaList);
+    const RawData = {
+        chain_id: realForeignEmitterChain,
+        caller: ethAddress,
+        programId:new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").toBuffer(),
+        acc_count:5,
+        accounts:[
+            {
+                key: usdcTokenAta.toBuffer(),    // proxy account ata account
+                isWritable:accountMetaList[0].writeable,
+                isSigner: accountMetaList[0].is_signer,
+            },
+            {
+                key: USDC_Mint.toBuffer(),      // usdc mint,or btc mint, or other...
+                isWritable:accountMetaList[1].writeable,
+                isSigner: accountMetaList[1].is_signer,
+            },
+            {
+                key: new PublicKey("Ag7kX4YCLXzsSXaHQxQQTHhLswX2HNsPLkxMvDtccgaw").toBuffer(), // dest ata address
+                isWritable:accountMetaList[2].writeable,
+                isSigner: accountMetaList[2].is_signer,
+            },
+            {
+                key: addressKey.toBuffer(),
+                isWritable:accountMetaList[3].writeable,
+                isSigner: accountMetaList[3].is_signer,
+            },
+            {
+                key: addressKey.toBuffer(),
+                isWritable:accountMetaList[4].writeable,
+                isSigner: accountMetaList[4].is_signer,
+            },
+        ],
+        paras:encodedParams,
+        acc_meta:Buffer.from(encodeMeta),
+    };
+    const RawDataEncoded = Buffer.from(borsh.serialize(RawDataSchema, RawData));
+    const uniProxy_factory = await ethers.getContractFactory("UniProxy");
+    const UniProxy = await uniProxy_factory.attach(RELAYER_SEPOLIA_CONTRACT);
+    const receipt = await UniProxy.sendMessage(Buffer.concat([sepoliaPayloadHead, RawDataEncoded]));
+    console.log(receipt.hash)
+
+
+
+
 //     //Activation Address
 //     const paras = sha256("active").slice(0, 8);
 //     const encodedParams = Buffer.concat([paras]);
