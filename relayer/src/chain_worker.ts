@@ -14,20 +14,21 @@ const mutex = new Mutex();
 async function createNestedWorker(task: any) {
     return new Promise<void>((resolve, reject) => {
         const nestedWorker = new Worker(MESSAGE_WORKER_FILE);
-
+        const { taskId } = task;
+        console.log(`=====================================Nested worker ${taskId} created=====================================`);
         nestedWorker.on("message", msg => {
             if (msg.startsWith("done:")) {
-                console.log("Nested worker has completed its task.");
+                console.log(`Nested worker ${taskId} has completed its task.`);
                 parentPort?.postMessage(msg);
                 resolve();
             }
         });
         nestedWorker.on("error", error => {
-            console.error("Nested worker error:", error);
+            console.error(`Nested worker ${taskId} error:`, error);
             reject(error);
         });
         nestedWorker.on("exit", code => {
-            console.log(`Nested worker stopped with exit code ${code}`);
+            console.log(`Nested worker ${taskId} stopped with exit code ${code}`);
             if (code !== 0) {
                 reject(new Error(`Worker stopped with exit code ${code}`));
             }
@@ -38,22 +39,26 @@ async function createNestedWorker(task: any) {
 
 async function processQueue() {
     while (true) {
-        await new Promise(resolve => setTimeout(resolve, 100));
         await mutex.lock();
         if (!queue.isEmpty()) {
+            const promises = [];
             for(let i = 0; i < MAX_THREAD; i++) {
                 const item = queue.dequeue();
+                if (!item) break; // Break if queue is empty.
                 // Allocate a thread to perform message relay.
                 const { vaa } = item.arg;
-                try {
-                    await createNestedWorker({ taskId:i, vaa});
-                } catch (error) {
-                    console.error('Error processing task:', error);
-                }
+                promises.push(createNestedWorker({ taskId: i, vaa }));
                 if (queue.isEmpty()) {
                     break
                 }
             }
+            try {
+                await Promise.all(promises);
+            } catch (error) {
+                console.error('Error processing task:', error);
+            }
+        } else {
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
         mutex.unlock();
     }

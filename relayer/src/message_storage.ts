@@ -234,15 +234,15 @@ export class MessageStorage {
         emitterAddress: string,
     ): Promise<bigint | undefined> {
         let sequence = BigInt(0);
-        await this.redisPool.use(
-            async redis => {
-                try {
-                    sequence = await tryGetLastSafeSequence(redis, this.prefix, emitterChain, emitterAddress);
-                } catch (error) {
-                    console.log(`Got last safe sequence error: ${error}`);
-                }
-            }
-        );
+        // await this.redisPool.use(
+        //     async redis => {
+        //         try {
+        //             sequence = await tryGetLastSafeSequence(redis, this.prefix, emitterChain, emitterAddress);
+        //         } catch (error) {
+        //             console.log(`Got last safe sequence error: ${error}`);
+        //         }
+        //     }
+        // );
         return sequence;
     }
 
