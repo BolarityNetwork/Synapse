@@ -2,29 +2,33 @@
 
 [move]
 version = 3
-manifest_digest = "34EE34BA7665387382C5D1C6931BD4093590C3BDD59BCA076947BDD8A37C090C"
-deps_digest = "3C4103934B1E040BB6B23F1D610B4EF9F2F1166A50A104EADCF77467C004C600"
+manifest_digest = "0E1207C1D360B92DF47C3749A1F76418919D9673F2F65FD69947E1B9FF18190B"
+deps_digest = "F8BBB0CCB2491CA29A3DF03D6F92277A4F3574266507ACD77214D37ECA3F3082"
 dependencies = [
   { id = "Sui", name = "Sui" },
-  { id = "Wormhole", name = "Wormhole" },
 ]
 
 [[move.package]]
 id = "MoveStdlib"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "041c5f2bae2fe52079e44b70514333532d69f4e6", subdir = "crates/sui-framework/packages/move-stdlib" }
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "framework/testnet", subdir = "crates/sui-framework/packages/move-stdlib" }
 
 [[move.package]]
 id = "Sui"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "041c5f2bae2fe52079e44b70514333532d69f4e6", subdir = "crates/sui-framework/packages/sui-framework" }
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "framework/testnet", subdir = "crates/sui-framework/packages/sui-framework" }
 
 dependencies = [
   { id = "MoveStdlib", name = "MoveStdlib" },
 ]
 
-[[move.package]]
-id = "Wormhole"
-source = { git = "https://github.com/wormhole-foundation/wormhole.git", rev = "main", subdir = "sui/wormhole" }
+[move.toolchain-version]
+compiler-version = "1.49.1"
+edition = "2024.beta"
+flavor = "sui"
 
-dependencies = [
-  { id = "Sui", name = "Sui" },
-]
+[env]
+
+[env.testnet]
+chain-id = "4c78adac"
+original-published-id = "0x95400a93cacc6f556665a0bdc085dd6935e3923e7387a462c9a041227710a2f9"
+latest-published-id = "0x95400a93cacc6f556665a0bdc085dd6935e3923e7387a462c9a041227710a2f9"
+published-version = "1"
