@@ -4,8 +4,10 @@ const winston = require('winston');
 require('winston-daily-rotate-file');
 
 function formatTimestamp(timestamp: string): string {
-    const timestampNumber = Number(timestamp);
-
+    let timestampNumber = Number(timestamp);
+    if(timestampNumber.toString().length == 10) {
+        timestampNumber = timestampNumber*1000;
+    }
     const date = new Date(timestampNumber);
 
     const options: Intl.DateTimeFormatOptions = {
@@ -65,7 +67,7 @@ const readFromRedis = async (logStorage:LogStorage) => {
 
 const logStorage = new LogStorage();
 
-setInterval(() => {readFromRedis(logStorage)}, 5000);
+setInterval(() => {readFromRedis(logStorage)}, 1000);
 // setInterval(() => {writeToRedis(logStorage)}, 5000);
 
 process.on('SIGINT', () => {
