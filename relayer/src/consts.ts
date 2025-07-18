@@ -10,6 +10,8 @@ export const RELAYER_SOLANA_PROGRAM = process.env.RELAYER_SOLANA_PROGRAM!;
 export const RELAYER_SEPOLIA_PROGRAM= process.env.RELAYER_SEPOLIA_PROGRAM!;
 export const RELAYER_BASE_SEPOLIA_PROGRAM= process.env.RELAYER_BASE_SEPOLIA_PROGRAM!;
 export const CROSS_SECRET = process.env.CROSS_SECRET!;
+export const RELAYER_BASE_PROGRAM= process.env.RELAYER_BASE_PROGRAM!;
+
 
 export const CHAIN_WORKER_FILE = process.env.CHAIN_WORKER_FILE!;
 export const MESSAGE_WORKER_FILE = process.env.MESSAGE_WORKER_FILE!;

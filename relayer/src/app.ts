@@ -9,6 +9,7 @@ import {
 } from "@solana/web3.js";
 import {
 	CHAIN_ID_SOLANA, CHAIN_ID_SEPOLIA, tryNativeToHexString, TokenBridgePayload, CHAIN_ID_BASE_SEPOLIA, parseVaa,
+	CHAIN_ID_BASE
 } from "@certusone/wormhole-sdk";
 import {
 	RELAYER_SOLANA_SECRET,
@@ -21,6 +22,7 @@ import {
 	TOKEN_BRIDGE_RELAYER_SOLANA_PID,
 	TOKEN_BRIDGE_RELAYER_SEPOLIA_PID,
 	RELAYER_BASE_SEPOLIA_PROGRAM,
+	RELAYER_BASE_PROGRAM,
 } from "./consts";
 import {
 	get_relayer_of_current_epoch,
@@ -133,9 +135,10 @@ const defaultStdOpts = {
 
 	app.multiple(
 		{
-			[CHAIN_ID_SOLANA]: [RELAYER_SOLANA_PROGRAM, TOKEN_BRIDGE_SOLANA_PID],
-			[CHAIN_ID_SEPOLIA]: [RELAYER_SEPOLIA_PROGRAM, RELAYER_SEPOLIA_PROGRAM],
-			[CHAIN_ID_BASE_SEPOLIA]: [RELAYER_BASE_SEPOLIA_PROGRAM],
+			// [CHAIN_ID_SOLANA]: [RELAYER_SOLANA_PROGRAM, TOKEN_BRIDGE_SOLANA_PID],
+			// [CHAIN_ID_SEPOLIA]: [RELAYER_SEPOLIA_PROGRAM, RELAYER_SEPOLIA_PROGRAM],
+			// [CHAIN_ID_BASE_SEPOLIA]: [RELAYER_BASE_SEPOLIA_PROGRAM],
+			[CHAIN_ID_BASE]: [RELAYER_BASE_PROGRAM],
 		},
 		async (ctx, next) => {
 			// Get vaa and check whether it has been executed. If not, continue processing.
@@ -149,62 +152,62 @@ const defaultStdOpts = {
 			console.log(
 				`===============Got a VAA: ${Buffer.from(ctx.vaaBytes).toString('hex')}=========================`,
 			);
-			// Filter out messages that do not need to be processed.
-			const tkBrgSolanaEmitter = PublicKey.findProgramAddressSync(
-				[Buffer.from("emitter")],
-				new PublicKey(TOKEN_BRIDGE_SOLANA_PID))[0].toBuffer();
-
-			const tkBrgSepoliaEmitter = rightAlignBuffer(Buffer.from(hexStringToUint8Array(TOKEN_BRIDGE_SEPOLIA_PID)));
-
-			console.log(`===============emitterAddress: ${Buffer.from(vaa.emitterAddress).toString('hex')}=========================`);
-			let skipProcess = false;
-			// Token bridge message.
-			if( ((vaa.emitterChain == CHAIN_ID_SOLANA) && (vaa.emitterAddress == tkBrgSolanaEmitter)) ||
-				((vaa.emitterChain == CHAIN_ID_SEPOLIA) && (vaa.emitterAddress == tkBrgSepoliaEmitter))) {
-				console.log(`=====emitterChain:${vaa.emitterChain}==========tkBrgSolanaEmitter: ${tkBrgSolanaEmitter.toString('hex')}=========================`);
-				console.log(`======emitterChain:${vaa.emitterChain}=========tkBrgSepoliaEmitter: ${tkBrgSepoliaEmitter.toString('hex')}=========================`);
-				switch (payload?.payloadType) {
-					case TokenBridgePayload.Transfer: {
-						// Only redeem solana's cross-chain transfer.
-						if (vaa.emitterChain != CHAIN_ID_SOLANA) {
-							skipProcess = true;
-						}
-					}
-					break;
-					case TokenBridgePayload.TransferWithPayload: {
-						if (vaa.emitterChain == CHAIN_ID_SOLANA) {
-							if (payload.to != rightAlignBuffer(
-								Buffer.from(hexStringToUint8Array(TOKEN_BRIDGE_RELAYER_SEPOLIA_PID)))) {
-								skipProcess = true;
-							}
-						} else if(vaa.emitterChain == CHAIN_ID_SEPOLIA) {
-							if (payload.to.toString("hex") != tryNativeToHexString(
-								TOKEN_BRIDGE_RELAYER_SOLANA_PID,
-								CHAIN_ID_SOLANA
-							)) {
-								skipProcess = true;
-							}
-						}
-					}
-					break;
-					default:{
-						skipProcess = true;
-					}
-				}
-			}
-
-			if(!skipProcess) {
-				let currentRelayer = await get_relayer_of_current_epoch(relayerHubProgram);
-				console.log(`================current relayer:${currentRelayer.toBase58()}, your relayer:${relayer.toBase58()}`);
-
-				if (currentRelayer.toBase58() == relayer.toBase58()) {
-					console.log("==============Now it's your turn to relay======================");
-					// First store message to redis.
-					let vaaAndTokenBridge = vaa.bytes.toString('hex');
-					let emitterAddress = vaa.emitterAddress.toString('hex');
-					await msgStorage.pushVaaToMsgQueue(vaa.emitterChain, emitterAddress, String(vaa.sequence), vaaAndTokenBridge);
-				}
-			}
+			// // Filter out messages that do not need to be processed.
+			// const tkBrgSolanaEmitter = PublicKey.findProgramAddressSync(
+			// 	[Buffer.from("emitter")],
+			// 	new PublicKey(TOKEN_BRIDGE_SOLANA_PID))[0].toBuffer();
+			//
+			// const tkBrgSepoliaEmitter = rightAlignBuffer(Buffer.from(hexStringToUint8Array(TOKEN_BRIDGE_SEPOLIA_PID)));
+			//
+			// console.log(`===============emitterAddress: ${Buffer.from(vaa.emitterAddress).toString('hex')}=========================`);
+			// let skipProcess = false;
+			// // Token bridge message.
+			// if( ((vaa.emitterChain == CHAIN_ID_SOLANA) && (vaa.emitterAddress == tkBrgSolanaEmitter)) ||
+			// 	((vaa.emitterChain == CHAIN_ID_SEPOLIA) && (vaa.emitterAddress == tkBrgSepoliaEmitter))) {
+			// 	console.log(`=====emitterChain:${vaa.emitterChain}==========tkBrgSolanaEmitter: ${tkBrgSolanaEmitter.toString('hex')}=========================`);
+			// 	console.log(`======emitterChain:${vaa.emitterChain}=========tkBrgSepoliaEmitter: ${tkBrgSepoliaEmitter.toString('hex')}=========================`);
+			// 	switch (payload?.payloadType) {
+			// 		case TokenBridgePayload.Transfer: {
+			// 			// Only redeem solana's cross-chain transfer.
+			// 			if (vaa.emitterChain != CHAIN_ID_SOLANA) {
+			// 				skipProcess = true;
+			// 			}
+			// 		}
+			// 		break;
+			// 		case TokenBridgePayload.TransferWithPayload: {
+			// 			if (vaa.emitterChain == CHAIN_ID_SOLANA) {
+			// 				if (payload.to != rightAlignBuffer(
+			// 					Buffer.from(hexStringToUint8Array(TOKEN_BRIDGE_RELAYER_SEPOLIA_PID)))) {
+			// 					skipProcess = true;
+			// 				}
+			// 			} else if(vaa.emitterChain == CHAIN_ID_SEPOLIA) {
+			// 				if (payload.to.toString("hex") != tryNativeToHexString(
+			// 					TOKEN_BRIDGE_RELAYER_SOLANA_PID,
+			// 					CHAIN_ID_SOLANA
+			// 				)) {
+			// 					skipProcess = true;
+			// 				}
+			// 			}
+			// 		}
+			// 		break;
+			// 		default:{
+			// 			skipProcess = true;
+			// 		}
+			// 	}
+			// }
+			//
+			// if(!skipProcess) {
+			// 	let currentRelayer = await get_relayer_of_current_epoch(relayerHubProgram);
+			// 	console.log(`================current relayer:${currentRelayer.toBase58()}, your relayer:${relayer.toBase58()}`);
+			//
+			// 	if (currentRelayer.toBase58() == relayer.toBase58()) {
+			// 		console.log("==============Now it's your turn to relay======================");
+			// 		// First store message to redis.
+			// 		let vaaAndTokenBridge = vaa.bytes.toString('hex');
+			// 		let emitterAddress = vaa.emitterAddress.toString('hex');
+			// 		await msgStorage.pushVaaToMsgQueue(vaa.emitterChain, emitterAddress, String(vaa.sequence), vaaAndTokenBridge);
+			// 	}
+			// }
 			next();
 		},
 	);
